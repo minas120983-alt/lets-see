@@ -1210,22 +1210,16 @@ $$U = E[R_p] - \\frac{\\gamma}{2}\\sigma_p^2 + \\lambda \\bar{s}$$
 | $\\lambda$ | ESG preference intensity |
 | $\\bar{s}$ | Weighted average ESG score of the portfolio |
 
----
-
 **ESG-Efficient Frontier**
 
-For each level of ESG score, the model finds the portfolio with the highest Sharpe ratio subject to meeting that ESG target. This produces a frontier in ESG–Sharpe space and shows the sustainability–performance trade-off.
-
----
+For each level of ESG score, the model finds the portfolio with the highest Sharpe ratio subject to meeting that ESG target. This produces a frontier in ESG–Sharpe space and shows the sustainability-performance trade-off.
 
 **Practical Input Modes**
 
-- **Manual input** allows you to enter expected returns, volatilities and correlations directly  
-- **Ticker-based input** estimates return and risk from historical market data using Yahoo Finance  
-- The app attempts to fetch ESG scores automatically  
-- If ESG data is unavailable, it falls back to your **manual ESG input**
-
----
+- **Manual input** allows you to enter expected returns, volatilities and correlations directly.
+- **Ticker-based input** estimates return and risk from historical market data using Yahoo Finance.
+- In ticker mode, the app tries to fetch ESG data automatically.
+- If automatic ESG data is unavailable, the app uses your **manual fallback ESG input** and shows a red prompt.
 
 **Installation note**
 
