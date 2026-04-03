@@ -655,48 +655,102 @@ if run:
         fig.tight_layout(); st.pyplot(fig); plt.close()
 
     with c2:
-        esg_sweep = np.linspace(float(np.min(esg_a)), float(np.max(esg_a)), 120)
-        sw_esg, sw_sr = [], []
-        for et in esg_sweep:
+        # ── ESG scores normalised to 0–1 for this chart (matching lecture diagram) ──
+        esg_a_norm  = esg_a  / 10.0          # active assets, 0–1
+        esg_all_norm = esg_scores / 10.0     # all assets,   0–1
+        esg_bar_norm = esg_bar / 10.0        # optimal portfolio ESG, 0–1
+
+        # Unconstrained tangency SR (ignoring ESG) — dot below the curve
+        sr_tan_ignore = sr_tan_all           # already computed above
+
+        # ESG of the standard tangency portfolio (no ESG weighting)
+        esg_tan_ignore_norm = float(w_tan_all @ esg_scores) / 10.0
+
+        # ESG-SR frontier: sweep minimum-ESG constraint from unconstrained → max
+        # Start from the fully unconstrained solution (no ESG floor) so curve
+        # rises from the left just like the lecture diagram.
+        esg_min_norm = float(np.min(esg_a_norm))
+        esg_max_norm = float(np.max(esg_a_norm))
+        esg_sweep_norm = np.linspace(esg_min_norm * 0.5, esg_max_norm, 150)
+
+        sw_esg_norm, sw_sr2 = [], []
+        for et_norm in esg_sweep_norm:
+            et = et_norm * 10.0   # back to 0–10 for the optimiser
             res = minimize(
                 lambda w: -port_sr(w, mu_a, cov_a, rf),
-                np.ones(len(mu_a))/len(mu_a), method="SLSQP",
-                bounds=[(0.,1.)]*len(mu_a),
+                np.ones(len(mu_a)) / len(mu_a), method="SLSQP",
+                bounds=[(0., 1.)] * len(mu_a),
                 constraints=[
-                    {"type":"eq",  "fun":lambda w: np.sum(w)-1},
-                    {"type":"ineq","fun":lambda w, t=et: float(w@esg_a)-t},
+                    {"type": "eq",   "fun": lambda w: np.sum(w) - 1},
+                    {"type": "ineq", "fun": lambda w, t=et: float(w @ esg_a) - t},
                 ],
-                options={"ftol":1e-9,"maxiter":400})
+                options={"ftol": 1e-9, "maxiter": 500})
             if res.success:
-                sw_esg.append(float(res.x @ esg_a))
-                sw_sr.append(port_sr(res.x, mu_a, cov_a, rf))
+                sw_esg_norm.append(float(res.x @ esg_a) / 10.0)
+                sw_sr2.append(port_sr(res.x, mu_a, cov_a, rf))
+
+        # Peak of the frontier = tangency using ESG information
+        esg_tan_esg_norm = float(w_tan_esg[active_mask] @ esg_a) / 10.0 \
+                           if active_mask.any() else esg_bar_norm
 
         fig2, ax2 = plt.subplots(figsize=(6.5, 5.5))
         fig2.patch.set_facecolor(BG); ax2.set_facecolor(BG)
-        if sw_esg:
-            ax2.plot(sw_esg, sw_sr, color=GREEN, lw=2.5, label='ESG–Sharpe frontier')
-            ax2.fill_between(sw_esg, sw_sr, alpha=0.1, color=GREEN)
-        for i in range(len(mu_a)):
-            sr_i = (mu_a[i]-rf)/vols_a[i]
-            ax2.scatter(esg_a[i], sr_i, color='#88b179', s=65, zorder=5,
-                        edgecolors='#2d6a2d', lw=1)
-            ax2.annotate(names_a[i], (esg_a[i], sr_i),
-                         textcoords="offset points", xytext=(5,4),
-                         fontsize=7.5, color='#2d4a2d')
 
-        esg_tan_esg_val = float(w_tan_esg[active_mask] @ esg_a) if active_mask.any() else esg_bar
-        ax2.scatter(esg_tan_esg_val, sr_tan_esg, color=GREEN, s=130, zorder=9,
-                    edgecolors='white', lw=1.5, marker='*', label='Tangency (ESG screen)')
-        ax2.scatter(esg_bar, sr, color=ORANGE, s=150, zorder=10,
-                    edgecolors='white', lw=2, label='ESG-Optimal')
+        # Frontier curve
+        if sw_esg_norm:
+            ax2.plot(sw_esg_norm, sw_sr2, color=BLUE, lw=2.5,
+                     label='ESG-SR frontier')
 
-        ax2.set_xlabel("Portfolio ESG Score (0–10)", fontsize=9, color='#2d4a2d')
-        ax2.set_ylabel("Sharpe Ratio", fontsize=9, color='#2d4a2d')
-        ax2.set_title("ESG Score vs Sharpe Ratio", fontsize=11, fontweight='bold',
+        # Individual assets as dots (all assets, not just active)
+        for i in range(n):
+            sr_i   = (mu[i] - rf) / vols[i]
+            col_pt = '#1a4a8a' if active_mask[i] else '#c0392b'  # blue=included, red=excluded
+            ax2.scatter(esg_all_norm[i], sr_i, color=col_pt, s=70, zorder=5,
+                        edgecolors='white', lw=0.8)
+            ax2.annotate(names[i], (esg_all_norm[i], sr_i),
+                         textcoords="offset points", xytext=(5, 4),
+                         fontsize=7, color='#2d4a2d')
+
+        # Tangency ignoring ESG information (standard tangency, dark filled dot)
+        ax2.scatter(esg_tan_ignore_norm, sr_tan_ignore,
+                    color='#1a3a6a', s=140, zorder=9, edgecolors='white', lw=1.5)
+        ax2.annotate('Tangency portfolio\nignoring ESG information',
+                     (esg_tan_ignore_norm, sr_tan_ignore),
+                     textcoords="offset points", xytext=(8, -28),
+                     fontsize=7.5, color='#1a3a6a',
+                     arrowprops=dict(arrowstyle='->', color='#1a3a6a', lw=0.8))
+
+        # Tangency using ESG information (peak of frontier, large dot on curve)
+        ax2.scatter(esg_tan_esg_norm, sr_tan_esg,
+                    color=GREEN, s=140, zorder=10, edgecolors='white', lw=1.5)
+        ax2.annotate('Tangency portfolio\nusing ESG information',
+                     (esg_tan_esg_norm, sr_tan_esg),
+                     textcoords="offset points", xytext=(8, 8),
+                     fontsize=7.5, color=GREEN,
+                     arrowprops=dict(arrowstyle='->', color=GREEN, lw=0.8))
+
+        # ESG-efficient frontier label (right side of curve, dashed x-marks region)
+        if sw_esg_norm:
+            peak_idx = int(np.argmax(sw_sr2))
+            xs_right = [x for x, s in zip(sw_esg_norm, sw_sr2) if x >= sw_esg_norm[peak_idx]]
+            ys_right = [s for x, s in zip(sw_esg_norm, sw_sr2) if x >= sw_esg_norm[peak_idx]]
+            if xs_right:
+                ax2.plot(xs_right, ys_right, 'x', color=BLUE, ms=4, mew=1.2, zorder=6)
+            ax2.annotate('ESG-efficient\nfrontier',
+                         (xs_right[-1] if xs_right else esg_max_norm,
+                          ys_right[-1] if ys_right else sw_sr2[-1]),
+                         textcoords="offset points", xytext=(8, 10),
+                         fontsize=7.5, color=BLUE,
+                         arrowprops=dict(arrowstyle='->', color=BLUE, lw=0.8))
+
+        ax2.set_xlabel("ESG Score (0–1)", fontsize=9, color='#2d4a2d')
+        ax2.set_ylabel("Sharpe Ratio",    fontsize=9, color='#2d4a2d')
+        ax2.set_title("ESG-SR Frontier", fontsize=11, fontweight='bold',
                       color='#1a2e1a', pad=10)
+        ax2.set_xlim(0, 1)
+        ax2.set_ylim(bottom=0)
         ax2.tick_params(colors='#5a7a5a', labelsize=8)
         for sp_ in ax2.spines.values(): sp_.set_color('#c8d8b8')
-        ax2.legend(fontsize=8, framealpha=0.9, facecolor=BG, edgecolor='#c8d8b8')
         ax2.grid(True, alpha=0.3, color='#c8d8b8', linestyle='--')
         fig2.tight_layout(); st.pyplot(fig2); plt.close()
 
