@@ -151,6 +151,15 @@ h1, h2, h3, h4, h5, h6, p, div, label, span {
     font-size: 0.9rem;
     color: #5a4010;
 }
+.error-box {
+    background: #fdeceb;
+    border-left: 4px solid #c0392b;
+    border-radius: 0 8px 8px 0;
+    padding: 0.85rem 1rem;
+    margin: 0.6rem 0;
+    font-size: 0.9rem;
+    color: #7a1f17;
+}
 
 /* Cards */
 .metric-card {
@@ -365,6 +374,7 @@ def find_optimal(mu, cov, esg_scores, rf, gamma, lam):
     return res.x if res.success else w0
 
 
+@st.cache_data(show_spinner=False)
 def fetch_market_data(tickers, period="3y"):
     """Fetch historical price data and estimate annualised stats."""
     raw = yf.download(
@@ -419,6 +429,132 @@ def nearest_psd(matrix):
     eigvals, eigvecs = np.linalg.eigh(matrix)
     eigvals[eigvals < 1e-8] = 1e-8
     return eigvecs @ np.diag(eigvals) @ eigvecs.T
+
+
+def normalise_sustainability_df(sus_df):
+    """Convert yfinance sustainability output into a simple Series."""
+    if sus_df is None or len(sus_df) == 0:
+        return None
+
+    try:
+        if isinstance(sus_df, pd.Series):
+            return sus_df
+
+        if isinstance(sus_df, pd.DataFrame):
+            # Common case: metrics are in the index and values are in the first column
+            if sus_df.shape[1] >= 1:
+                if sus_df.shape[1] == 1:
+                    return sus_df.iloc[:, 0]
+                # If one of the columns looks like the value column, use it
+                value_like_cols = [c for c in sus_df.columns if str(c).lower() in ["value", "score", "esg"]]
+                if value_like_cols:
+                    return sus_df[value_like_cols[0]]
+                return sus_df.iloc[:, 0]
+
+        return None
+    except Exception:
+        return None
+
+
+def get_series_value(series, key):
+    """Robust key access from sustainability Series."""
+    if series is None:
+        return None
+
+    possible_keys = [
+        key,
+        key.lower(),
+        key.upper(),
+        key.replace("_", ""),
+        key.replace("_", "").lower(),
+        key.replace("_", "").upper(),
+    ]
+
+    # direct key search
+    for idx in series.index:
+        idx_str = str(idx)
+        for pk in possible_keys:
+            if idx_str == pk:
+                val = series.loc[idx]
+                return val
+
+    # fuzzy search
+    for idx in series.index:
+        idx_str = str(idx).lower().replace("_", "").replace(" ", "")
+        target = key.lower().replace("_", "").replace(" ", "")
+        if idx_str == target:
+            val = series.loc[idx]
+            return val
+
+    return None
+
+
+def yahoo_total_esg_to_app_score(total_esg):
+    """
+    Convert Yahoo/Sustainalytics 'risk' style totalEsg into a 0-10 higher-is-better score.
+    Lower Sustainalytics risk -> higher app ESG score.
+    """
+    if total_esg is None or pd.isna(total_esg):
+        return None
+    score = 10.0 - (float(total_esg) / 10.0)
+    return float(np.clip(score, 0.0, 10.0))
+
+
+@st.cache_data(show_spinner=False)
+def fetch_esg_for_ticker(ticker):
+    """
+    Fetch sustainability data for one ticker using yfinance / Yahoo.
+    Returns a dict with raw Yahoo metrics and converted app ESG score.
+    """
+    result = {
+        "ticker": ticker,
+        "yahoo_total_esg": None,
+        "environment_score": None,
+        "social_score": None,
+        "governance_score": None,
+        "rating_year": None,
+        "rating_month": None,
+        "app_esg": None,
+        "has_esg": False,
+        "error": None,
+    }
+
+    try:
+        tk = yf.Ticker(ticker)
+        sus = tk.sustainability
+        s = normalise_sustainability_df(sus)
+
+        if s is None or len(s) == 0:
+            return result
+
+        total_esg = get_series_value(s, "totalEsg")
+        env = get_series_value(s, "environmentScore")
+        soc = get_series_value(s, "socialScore")
+        gov = get_series_value(s, "governanceScore")
+        ry = get_series_value(s, "ratingYear")
+        rm = get_series_value(s, "ratingMonth")
+
+        result["yahoo_total_esg"] = float(total_esg) if total_esg is not None and pd.notna(total_esg) else None
+        result["environment_score"] = float(env) if env is not None and pd.notna(env) else None
+        result["social_score"] = float(soc) if soc is not None and pd.notna(soc) else None
+        result["governance_score"] = float(gov) if gov is not None and pd.notna(gov) else None
+        result["rating_year"] = int(ry) if ry is not None and pd.notna(ry) else None
+        result["rating_month"] = int(rm) if rm is not None and pd.notna(rm) else None
+        result["app_esg"] = yahoo_total_esg_to_app_score(result["yahoo_total_esg"])
+        result["has_esg"] = result["app_esg"] is not None
+
+        return result
+
+    except Exception as e:
+        result["error"] = str(e)
+        return result
+
+
+def fetch_esg_for_tickers(tickers):
+    rows = []
+    for t in tickers:
+        rows.append(fetch_esg_for_ticker(t))
+    return pd.DataFrame(rows)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -579,22 +715,31 @@ else:
             index=1,
         )
         st.markdown(
-            '<div class="info-box">Enter ticker symbols and ESG scores. Expected returns, volatility and correlations will be estimated from historical price data.</div>',
+            '<div class="info-box">Enter ticker symbols. ESG scores are fetched automatically from Yahoo Sustainalytics where available. If Yahoo has no ESG score for a ticker, enter a manual fallback score.</div>',
             unsafe_allow_html=True,
         )
 
     with col_left:
-        cols = st.columns([1.2, 2.0, 1.2])
+        cols = st.columns([1.1, 1.8, 1.3])
         cols[0].markdown("**Ticker**")
         cols[1].markdown("**Display name**")
-        cols[2].markdown("**ESG (0–10)**")
+        cols[2].markdown("**Manual ESG fallback**")
 
         for i in range(int(n_assets)):
-            c1, c2, c3 = st.columns([1.2, 2.0, 1.2])
+            c1, c2, c3 = st.columns([1.1, 1.8, 1.3])
             ticker = c1.text_input("", value=default_tickers[i], key=f"ticker_{i}", label_visibility="collapsed").upper().strip()
             name = c2.text_input("", value=default_names[i], key=f"ticker_name_{i}", label_visibility="collapsed")
-            esg = c3.number_input("", value=default_esg[i], key=f"ticker_esg_{i}", label_visibility="collapsed", format="%.1f", min_value=0.0, max_value=10.0)
-            ticker_rows.append({"ticker": ticker, "name": name or ticker, "esg": esg})
+            manual_esg = c3.number_input(
+                "",
+                value=float(default_esg[i]),
+                key=f"ticker_esg_{i}",
+                label_visibility="collapsed",
+                format="%.1f",
+                min_value=0.0,
+                max_value=10.0,
+                help="Used only if Yahoo Sustainalytics ESG is unavailable for this ticker.",
+            )
+            ticker_rows.append({"ticker": ticker, "name": name or ticker, "manual_esg": manual_esg})
 
 # ══════════════════════════════════════════════════════════════════════════════
 # RUN BUTTON
@@ -610,6 +755,8 @@ with run_col:
 # ══════════════════════════════════════════════════════════════════════════════
 
 if run:
+    ticker_data_display = None
+
     if input_mode == "Manual input":
         names = [d["name"] for d in asset_data]
         mu = np.array([d["ret"] for d in asset_data], dtype=float)
@@ -646,8 +793,63 @@ if run:
             st.stop()
 
         filtered_rows = [row for row in ticker_rows if row["ticker"] in available]
-        names = [row["name"] for row in filtered_rows]
-        esg_scores = np.array([row["esg"] for row in filtered_rows], dtype=float)
+
+        # Fetch ESG data from Yahoo Sustainalytics
+        esg_df = fetch_esg_for_tickers(available)
+
+        if esg_df.empty:
+            st.markdown(
+                '<div class="error-box">Could not retrieve any ESG metadata from Yahoo. Please enter manual ESG fallback values and try again.</div>',
+                unsafe_allow_html=True,
+            )
+            st.stop()
+
+        esg_map = esg_df.set_index("ticker").to_dict(orient="index")
+
+        resolved_rows = []
+        missing_manual_required = []
+
+        for row in filtered_rows:
+            t = row["ticker"]
+            meta = esg_map.get(t, {})
+            yahoo_app_esg = meta.get("app_esg")
+            yahoo_total_esg = meta.get("yahoo_total_esg")
+            env_score = meta.get("environment_score")
+            soc_score = meta.get("social_score")
+            gov_score = meta.get("governance_score")
+            rating_year = meta.get("rating_year")
+            rating_month = meta.get("rating_month")
+            yahoo_has_esg = bool(meta.get("has_esg", False))
+
+            if yahoo_has_esg and yahoo_app_esg is not None:
+                final_esg = float(yahoo_app_esg)
+                esg_source = "Yahoo Sustainalytics"
+            else:
+                final_esg = float(row["manual_esg"]) if row["manual_esg"] is not None else None
+                esg_source = "Manual fallback"
+                missing_manual_required.append(t)
+
+            resolved_rows.append({
+                "ticker": t,
+                "name": row["name"],
+                "final_esg": final_esg,
+                "esg_source": esg_source,
+                "yahoo_total_esg": yahoo_total_esg,
+                "environment_score": env_score,
+                "social_score": soc_score,
+                "governance_score": gov_score,
+                "rating_year": rating_year,
+                "rating_month": rating_month,
+            })
+
+        if missing_manual_required:
+            st.markdown(
+                f'<div class="error-box"><strong>Manual ESG input required:</strong> Yahoo Sustainalytics did not provide an ESG score for {", ".join(missing_manual_required)}. The optimiser used the manual fallback value(s) you entered for those ticker(s).</div>',
+                unsafe_allow_html=True,
+            )
+
+        names = [row["name"] for row in resolved_rows]
+        esg_scores = np.array([row["final_esg"] for row in resolved_rows], dtype=float)
 
         mu = mu_series.loc[available].values.astype(float)
         vols = vols_series.loc[available].values.astype(float)
@@ -655,8 +857,23 @@ if run:
         corr_np = corr_df_market.loc[available, available].values.astype(float)
         n = len(available)
 
+        ticker_data_display = pd.DataFrame({
+            "Ticker": available,
+            "Display Name": names,
+            "Expected Return E[R] (%)": (mu_series.loc[available].values * 100).round(2),
+            "Volatility σ (%)": (vols_series.loc[available].values * 100).round(2),
+            "Yahoo totalEsg": [esg_map.get(t, {}).get("yahoo_total_esg") for t in available],
+            "Yahoo Environment": [esg_map.get(t, {}).get("environment_score") for t in available],
+            "Yahoo Social": [esg_map.get(t, {}).get("social_score") for t in available],
+            "Yahoo Governance": [esg_map.get(t, {}).get("governance_score") for t in available],
+            "Yahoo Rating Year": [esg_map.get(t, {}).get("rating_year") for t in available],
+            "Yahoo Rating Month": [esg_map.get(t, {}).get("rating_month") for t in available],
+            "Final ESG Used (0-10)": esg_scores.round(2),
+            "ESG Source": [row["esg_source"] for row in resolved_rows],
+        })
+
         st.markdown(
-            f'<div class="info-box">Market data loaded successfully for: {", ".join(available)}. Estimates are annualised using daily historical returns over {lookback_period}.</div>',
+            f'<div class="info-box">Market data loaded successfully for: {", ".join(available)}. Estimates are annualised using daily historical returns over {lookback_period}. ESG data is pulled automatically from Yahoo Sustainalytics where available.</div>',
             unsafe_allow_html=True,
         )
 
@@ -737,17 +954,30 @@ if run:
     weight_df = pd.DataFrame({
         "Asset": names,
         "Weight (%)": [f"{w*100:.2f}" for w in w_opt],
-        "E[R] (%)": [f"{r*100:.2f}" for r in mu * 100 / 100],
+        "E[R] (%)": [f"{r*100:.2f}" for r in mu],
         "σ (%)": [f"{v*100:.2f}" for v in vols],
-        "ESG Score": [f"{s:.1f}" for s in esg_scores],
+        "ESG Score": [f"{s:.2f}" for s in esg_scores],
         "Included": ["Yes" if m else "No" for m in active_mask],
     })
     st.dataframe(weight_df, use_container_width=True, hide_index=True)
 
     if input_mode == "Ticker-based input":
+        st.markdown("#### Ticker Data Used")
+        st.dataframe(ticker_data_display, use_container_width=True, hide_index=True)
+
         st.markdown("#### Estimated Correlation Matrix")
         display_corr = pd.DataFrame(corr_np, index=names, columns=names)
         st.dataframe(display_corr.round(3), use_container_width=True)
+
+        st.markdown("#### Historical Adjusted Close Prices")
+        display_prices = prices[available].copy()
+        display_prices.columns = names
+        st.dataframe(display_prices.tail(30), use_container_width=True)
+
+        st.markdown("#### Historical Daily Returns")
+        display_returns = returns[available].copy()
+        display_returns.columns = names
+        st.dataframe((display_returns.tail(30) * 100).round(3), use_container_width=True)
 
     st.markdown('<div class="section-header">ESG-Efficient Frontier</div>', unsafe_allow_html=True)
 
@@ -922,7 +1152,7 @@ if run:
 
     st.markdown("---")
     st.markdown(
-        '<div class="info-box"><strong>Methodology:</strong> Utility function U = E[Rp] − (γ/2)σ²p + λs̄. The ESG-efficient frontier is computed by maximising Sharpe ratio subject to a minimum ESG constraint at each point. Optimisation uses Sequential Least Squares Programming with no short-selling.</div>',
+        '<div class="info-box"><strong>Methodology:</strong> Utility function U = E[Rp] − (γ/2)σ²p + λs̄. The ESG-efficient frontier is computed by maximising Sharpe ratio subject to a minimum ESG constraint at each point. Optimisation uses Sequential Least Squares Programming with no short-selling. In ticker mode, return and risk inputs are estimated from Yahoo historical prices, while ESG is fetched automatically from Yahoo Sustainalytics when available. Yahoo\'s totalEsg is treated as a risk-style measure and converted into this app’s 0–10 higher-is-better ESG scale.</div>',
         unsafe_allow_html=True,
     )
 
@@ -953,7 +1183,9 @@ For each level of ESG score, the model finds the portfolio with the highest Shar
 **Practical Input Modes**
 
 - **Manual input** allows you to enter expected returns, volatilities and correlations directly.
-- **Ticker-based input** estimates those values from historical market data using Yahoo Finance.
+- **Ticker-based input** estimates return and risk from historical market data using Yahoo Finance.
+- In ticker mode, **ESG is fetched automatically** from Yahoo Sustainalytics where available.
+- If Yahoo does not provide an ESG score for a ticker, the app uses your **manual fallback ESG input** and shows a red prompt.
 
 **Reference:** Gantchev et al. (2023); ECN316 Sustainable Finance
         """)
