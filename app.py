@@ -101,7 +101,6 @@ div.stButton > button:hover { background: #215221; color: #ffffff !important; }
   border: 1px solid #c8d8b8 !important; border-radius: 8px !important;
 }
 
-/* ── Fixed selectbox styling ── */
 .stSelectbox div[data-baseweb="select"] > div {
   background: #ffffff !important;
   color: #1a2e1a !important;
@@ -146,8 +145,6 @@ table, thead tr th, tbody tr td { color: #1a2e1a !important; }
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ESG DATABASE — loaded directly from GitHub repository (raw CSV)
-# valuescore: 0–1 scale, higher = better (LSEG/Refinitiv ESGCombinedScore).
-# We take the most recent year per ticker and scale to 0–10 for display.
 # ══════════════════════════════════════════════════════════════════════════════
 
 _ESG_GITHUB_URL = (
@@ -194,7 +191,7 @@ def lookup_esg(ticker: str) -> dict:
         "year": None,
         "source": None,
         "has_esg": False,
-        "error": f"'{t}' not found in ESG CSV."
+        "error": f"'{t}' not found in ESG CSV.",
     }
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -293,72 +290,77 @@ def nearest_psd(matrix):
     ev[ev < 1e-8] = 1e-8
     return evec @ np.diag(ev) @ evec.T
 
-def build_esg_sr_frontier(mu_a, cov_a, esg_a, rf, n_points=150):
+def build_esg_sr_frontier(mu_a, cov_a, esg_a, rf, n_points=160):
     """
-    Build a cleaner ESG-Sharpe frontier by sweeping a binding minimum ESG
-    constraint, using warm starts, then sorting/deduplicating and keeping
-    the efficient upper envelope.
+    Compute the realized ESG–Sharpe frontier correctly:
+    for each exact portfolio ESG target, maximise Sharpe subject to
+    w'esg = target, sum(w)=1, w>=0.
+
+    This produces the hump-shaped curve shown in the lecture slides,
+    rather than a monotone upper envelope.
     """
     if len(mu_a) < 2:
-        return pd.DataFrame(columns=["esg", "sr"])
+        return pd.DataFrame(columns=["esg", "sr", "is_efficient"])
 
-    # Unconstrained tangency inside active universe
-    w_tan, _, _, _ = find_tangency(mu_a, cov_a, rf)
-    esg_tan = float(w_tan @ esg_a) / 10.0
+    esg_min = float(np.min(esg_a))
+    esg_max = float(np.max(esg_a))
+    if np.isclose(esg_min, esg_max):
+        w_eq = np.ones(len(mu_a)) / len(mu_a)
+        return pd.DataFrame({
+            "esg": [esg_min / 10.0],
+            "sr": [port_sr(w_eq, mu_a, cov_a, rf)],
+            "is_efficient": [True],
+        })
 
-    esg_min = float(np.min(esg_a)) / 10.0
-    esg_max = float(np.max(esg_a)) / 10.0
-
-    # Start from the tangency ESG level when possible to avoid a long flat segment
-    esg_start = max(esg_min, esg_tan)
-    if esg_start >= esg_max:
-        esg_start = esg_min
-
-    sweep = np.linspace(esg_start, esg_max, n_points)
-
-    w0 = w_tan.copy()
+    grid = np.linspace(esg_min, esg_max, n_points)
     pts = []
 
-    for et_norm in sweep:
-        et = et_norm * 10.0
+    for tgt in grid:
+        # start from a convex combination of the min-ESG and max-ESG assets,
+        # so the equality ESG target is feasible from the first iteration
+        imin = int(np.argmin(esg_a))
+        imax = int(np.argmax(esg_a))
+        w0 = np.zeros(len(mu_a))
+        if np.isclose(esg_a[imax], esg_a[imin]):
+            w0[:] = 1 / len(mu_a)
+        else:
+            alpha = (tgt - esg_a[imin]) / (esg_a[imax] - esg_a[imin])
+            alpha = float(np.clip(alpha, 0.0, 1.0))
+            w0[imax] = alpha
+            w0[imin] = 1.0 - alpha
+
+        cons = [
+            {"type": "eq", "fun": lambda w: np.sum(w) - 1},
+            {"type": "eq", "fun": lambda w, t=tgt: float(w @ esg_a) - t},
+        ]
+
         res = minimize(
             lambda w: -port_sr(w, mu_a, cov_a, rf),
             w0,
             method="SLSQP",
             bounds=[(0.0, 1.0)] * len(mu_a),
-            constraints=[
-                {"type": "eq", "fun": lambda w: np.sum(w) - 1},
-                {"type": "ineq", "fun": lambda w, t=et: float(w @ esg_a) - t},
-            ],
-            options={"ftol": 1e-9, "maxiter": 500},
+            constraints=cons,
+            options={"ftol": 1e-10, "maxiter": 800},
         )
+
         if res.success:
-            w0 = res.x
+            w = res.x
             pts.append({
-                "esg": float(res.x @ esg_a) / 10.0,
-                "sr": port_sr(res.x, mu_a, cov_a, rf),
+                "esg": float(w @ esg_a) / 10.0,
+                "sr": port_sr(w, mu_a, cov_a, rf),
             })
 
     frontier_df = pd.DataFrame(pts).dropna()
     if frontier_df.empty:
-        return frontier_df
+        return pd.DataFrame(columns=["esg", "sr", "is_efficient"])
 
-    frontier_df = frontier_df.sort_values("esg").reset_index(drop=True)
     frontier_df["esg_round"] = frontier_df["esg"].round(4)
     frontier_df = frontier_df.groupby("esg_round", as_index=False)["sr"].max()
-    frontier_df = frontier_df.rename(columns={"esg_round": "esg"})
-    frontier_df = frontier_df.sort_values("esg").reset_index(drop=True)
+    frontier_df = frontier_df.rename(columns={"esg_round": "esg"}).sort_values("esg").reset_index(drop=True)
 
-    # keep upper envelope only
-    sr_best = []
-    running = -np.inf
-    for val in frontier_df["sr"]:
-        running = max(running, val)
-        sr_best.append(running)
-    frontier_df["sr_cummax"] = sr_best
-    frontier_df = frontier_df[np.isclose(frontier_df["sr"], frontier_df["sr_cummax"], atol=1e-6)].copy()
-    frontier_df = frontier_df[["esg", "sr"]].drop_duplicates().reset_index(drop=True)
-
+    peak_idx = int(frontier_df["sr"].idxmax())
+    frontier_df["is_efficient"] = False
+    frontier_df.loc[peak_idx:, "is_efficient"] = True
     return frontier_df
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -480,7 +482,6 @@ ticker_rows = []
 corr_df = None
 lookback_period = "3y"
 
-# ── Manual ───────────────────────────────────────────────────────────────────
 if input_mode == "Manual input":
     cl, cr = st.columns([2, 1])
     with cr:
@@ -520,7 +521,6 @@ if input_mode == "Manual input":
                 ci.iloc[r, c] = 0.25
     corr_df = st.data_editor(ci, use_container_width=True, key="corr_matrix")
 
-# ── Ticker ────────────────────────────────────────────────────────────────────
 else:
     cl, cr = st.columns([2, 1])
     with cr:
@@ -591,7 +591,6 @@ with run_col:
     run = st.button("Optimise Portfolio")
 
 if run:
-    # ── Build mu, cov, esg arrays ────────────────────────────────────────────
     if input_mode == "Manual input":
         names = [d["name"] for d in asset_data]
         mu = np.array([d["ret"] for d in asset_data], dtype=float)
@@ -690,7 +689,6 @@ if run:
             unsafe_allow_html=True,
         )
 
-    # PSD fix
     if np.any(np.linalg.eigvalsh(cov) < -1e-8):
         st.markdown(
             '<div class="warn-box">Covariance matrix adjusted to PSD.</div>',
@@ -698,7 +696,6 @@ if run:
         )
         cov = nearest_psd(cov)
 
-    # ESG threshold for green frontier
     esg_thresh = min_esg_filter if use_exclusion else 0.0
     active_mask = esg_scores >= esg_thresh
     active_idx = np.where(active_mask)[0]
@@ -718,11 +715,8 @@ if run:
     mu_a = mu[active_idx]
     cov_a = cov[np.ix_(active_idx, active_idx)]
     esg_a = esg_scores[active_idx]
-    names_a = [names[i] for i in active_idx]
-    vols_a = vols[active_idx]
     bounds_green = [(0.0, 1.0) if active_mask[i] else (0.0, 0.0) for i in range(n)]
 
-    # ── Portfolios ────────────────────────────────────────────────────────────
     w_tan_all, ep_tan_all, sp_tan_all, sr_tan_all = find_tangency(mu, cov, rf)
     w_tan_esg, ep_tan_esg, sp_tan_esg, sr_tan_esg = find_tangency(mu, cov, rf, bounds=bounds_green)
 
@@ -733,13 +727,11 @@ if run:
 
     ep, sp, sr, esg_bar = port_stats(w_opt_a, mu_a, cov_a, esg_a, rf)
 
-    # ── Build frontiers ───────────────────────────────────────────────────────
     with st.spinner("Building mean-variance frontiers…"):
         std_blue, ret_blue = build_mv_frontier(mu, cov, n_points=100)
         std_green, ret_green = build_mv_frontier(mu, cov, bounds=bounds_green, n_points=100)
-        esg_sr_frontier_df = build_esg_sr_frontier(mu_a, cov_a, esg_a, rf, n_points=150)
+        esg_sr_frontier_df = build_esg_sr_frontier(mu_a, cov_a, esg_a, rf, n_points=160)
 
-    # ── Metrics ───────────────────────────────────────────────────────────────
     st.markdown("---")
     st.markdown('<div class="section-header">Optimal Portfolio</div>', unsafe_allow_html=True)
     m1, m2, m3, m4 = st.columns(4)
@@ -791,10 +783,6 @@ if run:
         use_container_width=True,
     )
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # CHARTS
-    # ══════════════════════════════════════════════════════════════════════════
-
     BG = '#f5f2ec'
     BLUE = '#1a66cc'
     GREEN = '#2d8a2d'
@@ -810,118 +798,37 @@ if run:
         ax.set_facecolor(BG)
 
         if len(std_blue) > 2:
-            ax.plot(
-                std_blue, ret_blue,
-                color=BLUE, lw=2.4, zorder=4,
-                label='Mean-variance frontier\n(all assets)'
-            )
+            ax.plot(std_blue, ret_blue, color=BLUE, lw=2.4, zorder=4, label='Mean-variance frontier\n(all assets)')
         if len(std_green) > 2:
-            ax.plot(
-                std_green, ret_green,
-                color=GREEN, lw=2.4, zorder=4,
-                label=f'Mean-variance frontier\n(ESG ≥ {esg_thresh:.1f})'
-            )
+            ax.plot(std_green, ret_green, color=GREEN, lw=2.4, zorder=4, label=f'Mean-variance frontier\n(ESG ≥ {esg_thresh:.1f})')
 
+        # FIX 1: use CML x-axis in decimal sigma, then convert to % for plotting.
         if sp_tan_all > 1e-9 and len(std_blue) > 0:
-            cml_max = max(np.nanmax(std_blue), sp_tan_all * 100) * 1.5
-            sd_cml = np.linspace(0, cml_max, 300)
-            ax.plot(
-                sd_cml,
-                rf * 100 + (ep_tan_all - rf) / sp_tan_all * sd_cml,
-                color=BLUE,
-                lw=1.5,
-                linestyle='--',
-                zorder=3,
-                label='CML (all assets)'
-            )
+            cml_max_dec = max(np.nanmax(std_blue) / 100.0, sp_tan_all) * 1.2
+            sd_cml = np.linspace(0.0, cml_max_dec, 300)
+            ret_cml = rf + ((ep_tan_all - rf) / sp_tan_all) * sd_cml
+            ax.plot(sd_cml * 100, ret_cml * 100, color=BLUE, lw=1.5, linestyle='--', zorder=3, label='CML (all assets)')
 
         if sp_tan_esg > 1e-9 and len(std_green) > 0:
-            cml_max2 = max(np.nanmax(std_green), sp_tan_esg * 100) * 1.5
-            sd_cml2 = np.linspace(0, cml_max2, 300)
-            ax.plot(
-                sd_cml2,
-                rf * 100 + (ep_tan_esg - rf) / sp_tan_esg * sd_cml2,
-                color=GREEN,
-                lw=1.5,
-                linestyle='--',
-                zorder=3,
-                label=f'CML (ESG ≥ {esg_thresh:.1f})'
-            )
+            cml_max2_dec = max(np.nanmax(std_green) / 100.0, sp_tan_esg) * 1.2
+            sd_cml2 = np.linspace(0.0, cml_max2_dec, 300)
+            ret_cml2 = rf + ((ep_tan_esg - rf) / sp_tan_esg) * sd_cml2
+            ax.plot(sd_cml2 * 100, ret_cml2 * 100, color=GREEN, lw=1.5, linestyle='--', zorder=3, label=f'CML (ESG ≥ {esg_thresh:.1f})')
 
-        ax.scatter(
-            sp_tan_all * 100,
-            ep_tan_all * 100,
-            color=BLUE,
-            s=160,
-            zorder=9,
-            edgecolors='white',
-            lw=1.5,
-            marker='*'
-        )
-        ax.annotate(
-            'tangency portfolio\n(all assets)',
-            (sp_tan_all * 100, ep_tan_all * 100),
-            textcoords="offset points",
-            xytext=(8, 2),
-            fontsize=7,
-            color=BLUE,
-            fontstyle='italic'
-        )
+        ax.scatter(sp_tan_all * 100, ep_tan_all * 100, color=BLUE, s=160, zorder=9, edgecolors='white', lw=1.5, marker='*')
+        ax.annotate('tangency portfolio\n(all assets)', (sp_tan_all * 100, ep_tan_all * 100), textcoords="offset points", xytext=(8, 2), fontsize=7, color=BLUE, fontstyle='italic')
 
         if len(std_green) > 2:
-            ax.scatter(
-                sp_tan_esg * 100,
-                ep_tan_esg * 100,
-                color=GREEN,
-                s=160,
-                zorder=9,
-                edgecolors='white',
-                lw=1.5,
-                marker='*'
-            )
-            ax.annotate(
-                'tangency portfolio\n(ESG screen)',
-                (sp_tan_esg * 100, ep_tan_esg * 100),
-                textcoords="offset points",
-                xytext=(8, -20),
-                fontsize=7,
-                color=GREEN,
-                fontstyle='italic'
-            )
+            ax.scatter(sp_tan_esg * 100, ep_tan_esg * 100, color=GREEN, s=160, zorder=9, edgecolors='white', lw=1.5, marker='*')
+            ax.annotate('tangency portfolio\n(ESG screen)', (sp_tan_esg * 100, ep_tan_esg * 100), textcoords="offset points", xytext=(8, -20), fontsize=7, color=GREEN, fontstyle='italic')
 
         ax.scatter(0, rf * 100, color=GREY, s=70, zorder=8, edgecolors='white', lw=1, marker='s')
-        ax.scatter(
-            sp * 100,
-            ep * 100,
-            color=ORANGE,
-            s=180,
-            zorder=10,
-            edgecolors='white',
-            lw=2,
-            marker='*',
-            label='ESG-Optimal portfolio'
-        )
+        ax.scatter(sp * 100, ep * 100, color=ORANGE, s=180, zorder=10, edgecolors='white', lw=2, marker='*', label='ESG-Optimal portfolio')
 
         for i in range(n):
             col_pt = GREEN if active_mask[i] else BLUE
-            ax.scatter(
-                vols[i] * 100,
-                mu[i] * 100,
-                color=col_pt,
-                s=50,
-                zorder=6,
-                edgecolors='white',
-                lw=0.8,
-                alpha=0.85
-            )
-            ax.annotate(
-                names[i],
-                (vols[i] * 100, mu[i] * 100),
-                textcoords="offset points",
-                xytext=(4, 3),
-                fontsize=7,
-                color='#2d4a2d'
-            )
+            ax.scatter(vols[i] * 100, mu[i] * 100, color=col_pt, s=50, zorder=6, edgecolors='white', lw=0.8, alpha=0.85)
+            ax.annotate(names[i], (vols[i] * 100, mu[i] * 100), textcoords="offset points", xytext=(4, 3), fontsize=7, color='#2d4a2d')
 
         ax.set_xlabel("Std (%)", fontsize=9, color='#2d4a2d')
         ax.set_ylabel("Expected Return (%)", fontsize=9, color='#2d4a2d')
@@ -937,67 +844,42 @@ if run:
         plt.close()
 
     with c2:
-        esg_a_norm = esg_a / 10.0
         esg_all_norm = esg_scores / 10.0
         esg_bar_norm = esg_bar / 10.0
 
         sr_tan_ignore = sr_tan_all
         esg_tan_ignore_norm = float(w_tan_all @ esg_scores) / 10.0
-
-        if active_mask.any():
-            w_tan_esg_active = w_tan_esg[active_mask]
-            esg_tan_esg_norm = float(w_tan_esg_active @ esg_a) / 10.0
-        else:
-            esg_tan_esg_norm = esg_bar_norm
+        esg_tan_esg_norm = float(w_tan_esg @ esg_scores) / 10.0
 
         fig2, ax2 = plt.subplots(figsize=(6.5, 5.5))
         fig2.patch.set_facecolor(BG)
         ax2.set_facecolor(BG)
 
-        # Frontier curve
         if not esg_sr_frontier_df.empty and len(esg_sr_frontier_df) >= 2:
-            ax2.plot(
-                esg_sr_frontier_df["esg"],
-                esg_sr_frontier_df["sr"],
-                color=BLUE,
-                lw=2.5,
-                label='ESG-SR frontier'
-            )
+            ax2.plot(esg_sr_frontier_df["esg"], esg_sr_frontier_df["sr"], color=BLUE, lw=2.5, label='ESG-SR frontier')
 
-        # Individual assets
+            efficient_df = esg_sr_frontier_df[esg_sr_frontier_df["is_efficient"]]
+            if not efficient_df.empty:
+                ax2.plot(efficient_df["esg"], efficient_df["sr"], 'x', color=BLUE, ms=4, mew=1.2, zorder=6)
+                ax2.annotate(
+                    'ESG-efficient\nfrontier',
+                    (float(efficient_df["esg"].iloc[-1]), float(efficient_df["sr"].iloc[-1])),
+                    textcoords="offset points",
+                    xytext=(8, 10),
+                    fontsize=7.5,
+                    color=BLUE,
+                    arrowprops=dict(arrowstyle='->', color=BLUE, lw=0.8)
+                )
+
         asset_srs = []
         for i in range(n):
             sr_i = (mu[i] - rf) / vols[i] if vols[i] > 1e-9 else np.nan
             asset_srs.append(sr_i)
             col_pt = '#1a4a8a' if active_mask[i] else '#c0392b'
-            ax2.scatter(
-                esg_all_norm[i],
-                sr_i,
-                color=col_pt,
-                s=70,
-                zorder=5,
-                edgecolors='white',
-                lw=0.8
-            )
-            ax2.annotate(
-                names[i],
-                (esg_all_norm[i], sr_i),
-                textcoords="offset points",
-                xytext=(5, 4),
-                fontsize=7,
-                color='#2d4a2d'
-            )
+            ax2.scatter(esg_all_norm[i], sr_i, color=col_pt, s=70, zorder=5, edgecolors='white', lw=0.8)
+            ax2.annotate(names[i], (esg_all_norm[i], sr_i), textcoords="offset points", xytext=(5, 4), fontsize=7, color='#2d4a2d')
 
-        # Tangency ignoring ESG information
-        ax2.scatter(
-            esg_tan_ignore_norm,
-            sr_tan_ignore,
-            color='#1a3a6a',
-            s=140,
-            zorder=9,
-            edgecolors='white',
-            lw=1.5
-        )
+        ax2.scatter(esg_tan_ignore_norm, sr_tan_ignore, color='#1a3a6a', s=140, zorder=9, edgecolors='white', lw=1.5)
         ax2.annotate(
             'Tangency portfolio\nignoring ESG information',
             (esg_tan_ignore_norm, sr_tan_ignore),
@@ -1008,16 +890,7 @@ if run:
             arrowprops=dict(arrowstyle='->', color='#1a3a6a', lw=0.8)
         )
 
-        # Tangency using ESG screen
-        ax2.scatter(
-            esg_tan_esg_norm,
-            sr_tan_esg,
-            color=GREEN,
-            s=140,
-            zorder=10,
-            edgecolors='white',
-            lw=1.5
-        )
+        ax2.scatter(esg_tan_esg_norm, sr_tan_esg, color=GREEN, s=140, zorder=10, edgecolors='white', lw=1.5)
         ax2.annotate(
             'Tangency portfolio\nusing ESG information',
             (esg_tan_esg_norm, sr_tan_esg),
@@ -1028,31 +901,16 @@ if run:
             arrowprops=dict(arrowstyle='->', color=GREEN, lw=0.8)
         )
 
-        # Label the right side of the curve
-        if not esg_sr_frontier_df.empty:
-            peak_idx = int(esg_sr_frontier_df["sr"].idxmax())
-            peak_esg = float(esg_sr_frontier_df.loc[peak_idx, "esg"])
-            right_df = esg_sr_frontier_df[esg_sr_frontier_df["esg"] >= peak_esg]
-
-            if not right_df.empty:
-                ax2.plot(
-                    right_df["esg"],
-                    right_df["sr"],
-                    'x',
-                    color=BLUE,
-                    ms=4,
-                    mew=1.2,
-                    zorder=6
-                )
-                ax2.annotate(
-                    'ESG-efficient\nfrontier',
-                    (float(right_df["esg"].iloc[-1]), float(right_df["sr"].iloc[-1])),
-                    textcoords="offset points",
-                    xytext=(8, 10),
-                    fontsize=7.5,
-                    color=BLUE,
-                    arrowprops=dict(arrowstyle='->', color=BLUE, lw=0.8)
-                )
+        # FIX 2: the ESG-optimal portfolio should sit on the frontier too.
+        ax2.scatter(esg_bar_norm, sr, color=ORANGE, s=140, zorder=10, edgecolors='white', lw=1.5, marker='*')
+        ax2.annotate(
+            'Utility-optimal\nportfolio',
+            (esg_bar_norm, sr),
+            textcoords="offset points",
+            xytext=(8, -2),
+            fontsize=7.5,
+            color=ORANGE,
+        )
 
         ax2.set_xlabel("ESG Score (0–1)", fontsize=9, color='#2d4a2d')
         ax2.set_ylabel("Sharpe Ratio", fontsize=9, color='#2d4a2d')
@@ -1063,7 +921,7 @@ if run:
         if not esg_sr_frontier_df.empty:
             y_candidates.extend(esg_sr_frontier_df["sr"].tolist())
         y_candidates.extend([x for x in asset_srs if pd.notna(x)])
-        y_candidates.extend([sr_tan_ignore, sr_tan_esg])
+        y_candidates.extend([sr_tan_ignore, sr_tan_esg, sr])
 
         if y_candidates:
             ymin = min(y_candidates) - 0.15
@@ -1079,7 +937,6 @@ if run:
         st.pyplot(fig2)
         plt.close()
 
-    # ── Allocation charts ─────────────────────────────────────────────────────
     st.markdown("#### Portfolio Allocation")
     pc, bc = st.columns(2)
     nz = [(names[i], w_opt[i], esg_scores[i]) for i in range(n) if w_opt[i] > 0.005]
@@ -1088,8 +945,7 @@ if run:
         plabels = [x[0] for x in nz]
         pvals = [x[1] for x in nz]
         pesg = [x[2] for x in nz]
-        greens = ['#1a4a1a', '#2d6a2d', '#4a8a3a', '#6aaa5a', '#8aba7a',
-                  '#a8cc98', '#c4deb8', '#d4e8c8', '#e4f0d8', '#f0f8ec']
+        greens = ['#1a4a1a', '#2d6a2d', '#4a8a3a', '#6aaa5a', '#8aba7a', '#a8cc98', '#c4deb8', '#d4e8c8', '#e4f0d8', '#f0f8ec']
 
         with pc:
             f3, a3 = plt.subplots(figsize=(5, 4))
@@ -1116,14 +972,7 @@ if run:
             bcols = [plt.cm.YlGn(s / 10) for s in pesg]
             bars = a4.barh(plabels, [v * 100 for v in pvals], color=bcols, edgecolor='white', height=0.6)
             for bar, ev in zip(bars, pesg):
-                a4.text(
-                    bar.get_width() + 0.3,
-                    bar.get_y() + bar.get_height() / 2,
-                    f'ESG {ev:.1f}',
-                    va='center',
-                    fontsize=7.5,
-                    color='#2d4a2d'
-                )
+                a4.text(bar.get_width() + 0.3, bar.get_y() + bar.get_height() / 2, f'ESG {ev:.1f}', va='center', fontsize=7.5, color='#2d4a2d')
             a4.set_xlabel("Weight (%)", fontsize=9, color='#2d4a2d')
             a4.set_title("Weights with ESG Scores", fontsize=11, fontweight='bold', color='#1a2e1a', pad=10)
             a4.tick_params(colors='#5a7a5a', labelsize=8)
@@ -1134,7 +983,6 @@ if run:
             st.pyplot(f4)
             plt.close()
 
-    # ── Sensitivity ───────────────────────────────────────────────────────────
     with st.expander("Sensitivity Analysis — ESG Preference (λ)"):
         lam_vals = np.linspace(0, 5, 20)
         sens_rows = []
@@ -1190,9 +1038,11 @@ if run:
         'Utility U = E[Rp] − (γ/2)σ²p + λs̄, maximised via SLSQP (no short-selling). '
         '<strong>Blue frontier</strong>: unconstrained MV frontier across all assets. '
         '<strong>Green frontier</strong>: MV frontier restricted to assets passing the ESG screen. '
-        '<strong>ESG-SR frontier</strong>: max-Sharpe portfolios across increasing ESG constraints, '
-        'cleaned into an upper envelope for a smoother frontier display. '
-        'Both CMLs are drawn from r_f through their respective tangency portfolios. '
+        '<strong>ESG-SR frontier</strong>: for each attainable ESG level, the app solves for the '
+        'maximum Sharpe ratio subject to an exact portfolio ESG target, which produces the '
+        'hump-shaped realized ESG-SR frontier from the lecture. '
+        'Both CMLs are drawn from r_f through their respective tangency portfolios using '
+        'consistent decimal units before conversion to percentage axes. '
         'ESG data: LSEG ESGCombinedScore loaded directly from GitHub repository, '
         'most recent year per ticker, scaled 0–1 → 0–10 (higher = better).</div>',
         unsafe_allow_html=True,
@@ -1218,7 +1068,7 @@ Two mean-variance frontiers are built by minimising portfolio standard deviation
 - **Blue**: No ESG constraints — uses all assets.
 - **Green**: ESG-constrained — only assets passing the minimum ESG threshold can receive non-zero weight.
 
-The **ESG-SR frontier** is built separately by solving for the maximum Sharpe ratio subject to progressively tighter ESG constraints inside the ESG-eligible universe. The plotted curve is then sorted, deduplicated, and reduced to its upper envelope to avoid the jagged or repeated-point behaviour that often appears with raw SLSQP solutions.
+The **ESG-SR frontier** is built separately by solving, for each attainable portfolio ESG level, the maximum Sharpe ratio subject to an exact ESG equality constraint. This produces the hump-shaped realized ESG–Sharpe frontier shown in Lecture 6. The right-hand side of that curve, from the peak onward, is the ESG-efficient frontier relevant for investors who want more ESG than the maximum-Sharpe portfolio.
 
 **ESG Data Source**
 
