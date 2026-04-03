@@ -1,4 +1,6 @@
 import warnings
+import time
+import requests
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -296,105 +298,164 @@ def nearest_psd(matrix):
 def yahoo_total_esg_to_app_score(total_esg):
     """
     Sustainalytics/Yahoo totalEsg: lower = better (risk score, typically 0–50).
-    We convert to a 0–10 higher-is-better scale by mapping 0→10, 50→0.
+    Convert to 0–10 higher-is-better: 0→10, 50→0.
     """
     if total_esg is None or pd.isna(total_esg):
         return None
-    score = 10.0 - (float(total_esg) / 5.0)   # 50 → 0, 0 → 10
+    score = 10.0 - (float(total_esg) / 5.0)
     return float(np.clip(score, 0.0, 10.0))
 
 
-def _try_get_sustainability(ticker_str):
+# ── Shared session for Yahoo Finance direct API calls ─────────────────────────
+_YF_SESSION: requests.Session | None = None
+_YF_CRUMB: str | None = None
+
+_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/122.0.0.0 Safari/537.36"
+    ),
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Origin": "https://finance.yahoo.com",
+    "Referer": "https://finance.yahoo.com/",
+}
+
+
+def _get_yf_session_and_crumb() -> tuple[requests.Session, str]:
     """
-    Robustly attempt to pull sustainability data from yfinance,
-    handling both the old .sustainability attribute and new get_sustainability().
-    Returns a pd.Series or None.
+    Obtain a cookie-bearing session + crumb token from Yahoo Finance.
+    Strategy: GET https://fc.yahoo.com → cookie, then GET getcrumb endpoint.
+    Cached in module-level globals so we only do this once per Streamlit run.
     """
-    tk = yf.Ticker(ticker_str)
+    global _YF_SESSION, _YF_CRUMB
 
-    # Attempt 1: new API
+    if _YF_SESSION is not None and _YF_CRUMB is not None:
+        return _YF_SESSION, _YF_CRUMB
+
+    session = requests.Session()
+    session.headers.update(_HEADERS)
+
+    # Step 1: hit fc.yahoo.com to plant the A3 cookie
     try:
-        sus = tk.get_sustainability()
-        if sus is not None and not (hasattr(sus, "empty") and sus.empty):
-            if isinstance(sus, pd.DataFrame) and not sus.empty:
-                return sus.iloc[:, 0]
-            if isinstance(sus, pd.Series) and not sus.empty:
-                return sus
+        session.get("https://fc.yahoo.com", timeout=8)
     except Exception:
-        pass
+        pass  # cookie may still be set; continue
 
-    # Attempt 2: legacy attribute
-    try:
-        sus = tk.sustainability
-        if sus is not None and not (hasattr(sus, "empty") and sus.empty):
-            if isinstance(sus, pd.DataFrame) and not sus.empty:
-                return sus.iloc[:, 0]
-            if isinstance(sus, pd.Series) and not sus.empty:
-                return sus
-    except Exception:
-        pass
+    # Step 2: get crumb token
+    crumb_resp = session.get(
+        "https://query1.finance.yahoo.com/v1/test/getcrumb",
+        timeout=8,
+    )
+    crumb_resp.raise_for_status()
+    crumb = crumb_resp.text.strip()
 
-    return None
+    if not crumb or crumb.lower().startswith("too many") or len(crumb) > 50:
+        raise RuntimeError(f"Bad crumb from Yahoo: {crumb!r}")
+
+    _YF_SESSION = session
+    _YF_CRUMB = crumb
+    return session, crumb
 
 
-def _series_get(series, *keys):
-    """Case-insensitive key lookup in a pd.Series."""
-    normalised = {str(k).lower().replace("_", "").replace(" ", ""): k for k in series.index}
-    for key in keys:
-        target = key.lower().replace("_", "").replace(" ", "")
-        if target in normalised:
-            val = series.loc[normalised[target]]
-            if pd.notna(val):
-                return val
-    return None
+def _fetch_esg_via_quotesummary(ticker: str) -> dict:
+    """
+    Call Yahoo Finance quoteSummary API directly with the esgScores module.
+    Returns a raw dict payload or raises on failure.
+    """
+    session, crumb = _get_yf_session_and_crumb()
+
+    url = f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{ticker}"
+    params = {
+        "modules": "esgScores",
+        "formatted": "false",
+        "corsDomain": "finance.yahoo.com",
+        "crumb": crumb,
+    }
+
+    resp = session.get(url, params=params, timeout=10)
+    resp.raise_for_status()
+
+    data = resp.json()
+    result = data.get("quoteSummary", {}).get("result") or []
+    if not result:
+        error_msg = data.get("quoteSummary", {}).get("error") or "empty result"
+        raise ValueError(f"No quoteSummary result for {ticker}: {error_msg}")
+
+    esg = result[0].get("esgScores")
+    if not esg:
+        raise ValueError(f"esgScores key missing for {ticker}")
+
+    return esg
 
 
 @st.cache_data(show_spinner=False)
-def fetch_esg_for_ticker(ticker):
+def fetch_esg_for_ticker(ticker: str) -> dict:
     """
-    Primary: yfinance sustainability.
-    Fallback: yahooquery esg_scores (if installed).
-    Returns a dict with has_esg, app_esg (0-10 scale), and raw sub-scores.
+    Fetch ESG data for a single ticker.
+    Primary: direct Yahoo Finance quoteSummary API (most reliable in 2025).
+    Fallback: yahooquery (if installed).
+    Returns a standardised dict with has_esg, app_esg (0-10), raw sub-scores.
     """
-    base = dict(ticker=ticker, yahoo_total_esg=None, environment_score=None,
-                social_score=None, governance_score=None, rating_year=None,
-                rating_month=None, app_esg=None, has_esg=False, source=None, error=None)
+    base = dict(
+        ticker=ticker, yahoo_total_esg=None, environment_score=None,
+        social_score=None, governance_score=None, rating_year=None,
+        rating_month=None, app_esg=None, has_esg=False, source=None, error=None,
+    )
 
-    # ── yfinance ──────────────────────────────────────────────────────────────
+    # ── Method 1: direct quoteSummary API ─────────────────────────────────────
     try:
-        s = _try_get_sustainability(ticker)
-        if s is not None and not s.empty:
-            total = _series_get(s, "totalEsg", "totalESG")
-            env   = _series_get(s, "environmentScore", "environmentalScore", "eScore")
-            soc   = _series_get(s, "socialScore", "sScore")
-            gov   = _series_get(s, "governanceScore", "gScore")
-            ry    = _series_get(s, "ratingYear")
-            rm    = _series_get(s, "ratingMonth")
+        esg = _fetch_esg_via_quotesummary(ticker)
 
-            if total is not None:
-                base.update(
-                    yahoo_total_esg=float(total),
-                    environment_score=float(env) if env is not None else None,
-                    social_score=float(soc) if soc is not None else None,
-                    governance_score=float(gov) if gov is not None else None,
-                    rating_year=int(ry) if ry is not None else None,
-                    rating_month=int(rm) if rm is not None else None,
-                    app_esg=yahoo_total_esg_to_app_score(float(total)),
-                    has_esg=True,
-                    source="yfinance",
-                )
-                return base
-    except Exception as e:
-        base["error"] = f"yfinance: {e}"
+        def _safe_float(d, *keys):
+            for k in keys:
+                v = d.get(k)
+                if v is not None and v != "" and str(v).lower() not in ("nan", "none", "null"):
+                    try:
+                        return float(v)
+                    except (TypeError, ValueError):
+                        pass
+            return None
 
-    # ── yahooquery fallback ────────────────────────────────────────────────────
+        def _safe_int(d, *keys):
+            for k in keys:
+                v = d.get(k)
+                if v is not None:
+                    try:
+                        return int(v)
+                    except (TypeError, ValueError):
+                        pass
+            return None
+
+        total = _safe_float(esg, "totalEsg", "totalEsg.raw")
+        if total is not None:
+            base.update(
+                yahoo_total_esg=total,
+                environment_score=_safe_float(esg, "environmentScore", "environmentScore.raw"),
+                social_score=_safe_float(esg, "socialScore", "socialScore.raw"),
+                governance_score=_safe_float(esg, "governanceScore", "governanceScore.raw"),
+                rating_year=_safe_int(esg, "ratingYear"),
+                rating_month=_safe_int(esg, "ratingMonth"),
+                app_esg=yahoo_total_esg_to_app_score(total),
+                has_esg=True,
+                source="Yahoo quoteSummary API",
+            )
+            return base
+        else:
+            base["error"] = f"quoteSummary: totalEsg missing in payload {list(esg.keys())[:8]}"
+
+    except Exception as exc:
+        base["error"] = f"quoteSummary: {exc}"
+
+    # ── Method 2: yahooquery fallback ─────────────────────────────────────────
     try:
         from yahooquery import Ticker as YQTicker
         data = YQTicker(ticker).esg_scores
         payload = (data or {}).get(ticker, {})
-        if isinstance(payload, dict) and payload:
+        if isinstance(payload, dict):
             total = payload.get("totalEsg")
-            if total is not None and pd.notna(total):
+            if total is not None and str(total).lower() not in ("nan", "none", ""):
                 env = payload.get("environmentScore") or payload.get("environomentScore")
                 soc = payload.get("socialScore")
                 gov = payload.get("governanceScore")
@@ -410,15 +471,12 @@ def fetch_esg_for_ticker(ticker):
                     source="yahooquery",
                 )
                 return base
+            base["error"] = (base.get("error") or "") + " | yahooquery: no totalEsg in payload"
     except ImportError:
-        yq_err = "yahooquery not installed"
-    except Exception as e:
-        yq_err = str(e)
-    else:
-        yq_err = "no data"
+        base["error"] = (base.get("error") or "") + " | yahooquery: not installed"
+    except Exception as exc:
+        base["error"] = (base.get("error") or "") + f" | yahooquery: {exc}"
 
-    prev_err = base.get("error") or ""
-    base["error"] = f"{prev_err} | yahooquery: {yq_err}".strip(" |")
     return base
 
 
@@ -941,8 +999,9 @@ if run:
     st.markdown(
         '<div class="info-box"><strong>Methodology:</strong> Utility U = E[Rp] − (γ/2)σ²p + λs̄. '
         'ESG-efficient frontier maximises Sharpe ratio subject to a minimum ESG constraint at each point. '
-        'Optimisation uses SLSQP with no short-selling. Sustainalytics totalEsg (lower = better) is '
-        'converted to a 0–10 higher-is-better scale via score = 10 − totalEsg/5.</div>',
+        'Optimisation uses SLSQP with no short-selling. ESG data is fetched directly from the Yahoo Finance '
+        'quoteSummary API (esgScores module). Sustainalytics totalEsg (lower = better, range ~0–50) is '
+        'converted to a 0–10 higher-is-better scale: app_esg = 10 − totalEsg / 5.</div>',
         unsafe_allow_html=True,
     )
 
@@ -981,9 +1040,11 @@ $$\\text{app\\_esg} = 10 - \\frac{\\text{totalEsg}}{5}$$
 - **Manual input** — enter expected returns, volatilities and correlations directly.
 - **Ticker-based input** — estimates return and risk from Yahoo Finance history. ESG is fetched automatically; manual inputs appear **only** for tickers where automatic data is unavailable.
 
-**Optional fallback**
+**ESG fetch method**
+
+ESG is fetched directly from Yahoo Finance's `quoteSummary` API (`esgScores` module) using a `requests` session with cookie + crumb authentication — the same method the yfinance library uses internally. This is more reliable than calling `yf.Ticker().sustainability` which has broken silently in recent versions. A `yahooquery` fallback is also attempted if the primary call fails and the library is installed:
 
 ```bash
-pip install yahooquery
+pip install yahooquery  # optional fallback
 ```
 """)
