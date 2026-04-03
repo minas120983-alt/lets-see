@@ -1197,7 +1197,7 @@ else:
     )
 
     with st.expander("How does the model work?"):
-        st.markdown("""
+        st.markdown(""
 **Utility Function**
 
 $$U = E[R_p] - \\frac{\\gamma}{2}\\sigma_p^2 + \\lambda \\bar{s}$$
