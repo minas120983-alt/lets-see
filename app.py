@@ -1,4 +1,6 @@
 import warnings
+import io
+import requests
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -19,12 +21,14 @@ st.set_page_config(
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
 html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; color: #1a2e1a; }
 .stApp { background: #f5f2ec; color: #1a2e1a; }
 .block-container { padding-top: 3.2rem; color: #1a2e1a; }
+
 [data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #163116 0%, #102910 100%) !important;
-    border-right: 1px solid #284528;
+  background: linear-gradient(180deg, #163116 0%, #102910 100%) !important;
+  border-right: 1px solid #284528;
 }
 [data-testid="stSidebar"] * { color: #d6e5cb !important; }
 [data-testid="stSidebar"] hr { border-color: #335333 !important; }
@@ -34,89 +38,136 @@ html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; color: #1a2e1a;
 [data-testid="stSidebar"] span,
 [data-testid="stSidebar"] div { color: #d6e5cb !important; }
 [data-testid="stSidebar"] label {
-    font-size: 0.84rem !important; font-weight: 700 !important;
-    letter-spacing: 0.08em !important; text-transform: uppercase !important;
+  font-size: 0.84rem !important; font-weight: 700 !important;
+  letter-spacing: 0.08em !important; text-transform: uppercase !important;
 }
 [data-testid="stSidebar"] .stSlider [role="slider"] {
-    background: #d4a020 !important; border: 2px solid #fff7df !important;
+  background: #d4a020 !important; border: 2px solid #fff7df !important;
 }
 [data-testid="stSidebar"] .stNumberInput input,
 [data-testid="stSidebar"] .stTextInput input {
-    background: #f7f5ef !important; color: #1a2e1a !important;
-    border: 1px solid #86a173 !important; border-radius: 8px !important;
+  background: #f7f5ef !important; color: #1a2e1a !important;
+  border: 1px solid #86a173 !important; border-radius: 8px !important;
 }
+
 h1, h2, h3, h4, h5, h6, p, div, label, span { color: #1a2e1a; }
+
 .hero-title {
-    font-family: 'DM Serif Display', serif; font-size: 3.4rem;
-    color: #1a2e1a; line-height: 1.06; margin-top: 0.9rem; margin-bottom: 0.2rem;
+  font-family: 'DM Serif Display', serif; font-size: 3.4rem;
+  color: #1a2e1a; line-height: 1.06; margin-top: 0.9rem; margin-bottom: 0.2rem;
 }
 .hero-sub { font-size: 1.02rem; color: #5f7a5d; margin-bottom: 2.2rem; font-weight: 400; }
+
 .section-header {
-    font-family: 'DM Serif Display', serif; font-size: 1.45rem; color: #1a2e1a;
-    border-bottom: 2px solid #c8dab8; padding-bottom: 0.4rem;
-    margin-top: 0.25rem; margin-bottom: 1rem;
+  font-family: 'DM Serif Display', serif; font-size: 1.45rem; color: #1a2e1a;
+  border-bottom: 2px solid #c8dab8; padding-bottom: 0.4rem;
+  margin-top: 0.25rem; margin-bottom: 1rem;
 }
+
 .info-box {
-    background: #e8f5e0; border-left: 4px solid #4a8a3a; border-radius: 0 8px 8px 0;
-    padding: 0.85rem 1rem; margin: 0.6rem 0; font-size: 0.9rem; color: #2a4a2a;
+  background: #e8f5e0; border-left: 4px solid #4a8a3a; border-radius: 0 8px 8px 0;
+  padding: 0.85rem 1rem; margin: 0.6rem 0; font-size: 0.9rem; color: #2a4a2a;
 }
 .warn-box {
-    background: #fff8e8; border-left: 4px solid #d4a020; border-radius: 0 8px 8px 0;
-    padding: 0.85rem 1rem; margin: 0.6rem 0; font-size: 0.9rem; color: #5a4010;
+  background: #fff8e8; border-left: 4px solid #d4a020; border-radius: 0 8px 8px 0;
+  padding: 0.85rem 1rem; margin: 0.6rem 0; font-size: 0.9rem; color: #5a4010;
 }
 .error-box {
-    background: #fdeceb; border-left: 4px solid #c0392b; border-radius: 0 8px 8px 0;
-    padding: 0.85rem 1rem; margin: 0.6rem 0; font-size: 0.9rem; color: #7a1f17;
+  background: #fdeceb; border-left: 4px solid #c0392b; border-radius: 0 8px 8px 0;
+  padding: 0.85rem 1rem; margin: 0.6rem 0; font-size: 0.9rem; color: #7a1f17;
 }
+
 .metric-card {
-    background: #ffffff; border: 1px solid #d4e0c8; border-radius: 12px;
-    padding: 1.15rem 1.35rem; margin-bottom: 0.8rem;
-    box-shadow: 0 2px 8px rgba(26,46,26,0.06);
+  background: #ffffff; border: 1px solid #d4e0c8; border-radius: 12px;
+  padding: 1.15rem 1.35rem; margin-bottom: 0.8rem;
+  box-shadow: 0 2px 8px rgba(26,46,26,0.06);
 }
 .metric-label {
-    font-size: 0.74rem; font-weight: 700; letter-spacing: 0.09em;
-    text-transform: uppercase; color: #6e8e62; margin-bottom: 0.2rem;
+  font-size: 0.74rem; font-weight: 700; letter-spacing: 0.09em;
+  text-transform: uppercase; color: #6e8e62; margin-bottom: 0.2rem;
 }
 .metric-value { font-family: 'DM Serif Display', serif; font-size: 2rem; color: #1a2e1a; line-height: 1; }
 .metric-unit { font-size: 0.85rem; color: #7d9b72; margin-left: 2px; }
+
 div.stButton > button {
-    background: #2d6a2d; color: #ffffff !important; border: none; border-radius: 8px;
-    padding: 0.7rem 1.8rem; font-family: 'DM Sans', sans-serif;
-    font-weight: 700; font-size: 0.98rem; letter-spacing: 0.03em; width: 100%;
+  background: #2d6a2d; color: #ffffff !important; border: none; border-radius: 8px;
+  padding: 0.7rem 1.8rem; font-family: 'DM Sans', sans-serif;
+  font-weight: 700; font-size: 0.98rem; letter-spacing: 0.03em; width: 100%;
 }
 div.stButton > button:hover { background: #215221; color: #ffffff !important; }
+
 .stNumberInput input, .stTextInput input, .stTextArea textarea {
-    background: #ffffff !important; color: #1a2e1a !important;
-    border: 1px solid #c8d8b8 !important; border-radius: 8px !important;
+  background: #ffffff !important; color: #1a2e1a !important;
+  border: 1px solid #c8d8b8 !important; border-radius: 8px !important;
 }
+
+/* ── Year / History window selectbox: white background, white text ── */
 .stSelectbox div[data-baseweb="select"] > div {
-    background: #ffffff !important; color: #1a2e1a !important; border: 1px solid #c8d8b8 !important;
+  background: #ffffff !important;
+  color: #ffffff !important;
+  border: 1px solid #c8d8b8 !important;
+  border-radius: 8px !important;
 }
+
+/* Text inside the select control */
+.stSelectbox div[data-baseweb="select"] span,
+.stSelectbox div[data-baseweb="select"] div {
+  color: #ffffff !important;
+}
+
+/* Dropdown option list */
+[data-baseweb="popover"] [role="listbox"] {
+  background: #ffffff !important;
+}
+
+/* Individual options: white bg, white text by default */
+[data-baseweb="option"] {
+  background: #ffffff !important;
+  color: #ffffff !important;
+}
+
+/* Hovered or selected option: black background, white text */
+[data-baseweb="option"]:hover,
+[data-baseweb="option"][aria-selected="true"],
+[data-baseweb="option"]:focus {
+  background: #000000 !important;
+  color: #ffffff !important;
+}
+
 .stRadio label { color: #1a2e1a !important; }
 .stRadio div[role="radiogroup"] label { font-size: 0.96rem !important; font-weight: 600 !important; }
 .stCheckbox div[data-testid="stMarkdownContainer"] p { color: #1a2e1a !important; }
+
 .stDataFrame, [data-testid="stDataEditor"] { border-radius: 10px; overflow: hidden; }
 [data-testid="stDataEditor"] * { color: #1a2e1a !important; }
 [data-testid="stTable"] * { color: #1a2e1a !important; }
+
 [data-testid="stExpander"] {
-    border: 1px solid #d4e0c8 !important; border-radius: 10px !important; background: #ffffff !important;
+  border: 1px solid #d4e0c8 !important; border-radius: 10px !important; background: #ffffff !important;
 }
 [data-testid="stExpander"] summary,
 [data-testid="stExpander"] summary * { color: #1a2e1a !important; font-weight: 600; }
+
 table, thead tr th, tbody tr td { color: #1a2e1a !important; }
 </style>
 """, unsafe_allow_html=True)
 
-
 # ══════════════════════════════════════════════════════════════════════════════
-# ESG DATABASE — loaded from the uploaded LSEG CSV
+# ESG DATABASE — loaded directly from GitHub repository (raw CSV)
 # valuescore: 0–1 scale, higher = better (LSEG/Refinitiv ESGCombinedScore).
 # We take the most recent year per ticker and scale to 0–10 for display.
 # ══════════════════════════════════════════════════════════════════════════════
 
+_ESG_GITHUB_URL = (
+    "https://raw.githubusercontent.com/minas120983-alt/lets-see/main/"
+    "ESG%20data%202026.csv"
+)
+
 @st.cache_data(show_spinner=False)
-def load_esg_csv(path: str) -> dict:
-    df = pd.read_csv(path)
+def load_esg_from_github(url: str) -> dict:
+    response = requests.get(url, timeout=30)
+    response.raise_for_status()
+    df = pd.read_csv(io.StringIO(response.text))
     df = df[df["fieldname"] == "ESGCombinedScore"].copy()
     df["valuescore"] = pd.to_numeric(df["valuescore"], errors="coerce")
     df = df.dropna(subset=["valuescore", "ticker"])
@@ -125,22 +176,20 @@ def load_esg_csv(path: str) -> dict:
     return {
         row["ticker"]: {
             "app_esg": round(float(row["valuescore"]) * 10, 3),
-            "letter":  str(row["value"]),
-            "year":    int(row["year"]),
-            "source":  f"LSEG ESGCombinedScore ({int(row['year'])})",
+            "letter": str(row["value"]),
+            "year": int(row["year"]),
+            "source": f"LSEG ESGCombinedScore ({int(row['year'])})",
             "has_esg": True,
         }
         for _, row in latest.iterrows()
     }
 
-
-_ESG_CSV_PATH = "/mnt/user-data/uploads/ESG_data_2026.csv"
 _ESG_DB: dict = {}
+_esg_load_error: str = ""
 try:
-    _ESG_DB = load_esg_csv(_ESG_CSV_PATH)
-except Exception:
-    pass
-
+    _ESG_DB = load_esg_from_github(_ESG_GITHUB_URL)
+except Exception as e:
+    _esg_load_error = str(e)
 
 def lookup_esg(ticker: str) -> dict:
     t = ticker.upper().strip()
@@ -150,16 +199,14 @@ def lookup_esg(ticker: str) -> dict:
             "source": None, "has_esg": False,
             "error": f"'{t}' not found in ESG CSV."}
 
-
 # ══════════════════════════════════════════════════════════════════════════════
 # PORTFOLIO MATH
 # ══════════════════════════════════════════════════════════════════════════════
 
-def port_ret(w, mu):    return float(np.asarray(w) @ np.asarray(mu))
-def port_var(w, cov):   return float(np.asarray(w) @ np.asarray(cov) @ np.asarray(w))
-def port_sd(w, cov):    return float(max(port_var(w, cov), 1e-14) ** 0.5)
+def port_ret(w, mu): return float(np.asarray(w) @ np.asarray(mu))
+def port_var(w, cov): return float(np.asarray(w) @ np.asarray(cov) @ np.asarray(w))
+def port_sd(w, cov): return float(max(port_var(w, cov), 1e-14) ** 0.5)
 def port_sr(w, mu, cov, rf): ep = port_ret(w,mu); sp = port_sd(w,cov); return (ep-rf)/sp if sp>1e-9 else 0.
-
 def port_stats(w, mu, cov, esg, rf):
     w = np.asarray(w)
     ep = port_ret(w, mu); sp = port_sd(w, cov)
@@ -195,17 +242,11 @@ def find_optimal(mu, cov, esg, rf, gamma, lam):
     return res.x if res.success else np.ones(n)/n
 
 def build_mv_frontier(mu, cov, bounds=None, n_points=100):
-    """
-    True mean-variance frontier by minimising σ for each target return.
-    Returns (std_arr_pct, ret_arr_pct).
-    """
     n = len(mu)
     b = bounds or [(0.,1.)]*n
     w_mv = _minimise_sd(mu, cov, bounds=b)
     ret_min = port_ret(w_mv, mu)
-    # Upper bound: max return achievable with these bounds
-    ret_max = float(np.max([port_ret(np.eye(n)[i], mu) for i in range(n)
-                             if b[i][1] > 0]))
+    ret_max = float(np.max([port_ret(np.eye(n)[i], mu) for i in range(n) if b[i][1] > 0]))
     targets = np.linspace(ret_min, ret_max, n_points)
     stds, rets = [], []
     for rt in targets:
@@ -219,12 +260,10 @@ def build_mv_frontier(mu, cov, bounds=None, n_points=100):
             rets.append(port_ret(res.x, mu)*100)
     return np.array(stds), np.array(rets)
 
-
 def nearest_psd(matrix):
     ev, evec = np.linalg.eigh(matrix)
     ev[ev < 1e-8] = 1e-8
     return evec @ np.diag(ev) @ evec.T
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # MARKET DATA
@@ -249,11 +288,10 @@ def fetch_market_data(tickers, period="3y"):
     if close is None or close.empty:
         raise ValueError("No price data downloaded.")
     close = close.dropna(axis=1, how="all").dropna(how="all")
-    ret   = close.pct_change().dropna(how="all")
+    ret = close.pct_change().dropna(how="all")
     if ret.empty or ret.shape[1] < 2:
         raise ValueError("Not enough return data.")
     return close, ret, ret.mean()*252, ret.std()*np.sqrt(252), ret.cov()*252, ret.corr()
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SIDEBAR
@@ -268,14 +306,13 @@ with st.sidebar:
     rf    = st.number_input("Risk-Free Rate (%)", 0.0, 20.0, 4.0, 0.1, format="%.1f") / 100
     st.markdown("---")
     st.markdown("### ESG Screen")
-    use_exclusion  = st.checkbox("Apply ESG exclusion screen", value=False)
+    use_exclusion = st.checkbox("Apply ESG exclusion screen", value=False)
     min_esg_filter = 0.0
     if use_exclusion:
         min_esg_filter = st.slider("Min ESG score (0–10)", 0.0, 10.0, 4.0, 0.5)
     st.markdown("---")
     st.markdown("<small style='color:#d6e5cb'>ECN316 · Sustainable Finance · 2026</small>",
                 unsafe_allow_html=True)
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # HEADER
@@ -288,12 +325,13 @@ st.markdown('<div class="hero-sub">ESG-aware portfolio optimiser · ECN316 Susta
 if _ESG_DB:
     st.markdown(
         f'<div class="info-box">📊 ESG database loaded: <strong>{len(_ESG_DB):,} tickers</strong> '
-        f'from LSEG ESGCombinedScore CSV — most recent year per ticker, scaled 0–10.</div>',
+        f'from LSEG ESGCombinedScore CSV (GitHub) — most recent year per ticker, scaled 0–10.</div>',
         unsafe_allow_html=True)
 else:
     st.markdown(
-        f'<div class="error-box">⚠️ ESG CSV not found at <code>{_ESG_CSV_PATH}</code>. '
-        f'Please update the path in the script.</div>', unsafe_allow_html=True)
+        f'<div class="error-box">⚠️ Could not load ESG CSV from GitHub. '
+        f'Error: <code>{_esg_load_error}</code></div>',
+        unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # INPUT MODE
@@ -304,11 +342,11 @@ st.markdown('<div class="section-header">Asset Universe</div>', unsafe_allow_htm
 with st.columns([1.5, 3])[0]:
     input_mode = st.radio("Input method", ["Manual input", "Ticker-based input"], horizontal=False)
 
-default_names   = ["Tech ETF","Green Bond","Energy Stock","Healthcare","Consumer ETF",
-                   "Infra Fund","EM Equity","Gov Bond","Real Estate","Commodity"]
-default_ret     = [9.0, 4.5, 7.0, 7.5, 6.5, 5.5, 10.0, 3.0, 6.0, 5.0]
-default_vol     = [18.0, 5.0, 22.0, 15.0, 14.0, 10.0, 25.0, 4.0, 13.0, 20.0]
-default_esg     = [6.5, 8.5, 2.0, 7.0, 5.5, 7.5, 4.0, 6.0, 5.0, 3.5]
+default_names  = ["Tech ETF","Green Bond","Energy Stock","Healthcare","Consumer ETF",
+                  "Infra Fund","EM Equity","Gov Bond","Real Estate","Commodity"]
+default_ret    = [9.0, 4.5, 7.0, 7.5, 6.5, 5.5, 10.0, 3.0, 6.0, 5.0]
+default_vol    = [18.0, 5.0, 22.0, 15.0, 14.0, 10.0, 25.0, 4.0, 13.0, 20.0]
+default_esg    = [6.5, 8.5, 2.0, 7.0, 5.5, 7.5, 4.0, 6.0, 5.0, 3.5]
 default_tickers = ["AAPL","MSFT","XOM","JNJ","SPY","TLT","NVDA","VWO","GLD","META"]
 
 asset_data = []; ticker_rows = []; corr_df = None; lookback_period = "3y"
@@ -347,7 +385,7 @@ if input_mode == "Manual input":
 else:
     cl, cr = st.columns([2,1])
     with cr:
-        n_assets = st.number_input("Number of assets",2,10,3,1,key="n_ticker_assets")
+        n_assets       = st.number_input("Number of assets",2,10,3,1,key="n_ticker_assets")
         lookback_period = st.selectbox("History window",["1y","3y","5y","10y"],index=1)
     with cl:
         h = st.columns([1.1,1.8])
@@ -355,14 +393,13 @@ else:
         for i in range(int(n_assets)):
             c1,c2 = st.columns([1.1,1.8])
             ticker = c1.text_input("",value=default_tickers[i],key=f"ticker_{i}",label_visibility="collapsed").upper().strip()
-            name   = c2.text_input("",value=default_names[i],  key=f"ticker_name_{i}",label_visibility="collapsed")
+            name   = c2.text_input("",value=default_names[i], key=f"ticker_name_{i}",label_visibility="collapsed")
             ticker_rows.append({"ticker":ticker,"name":name or ticker,"manual_esg":None})
 
     valid_tickers = [r["ticker"] for r in ticker_rows if r["ticker"]]
     if valid_tickers:
-        esg_preview   = {r["ticker"]: lookup_esg(r["ticker"]) for r in ticker_rows if r["ticker"]}
-        missing_esg   = [t for t,res in esg_preview.items() if not res["has_esg"]]
-
+        esg_preview  = {r["ticker"]: lookup_esg(r["ticker"]) for r in ticker_rows if r["ticker"]}
+        missing_esg  = [t for t,res in esg_preview.items() if not res["has_esg"]]
         if missing_esg:
             st.markdown(
                 f'<div class="warn-box"><strong>Not in ESG CSV:</strong> '
@@ -381,7 +418,6 @@ else:
             manual_overrides = {}
             st.markdown('<div class="info-box">✓ ESG scores found in CSV for all tickers.</div>',
                         unsafe_allow_html=True)
-
         for row in ticker_rows:
             row["manual_esg"] = manual_overrides.get(row["ticker"], None)
 
@@ -398,10 +434,10 @@ if run:
     # ── Build mu, cov, esg arrays ────────────────────────────────────────────
     if input_mode == "Manual input":
         names      = [d["name"] for d in asset_data]
-        mu         = np.array([d["ret"] for d in asset_data], dtype=float)
-        vols       = np.array([d["vol"] for d in asset_data], dtype=float)
-        esg_scores = np.array([d["esg"] for d in asset_data], dtype=float)
-        n          = len(names)
+        mu         = np.array([d["ret"]  for d in asset_data], dtype=float)
+        vols       = np.array([d["vol"]  for d in asset_data], dtype=float)
+        esg_scores = np.array([d["esg"]  for d in asset_data], dtype=float)
+        n = len(names)
         try:
             corr_np = corr_df.values.astype(float)
         except Exception:
@@ -438,7 +474,7 @@ if run:
                 fe = float(meta["app_esg"]); src = meta["source"]
                 esg_letters[t] = meta.get("letter","")
             else:
-                fe = float(row.get("manual_esg") or 5.0)
+                fe  = float(row.get("manual_esg") or 5.0)
                 src = "Manual"; used_manual.append(t)
             resolved.append({"ticker":t,"name":row["name"],"final_esg":fe,
                              "src":src,"letter":meta.get("letter"),"year":meta.get("year")})
@@ -447,7 +483,7 @@ if run:
             st.markdown(f'<div class="error-box"><strong>Manual ESG used for:</strong> '
                         f'{", ".join(used_manual)}.</div>', unsafe_allow_html=True)
 
-        names      = [r["name"] for r in resolved]
+        names      = [r["name"]      for r in resolved]
         esg_scores = np.array([r["final_esg"] for r in resolved], dtype=float)
         mu         = mu_series.loc[available].values.astype(float)
         vols       = vols_series.loc[available].values.astype(float)
@@ -456,14 +492,14 @@ if run:
         n          = len(available)
 
         ticker_data_display = pd.DataFrame({
-            "Ticker":              available,
-            "Name":                names,
-            "E[R] (%)":            (mu_series.loc[available].values*100).round(2),
-            "σ (%)":               (vols_series.loc[available].values*100).round(2),
-            "ESG Score (0–10)":    [r["final_esg"] for r in resolved],
-            "LSEG Letter":         [r["letter"]    for r in resolved],
-            "ESG Year":            [r["year"]      for r in resolved],
-            "Source":              [r["src"]       for r in resolved],
+            "Ticker":         available,
+            "Name":           names,
+            "E[R] (%)":       (mu_series.loc[available].values*100).round(2),
+            "σ (%)":          (vols_series.loc[available].values*100).round(2),
+            "ESG Score (0–10)":[r["final_esg"]  for r in resolved],
+            "LSEG Letter":    [r["letter"]      for r in resolved],
+            "ESG Year":       [r["year"]        for r in resolved],
+            "Source":         [r["src"]         for r in resolved],
         })
         st.markdown(f'<div class="info-box">Market data loaded for: {", ".join(available)} '
                     f'over {lookback_period}.</div>', unsafe_allow_html=True)
@@ -474,10 +510,10 @@ if run:
         cov = nearest_psd(cov)
 
     # ESG threshold for green frontier
-    esg_thresh = min_esg_filter if use_exclusion else 0.0
+    esg_thresh  = min_esg_filter if use_exclusion else 0.0
     active_mask = esg_scores >= esg_thresh
     active_idx  = np.where(active_mask)[0]
-    excluded = [names[i] for i in range(n) if not active_mask[i]]
+    excluded    = [names[i] for i in range(n) if not active_mask[i]]
     if excluded:
         st.markdown(f'<div class="warn-box">Excluded from ESG frontier: {", ".join(excluded)} '
                     f'(ESG < {esg_thresh:.1f})</div>', unsafe_allow_html=True)
@@ -487,8 +523,6 @@ if run:
     mu_a    = mu[active_idx]; cov_a = cov[np.ix_(active_idx, active_idx)]
     esg_a   = esg_scores[active_idx]; names_a = [names[i] for i in active_idx]
     vols_a  = vols[active_idx]
-
-    # Bounds for green frontier: only ESG-passing assets can have weight > 0
     bounds_green = [(0.,1.) if active_mask[i] else (0.,0.) for i in range(n)]
 
     # ── Portfolios ────────────────────────────────────────────────────────────
@@ -529,24 +563,26 @@ if run:
 
     st.markdown("#### Portfolio Weights")
     st.dataframe(pd.DataFrame({
-        "Asset":              names,
-        "Weight (%)":         [f"{w*100:.2f}"  for w in w_opt],
-        "E[R] (%)":           [f"{r*100:.2f}"  for r in mu],
-        "σ (%)":              [f"{v*100:.2f}"  for v in vols],
-        "ESG (0–10)":         [f"{s:.2f}"      for s in esg_scores],
-        "In ESG frontier":    ["✓" if m else "✗" for m in active_mask],
+        "Asset":          names,
+        "Weight (%)":     [f"{w*100:.2f}"  for w in w_opt],
+        "E[R] (%)":       [f"{r*100:.2f}"  for r in mu],
+        "σ (%)":          [f"{v*100:.2f}"  for v in vols],
+        "ESG (0–10)":     [f"{s:.2f}"      for s in esg_scores],
+        "In ESG frontier":["✓" if m else "✗" for m in active_mask],
     }), use_container_width=True, hide_index=True)
 
     if input_mode == "Ticker-based input":
         st.markdown("#### Ticker Data Used")
         st.dataframe(ticker_data_display, use_container_width=True, hide_index=True)
-        st.markdown("#### Correlation Matrix")
-        st.dataframe(pd.DataFrame(corr_np,index=names,columns=names).round(3),
-                     use_container_width=True)
+
+    st.markdown("#### Correlation Matrix")
+    st.dataframe(pd.DataFrame(corr_np,index=names,columns=names).round(3),
+                 use_container_width=True)
 
     # ══════════════════════════════════════════════════════════════════════════
     # CHARTS
     # ══════════════════════════════════════════════════════════════════════════
+
     BG     = '#f5f2ec'
     BLUE   = '#1a66cc'
     GREEN  = '#2d8a2d'
@@ -556,30 +592,23 @@ if run:
     st.markdown('<div class="section-header">ESG-Efficient Frontier</div>', unsafe_allow_html=True)
     c1, c2 = st.columns(2)
 
-    # ── Chart 1: Mean-Variance Frontier (matches lecture slide) ──────────────
     with c1:
         fig, ax = plt.subplots(figsize=(6.5, 5.5))
         fig.patch.set_facecolor(BG); ax.set_facecolor(BG)
 
-        # Blue frontier — all assets
         if len(std_blue) > 2:
             ax.plot(std_blue, ret_blue, color=BLUE, lw=2.4, zorder=4,
                     label='Mean-variance frontier\n(all assets)')
-
-        # Green frontier — ESG-screened
         if len(std_green) > 2:
             ax.plot(std_green, ret_green, color=GREEN, lw=2.4, zorder=4,
                     label=f'Mean-variance frontier\n(ESG ≥ {esg_thresh:.1f})')
 
-        # CML for all-assets tangency (blue dashed)
         if sp_tan_all > 1e-9 and len(std_blue) > 0:
             cml_max = max(np.nanmax(std_blue), sp_tan_all*100) * 1.5
             sd_cml  = np.linspace(0, cml_max, 300)
             ax.plot(sd_cml, rf*100 + (ep_tan_all-rf)/sp_tan_all*sd_cml,
-                    color=BLUE, lw=1.5, linestyle='--', zorder=3,
-                    label='CML (all assets)')
+                    color=BLUE, lw=1.5, linestyle='--', zorder=3, label='CML (all assets)')
 
-        # CML for ESG-constrained tangency (green dashed)
         if sp_tan_esg > 1e-9 and len(std_green) > 0:
             cml_max2 = max(np.nanmax(std_green), sp_tan_esg*100) * 1.5
             sd_cml2  = np.linspace(0, cml_max2, 300)
@@ -587,7 +616,6 @@ if run:
                     color=GREEN, lw=1.5, linestyle='--', zorder=3,
                     label=f'CML (ESG ≥ {esg_thresh:.1f})')
 
-        # Tangency: all assets (blue star)
         ax.scatter(sp_tan_all*100, ep_tan_all*100, color=BLUE, s=160,
                    zorder=9, edgecolors='white', lw=1.5, marker='*')
         ax.annotate('tangency portfolio\n(all assets)',
@@ -595,7 +623,6 @@ if run:
                     textcoords="offset points", xytext=(8, 2),
                     fontsize=7, color=BLUE, fontstyle='italic')
 
-        # Tangency: ESG-constrained (green star)
         if len(std_green) > 2:
             ax.scatter(sp_tan_esg*100, ep_tan_esg*100, color=GREEN, s=160,
                        zorder=9, edgecolors='white', lw=1.5, marker='*')
@@ -604,15 +631,10 @@ if run:
                         textcoords="offset points", xytext=(8, -20),
                         fontsize=7, color=GREEN, fontstyle='italic')
 
-        # Risk-free
-        ax.scatter(0, rf*100, color=GREY, s=70, zorder=8,
-                   edgecolors='white', lw=1, marker='s')
-
-        # ESG-optimal
+        ax.scatter(0, rf*100, color=GREY, s=70, zorder=8, edgecolors='white', lw=1, marker='s')
         ax.scatter(sp*100, ep*100, color=ORANGE, s=180, zorder=10,
                    edgecolors='white', lw=2, marker='*', label='ESG-Optimal portfolio')
 
-        # Individual assets — blue dots if excluded from ESG frontier, green if included
         for i in range(n):
             col_pt = GREEN if active_mask[i] else BLUE
             ax.scatter(vols[i]*100, mu[i]*100, color=col_pt, s=50, zorder=6,
@@ -628,12 +650,10 @@ if run:
         ax.set_xlim(left=0)
         ax.tick_params(colors='#5a7a5a', labelsize=8)
         for sp_ in ax.spines.values(): sp_.set_color('#c8d8b8')
-        ax.legend(fontsize=7, framealpha=0.92, facecolor=BG, edgecolor='#c8d8b8',
-                  loc='upper left')
+        ax.legend(fontsize=7, framealpha=0.92, facecolor=BG, edgecolor='#c8d8b8', loc='upper left')
         ax.grid(True, alpha=0.3, color='#c8d8b8', linestyle='--')
         fig.tight_layout(); st.pyplot(fig); plt.close()
 
-    # ── Chart 2: ESG Score vs Sharpe frontier ────────────────────────────────
     with c2:
         esg_sweep = np.linspace(float(np.min(esg_a)), float(np.max(esg_a)), 120)
         sw_esg, sw_sr = [], []
@@ -653,11 +673,9 @@ if run:
 
         fig2, ax2 = plt.subplots(figsize=(6.5, 5.5))
         fig2.patch.set_facecolor(BG); ax2.set_facecolor(BG)
-
         if sw_esg:
             ax2.plot(sw_esg, sw_sr, color=GREEN, lw=2.5, label='ESG–Sharpe frontier')
             ax2.fill_between(sw_esg, sw_sr, alpha=0.1, color=GREEN)
-
         for i in range(len(mu_a)):
             sr_i = (mu_a[i]-rf)/vols_a[i]
             ax2.scatter(esg_a[i], sr_i, color='#88b179', s=65, zorder=5,
@@ -736,7 +754,7 @@ if run:
             ax_.grid(True,alpha=0.3,color='#c8d8b8',linestyle='--')
         axes[2].set_facecolor(BG)
         axes[2].plot(sens_df["λ"],sens_df["E[R](%)"],color='#6aaa5a',lw=2,label='E[R]')
-        axes[2].plot(sens_df["λ"],sens_df["σ(%)"],color=ORANGE,lw=2,linestyle='--',label='σ')
+        axes[2].plot(sens_df["λ"],sens_df["σ(%)"],   color=ORANGE,   lw=2,linestyle='--',label='σ')
         axes[2].set_title("Return & Risk vs λ",fontsize=10,color='#1a2e1a')
         axes[2].set_xlabel("λ",fontsize=9); axes[2].set_ylabel("%",fontsize=9)
         axes[2].legend(fontsize=8,facecolor=BG,edgecolor='#c8d8b8')
@@ -754,16 +772,17 @@ if run:
         '<strong>Green frontier</strong>: MV frontier restricted to assets passing the ESG screen '
         '— lies to the right of blue (same return costs more risk), matching the lecture diagram. '
         'Both CMLs drawn from r_f through their respective tangency portfolios. '
-        'ESG data: LSEG ESGCombinedScore CSV, most recent year per ticker, '
-        'scaled 0–1 → 0–10 (higher = better).</div>',
+        'ESG data: LSEG ESGCombinedScore loaded directly from GitHub repository, '
+        'most recent year per ticker, scaled 0–1 → 0–10 (higher = better).</div>',
         unsafe_allow_html=True)
 
 else:
     st.markdown('<div class="warn-box">Configure the asset universe and click '
                 '<strong>Optimise Portfolio</strong> to generate results.</div>',
                 unsafe_allow_html=True)
-    with st.expander("How does the model work?"):
-        st.markdown(r"""
+
+with st.expander("How does the model work?"):
+    st.markdown(r"""
 **Utility Function**
 
 $$U = E[R_p] - \frac{\gamma}{2}\sigma_p^2 + \lambda \bar{s}$$
@@ -773,11 +792,12 @@ $$U = E[R_p] - \frac{\gamma}{2}\sigma_p^2 + \lambda \bar{s}$$
 Two mean-variance frontiers are built by minimising portfolio standard deviation for each target return level:
 
 - **Blue**: No ESG constraints — uses all assets. This is the standard Markowitz frontier.
+
 - **Green**: ESG-constrained — only assets passing the minimum ESG threshold can receive non-zero weight. Because this restricts the feasible set, the green frontier lies *to the right* of the blue (higher σ for the same E[R]), exactly as shown in the lecture slide.
 
 Both frontiers show their Capital Market Line (dashed), tangency portfolio (★), and the risk-free asset.
 
 **ESG Data Source**
 
-Scores come from the uploaded LSEG ESGCombinedScore CSV. The `valuescore` column (0–1 scale, higher = better) is multiplied by 10 to give a 0–10 display scale. The most recent available year is used per ticker. If a ticker is not in the CSV, a manual score input appears.
+Scores are loaded directly from the GitHub repository (`ESG data 2026.csv`) via the raw URL at startup — no local file needed. The `valuescore` column (0–1 scale, higher = better) is multiplied by 10 to give a 0–10 display scale. The most recent available year is used per ticker. If a ticker is not in the CSV, a manual score input appears.
 """)
