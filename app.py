@@ -26,61 +26,36 @@ html, body, [class*="css"] {
     color: #1a2e1a;
 }
 
-/* App background */
 .stApp {
     background: #f5f2ec;
     color: #1a2e1a;
 }
 
-/* Main container */
 .block-container {
     padding-top: 3.2rem;
     color: #1a2e1a;
 }
 
-/* Sidebar */
 [data-testid="stSidebar"] {
     background: linear-gradient(180deg, #163116 0%, #102910 100%) !important;
     border-right: 1px solid #284528;
 }
-[data-testid="stSidebar"] * {
-    color: #d6e5cb !important;
-}
-[data-testid="stSidebar"] hr {
-    border-color: #335333 !important;
-}
+[data-testid="stSidebar"] * { color: #d6e5cb !important; }
+[data-testid="stSidebar"] hr { border-color: #335333 !important; }
 [data-testid="stSidebar"] label,
 [data-testid="stSidebar"] .stMarkdown,
 [data-testid="stSidebar"] p,
 [data-testid="stSidebar"] span,
-[data-testid="stSidebar"] div {
-    color: #d6e5cb !important;
-}
+[data-testid="stSidebar"] div { color: #d6e5cb !important; }
 [data-testid="stSidebar"] label {
     font-size: 0.84rem !important;
     font-weight: 700 !important;
     letter-spacing: 0.08em !important;
     text-transform: uppercase !important;
 }
-[data-testid="stSidebar"] .stSlider [data-baseweb="slider"] {
-    padding-top: 0.4rem;
-    padding-bottom: 0.2rem;
-}
-[data-testid="stSidebar"] .stSlider [data-testid="stTickBar"] {
-    display: none;
-}
 [data-testid="stSidebar"] .stSlider [role="slider"] {
     background: #d4a020 !important;
     border: 2px solid #fff7df !important;
-    box-shadow: none !important;
-}
-[data-testid="stSidebar"] .stSlider div[data-testid="stThumbValue"] {
-    color: #d6e5cb !important;
-    font-size: 0.95rem !important;
-    font-weight: 600 !important;
-}
-[data-testid="stSidebar"] .stSlider small {
-    color: #c7ddba !important;
 }
 [data-testid="stSidebar"] .stNumberInput input,
 [data-testid="stSidebar"] .stTextInput input {
@@ -89,23 +64,9 @@ html, body, [class*="css"] {
     border: 1px solid #86a173 !important;
     border-radius: 8px !important;
 }
-[data-testid="stSidebar"] .stCheckbox label {
-    font-size: 0.84rem !important;
-    letter-spacing: 0.06em !important;
-}
-[data-testid="stSidebar"] .stCheckbox div[data-testid="stMarkdownContainer"] p {
-    color: #d6e5cb !important;
-}
-[data-testid="stSidebar"] .stCheckbox input + div {
-    border-color: #86a173 !important;
-}
 
-/* Main typography */
-h1, h2, h3, h4, h5, h6, p, div, label, span {
-    color: #1a2e1a;
-}
+h1, h2, h3, h4, h5, h6, p, div, label, span { color: #1a2e1a; }
 
-/* Title */
 .hero-title {
     font-family: 'DM Serif Display', serif;
     font-size: 3.4rem;
@@ -120,8 +81,6 @@ h1, h2, h3, h4, h5, h6, p, div, label, span {
     margin-bottom: 2.2rem;
     font-weight: 400;
 }
-
-/* Section headers */
 .section-header {
     font-family: 'DM Serif Display', serif;
     font-size: 1.45rem;
@@ -131,8 +90,6 @@ h1, h2, h3, h4, h5, h6, p, div, label, span {
     margin-top: 0.25rem;
     margin-bottom: 1rem;
 }
-
-/* Info & warning boxes */
 .info-box {
     background: #e8f5e0;
     border-left: 4px solid #4a8a3a;
@@ -160,8 +117,6 @@ h1, h2, h3, h4, h5, h6, p, div, label, span {
     font-size: 0.9rem;
     color: #7a1f17;
 }
-
-/* Cards */
 .metric-card {
     background: #ffffff;
     border: 1px solid #d4e0c8;
@@ -184,13 +139,8 @@ h1, h2, h3, h4, h5, h6, p, div, label, span {
     color: #1a2e1a;
     line-height: 1;
 }
-.metric-unit {
-    font-size: 0.85rem;
-    color: #7d9b72;
-    margin-left: 2px;
-}
+.metric-unit { font-size: 0.85rem; color: #7d9b72; margin-left: 2px; }
 
-/* Buttons */
 div.stButton > button {
     background: #2d6a2d;
     color: #ffffff !important;
@@ -203,15 +153,9 @@ div.stButton > button {
     letter-spacing: 0.03em;
     width: 100%;
 }
-div.stButton > button:hover {
-    background: #215221;
-    color: #ffffff !important;
-}
+div.stButton > button:hover { background: #215221; color: #ffffff !important; }
 
-/* Inputs in main area */
-.stNumberInput input,
-.stTextInput input,
-.stTextArea textarea {
+.stNumberInput input, .stTextInput input, .stTextArea textarea {
     background: #ffffff !important;
     color: #1a2e1a !important;
     border: 1px solid #c8d8b8 !important;
@@ -222,65 +166,31 @@ div.stButton > button:hover {
     color: #1a2e1a !important;
     border: 1px solid #c8d8b8 !important;
 }
-.stRadio label {
-    color: #1a2e1a !important;
-}
-.stRadio div[role="radiogroup"] label {
-    font-size: 0.96rem !important;
-    font-weight: 600 !important;
-}
-.stCheckbox div[data-testid="stMarkdownContainer"] p {
-    color: #1a2e1a !important;
-}
-
-/* Data editors / tables */
-.stDataFrame, [data-testid="stDataEditor"] {
-    border-radius: 10px;
-    overflow: hidden;
-}
-[data-testid="stDataEditor"] * {
-    color: #1a2e1a !important;
-}
-[data-testid="stTable"] * {
-    color: #1a2e1a !important;
-}
-
-/* Expander */
+.stRadio label { color: #1a2e1a !important; }
+.stRadio div[role="radiogroup"] label { font-size: 0.96rem !important; font-weight: 600 !important; }
+.stCheckbox div[data-testid="stMarkdownContainer"] p { color: #1a2e1a !important; }
+.stDataFrame, [data-testid="stDataEditor"] { border-radius: 10px; overflow: hidden; }
+[data-testid="stDataEditor"] * { color: #1a2e1a !important; }
+[data-testid="stTable"] * { color: #1a2e1a !important; }
 [data-testid="stExpander"] {
     border: 1px solid #d4e0c8 !important;
     border-radius: 10px !important;
     background: #ffffff !important;
 }
 [data-testid="stExpander"] summary,
-[data-testid="stExpander"] summary * {
-    color: #1a2e1a !important;
-    font-weight: 600;
-}
-
-/* Markdown tables */
-table {
-    color: #1a2e1a !important;
-}
-thead tr th {
-    color: #1a2e1a !important;
-}
-tbody tr td {
-    color: #1a2e1a !important;
-}
-
-/* Hide stray white text in app chrome where possible */
-[data-testid="stAppViewContainer"] * {
-    text-shadow: none !important;
-}
+[data-testid="stExpander"] summary * { color: #1a2e1a !important; font-weight: 600; }
+table { color: #1a2e1a !important; }
+thead tr th { color: #1a2e1a !important; }
+tbody tr td { color: #1a2e1a !important; }
 </style>
 """, unsafe_allow_html=True)
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # HELPER FUNCTIONS
 # ══════════════════════════════════════════════════════════════════════════════
 
 def portfolio_stats(weights, mu, cov, esg_scores, rf):
-    """Return (E[Rp], sigma_p, sharpe, esg_bar)."""
     w = np.array(weights)
     ep = float(w @ mu)
     vp = float(w @ cov @ w)
@@ -296,98 +206,54 @@ def utility(weights, mu, cov, esg_scores, rf, gamma, lam):
 
 
 def build_frontier(mu, cov, esg_scores, rf, n_points=160):
-    """Build the ESG-efficient frontier."""
     n = len(mu)
     bounds = tuple((0.0, 1.0) for _ in range(n))
     sum_constraint = {"type": "eq", "fun": lambda w: np.sum(w) - 1}
-
     esg_min = float(np.min(esg_scores))
     esg_max = float(np.max(esg_scores))
     esg_targets = np.linspace(esg_min, esg_max, n_points)
 
-    frontier_sharpe = []
-    frontier_ret = []
-    frontier_std = []
-    frontier_esg = []
-    frontier_weights = []
-
+    frontier_sharpe, frontier_ret, frontier_std, frontier_esg, frontier_weights = [], [], [], [], []
     w0 = np.ones(n) / n
 
     for esg_t in esg_targets:
-        esg_constraint = {
-            "type": "ineq",
-            "fun": lambda w, t=esg_t: w @ esg_scores - t,
-        }
-
+        esg_constraint = {"type": "ineq", "fun": lambda w, t=esg_t: w @ esg_scores - t}
         def neg_sharpe(w):
             ep, sp, sr, _ = portfolio_stats(w, mu, cov, esg_scores, rf)
             return -sr
-
-        res = minimize(
-            neg_sharpe,
-            w0,
-            method="SLSQP",
-            bounds=bounds,
-            constraints=[sum_constraint, esg_constraint],
-            options={"ftol": 1e-9, "maxiter": 500},
-        )
-
+        res = minimize(neg_sharpe, w0, method="SLSQP", bounds=bounds,
+                       constraints=[sum_constraint, esg_constraint],
+                       options={"ftol": 1e-9, "maxiter": 500})
         if res.success:
             ep, sp, sr, eg = portfolio_stats(res.x, mu, cov, esg_scores, rf)
-            frontier_sharpe.append(sr)
-            frontier_ret.append(ep)
-            frontier_std.append(sp)
-            frontier_esg.append(eg)
+            frontier_sharpe.append(sr); frontier_ret.append(ep)
+            frontier_std.append(sp); frontier_esg.append(eg)
             frontier_weights.append(res.x)
         else:
-            frontier_sharpe.append(np.nan)
-            frontier_ret.append(np.nan)
-            frontier_std.append(np.nan)
-            frontier_esg.append(esg_t)
+            frontier_sharpe.append(np.nan); frontier_ret.append(np.nan)
+            frontier_std.append(np.nan); frontier_esg.append(esg_t)
             frontier_weights.append(None)
 
-    return (
-        np.array(frontier_esg),
-        np.array(frontier_sharpe),
-        np.array(frontier_ret),
-        np.array(frontier_std),
-        frontier_weights,
-    )
+    return (np.array(frontier_esg), np.array(frontier_sharpe),
+            np.array(frontier_ret), np.array(frontier_std), frontier_weights)
 
 
 def find_optimal(mu, cov, esg_scores, rf, gamma, lam):
-    """Find the utility-maximising portfolio."""
     n = len(mu)
     bounds = tuple((0.0, 1.0) for _ in range(n))
     constraints = [{"type": "eq", "fun": lambda w: np.sum(w) - 1}]
     w0 = np.ones(n) / n
-
-    res = minimize(
-        utility,
-        w0,
-        args=(mu, cov, esg_scores, rf, gamma, lam),
-        method="SLSQP",
-        bounds=bounds,
-        constraints=constraints,
-        options={"ftol": 1e-9, "maxiter": 1000},
-    )
+    res = minimize(utility, w0, args=(mu, cov, esg_scores, rf, gamma, lam),
+                   method="SLSQP", bounds=bounds, constraints=constraints,
+                   options={"ftol": 1e-9, "maxiter": 1000})
     return res.x if res.success else w0
 
 
 @st.cache_data(show_spinner=False)
 def fetch_market_data(tickers, period="3y"):
-    """Fetch historical price data and estimate annualised stats."""
-    raw = yf.download(
-        tickers,
-        period=period,
-        auto_adjust=True,
-        progress=False,
-        group_by="ticker",
-        threads=False,
-    )
-
+    raw = yf.download(tickers, period=period, auto_adjust=True,
+                      progress=False, group_by="ticker", threads=False)
     close = None
-
     if isinstance(raw.columns, pd.MultiIndex):
         close_frames = []
         for t in tickers:
@@ -412,18 +278,16 @@ def fetch_market_data(tickers, period="3y"):
     returns = close.pct_change().dropna(how="all")
 
     if returns.empty or returns.shape[1] < 2:
-        raise ValueError("Not enough valid return data. Try different tickers or a longer history window.")
+        raise ValueError("Not enough valid return data.")
 
     mu = returns.mean() * 252
     vols = returns.std() * np.sqrt(252)
     cov = returns.cov() * 252
     corr = returns.corr()
-
     return close, returns, mu, vols, cov, corr
 
 
 def nearest_psd(matrix):
-    """Simple PSD repair."""
     eigvals, eigvecs = np.linalg.eigh(matrix)
     eigvals[eigvals < 1e-8] = 1e-8
     return eigvecs @ np.diag(eigvals) @ eigvecs.T
@@ -431,173 +295,131 @@ def nearest_psd(matrix):
 
 def yahoo_total_esg_to_app_score(total_esg):
     """
-    Convert Yahoo/Sustainalytics totalEsg (risk-style: lower is better)
-    to the app's 0-10 higher-is-better scale.
+    Sustainalytics/Yahoo totalEsg: lower = better (risk score, typically 0–50).
+    We convert to a 0–10 higher-is-better scale by mapping 0→10, 50→0.
     """
     if total_esg is None or pd.isna(total_esg):
         return None
-    score = 10.0 - (float(total_esg) / 10.0)
+    score = 10.0 - (float(total_esg) / 5.0)   # 50 → 0, 0 → 10
     return float(np.clip(score, 0.0, 10.0))
 
 
-def extract_yfinance_sustainability(ticker):
+def _try_get_sustainability(ticker_str):
     """
-    Try yfinance sustainability endpoint first.
+    Robustly attempt to pull sustainability data from yfinance,
+    handling both the old .sustainability attribute and new get_sustainability().
+    Returns a pd.Series or None.
     """
-    result = {
-        "ticker": ticker,
-        "yahoo_total_esg": None,
-        "environment_score": None,
-        "social_score": None,
-        "governance_score": None,
-        "rating_year": None,
-        "rating_month": None,
-        "app_esg": None,
-        "has_esg": False,
-        "source": None,
-        "error": None,
-    }
+    tk = yf.Ticker(ticker_str)
 
+    # Attempt 1: new API
     try:
-        tk = yf.Ticker(ticker)
+        sus = tk.get_sustainability()
+        if sus is not None and not (hasattr(sus, "empty") and sus.empty):
+            if isinstance(sus, pd.DataFrame) and not sus.empty:
+                return sus.iloc[:, 0]
+            if isinstance(sus, pd.Series) and not sus.empty:
+                return sus
+    except Exception:
+        pass
 
-        sus = None
-        try:
-            sus = tk.get_sustainability()
-        except Exception:
-            pass
-
-        if sus is None or (hasattr(sus, "__len__") and len(sus) == 0):
-            try:
-                sus = tk.sustainability
-            except Exception:
-                sus = None
-
-        if sus is None or (hasattr(sus, "__len__") and len(sus) == 0):
-            return result
-
-        if isinstance(sus, pd.DataFrame):
-            if sus.shape[1] >= 1:
-                s = sus.iloc[:, 0]
-            else:
-                return result
-        elif isinstance(sus, pd.Series):
-            s = sus
-        else:
-            return result
-
-        def get_key(series, key):
-            target = key.lower().replace("_", "").replace(" ", "")
-            for idx in series.index:
-                idx_norm = str(idx).lower().replace("_", "").replace(" ", "")
-                if idx_norm == target:
-                    return series.loc[idx]
-            return None
-
-        total_esg = get_key(s, "totalEsg")
-        env = get_key(s, "environmentScore")
-        soc = get_key(s, "socialScore")
-        gov = get_key(s, "governanceScore")
-        ry = get_key(s, "ratingYear")
-        rm = get_key(s, "ratingMonth")
-
-        result["yahoo_total_esg"] = float(total_esg) if total_esg is not None and pd.notna(total_esg) else None
-        result["environment_score"] = float(env) if env is not None and pd.notna(env) else None
-        result["social_score"] = float(soc) if soc is not None and pd.notna(soc) else None
-        result["governance_score"] = float(gov) if gov is not None and pd.notna(gov) else None
-        result["rating_year"] = int(ry) if ry is not None and pd.notna(ry) else None
-        result["rating_month"] = int(rm) if rm is not None and pd.notna(rm) else None
-        result["app_esg"] = yahoo_total_esg_to_app_score(result["yahoo_total_esg"])
-        result["has_esg"] = result["app_esg"] is not None
-        result["source"] = "yfinance"
-
-        return result
-
-    except Exception as e:
-        result["error"] = str(e)
-        return result
-
-
-def extract_yahooquery_esg(ticker):
-    """
-    Fallback to yahooquery if yfinance returns no ESG data.
-    Requires: pip install yahooquery
-    """
-    result = {
-        "ticker": ticker,
-        "yahoo_total_esg": None,
-        "environment_score": None,
-        "social_score": None,
-        "governance_score": None,
-        "rating_year": None,
-        "rating_month": None,
-        "app_esg": None,
-        "has_esg": False,
-        "source": None,
-        "error": None,
-    }
-
+    # Attempt 2: legacy attribute
     try:
-        from yahooquery import Ticker as YQTicker
+        sus = tk.sustainability
+        if sus is not None and not (hasattr(sus, "empty") and sus.empty):
+            if isinstance(sus, pd.DataFrame) and not sus.empty:
+                return sus.iloc[:, 0]
+            if isinstance(sus, pd.Series) and not sus.empty:
+                return sus
+    except Exception:
+        pass
 
-        data = YQTicker(ticker).esg_scores
-        if not isinstance(data, dict):
-            return result
+    return None
 
-        payload = data.get(ticker) or {}
-        if not isinstance(payload, dict) or len(payload) == 0:
-            return result
 
-        total_esg = payload.get("totalEsg")
-        env = payload.get("environmentScore") or payload.get("environomentScore")
-        soc = payload.get("socialScore")
-        gov = payload.get("governanceScore")
-        ry = payload.get("ratingYear")
-        rm = payload.get("ratingMonth")
-
-        result["yahoo_total_esg"] = float(total_esg) if total_esg is not None and pd.notna(total_esg) else None
-        result["environment_score"] = float(env) if env is not None and pd.notna(env) else None
-        result["social_score"] = float(soc) if soc is not None and pd.notna(soc) else None
-        result["governance_score"] = float(gov) if gov is not None and pd.notna(gov) else None
-        result["rating_year"] = int(ry) if ry is not None and pd.notna(ry) else None
-        result["rating_month"] = int(rm) if rm is not None and pd.notna(rm) else None
-        result["app_esg"] = yahoo_total_esg_to_app_score(result["yahoo_total_esg"])
-        result["has_esg"] = result["app_esg"] is not None
-        result["source"] = "yahooquery"
-
-        return result
-
-    except Exception as e:
-        result["error"] = str(e)
-        return result
+def _series_get(series, *keys):
+    """Case-insensitive key lookup in a pd.Series."""
+    normalised = {str(k).lower().replace("_", "").replace(" ", ""): k for k in series.index}
+    for key in keys:
+        target = key.lower().replace("_", "").replace(" ", "")
+        if target in normalised:
+            val = series.loc[normalised[target]]
+            if pd.notna(val):
+                return val
+    return None
 
 
 @st.cache_data(show_spinner=False)
 def fetch_esg_for_ticker(ticker):
     """
-    Try yfinance first, then yahooquery fallback.
+    Primary: yfinance sustainability.
+    Fallback: yahooquery esg_scores (if installed).
+    Returns a dict with has_esg, app_esg (0-10 scale), and raw sub-scores.
     """
-    yf_result = extract_yfinance_sustainability(ticker)
-    if yf_result["has_esg"]:
-        return yf_result
+    base = dict(ticker=ticker, yahoo_total_esg=None, environment_score=None,
+                social_score=None, governance_score=None, rating_year=None,
+                rating_month=None, app_esg=None, has_esg=False, source=None, error=None)
 
-    yq_result = extract_yahooquery_esg(ticker)
-    if yq_result["has_esg"]:
-        return yq_result
+    # ── yfinance ──────────────────────────────────────────────────────────────
+    try:
+        s = _try_get_sustainability(ticker)
+        if s is not None and not s.empty:
+            total = _series_get(s, "totalEsg", "totalESG")
+            env   = _series_get(s, "environmentScore", "environmentalScore", "eScore")
+            soc   = _series_get(s, "socialScore", "sScore")
+            gov   = _series_get(s, "governanceScore", "gScore")
+            ry    = _series_get(s, "ratingYear")
+            rm    = _series_get(s, "ratingMonth")
 
-    return {
-        "ticker": ticker,
-        "yahoo_total_esg": None,
-        "environment_score": None,
-        "social_score": None,
-        "governance_score": None,
-        "rating_year": None,
-        "rating_month": None,
-        "app_esg": None,
-        "has_esg": False,
-        "source": None,
-        "error": f"yfinance: {yf_result.get('error')} | yahooquery: {yq_result.get('error')}",
-    }
+            if total is not None:
+                base.update(
+                    yahoo_total_esg=float(total),
+                    environment_score=float(env) if env is not None else None,
+                    social_score=float(soc) if soc is not None else None,
+                    governance_score=float(gov) if gov is not None else None,
+                    rating_year=int(ry) if ry is not None else None,
+                    rating_month=int(rm) if rm is not None else None,
+                    app_esg=yahoo_total_esg_to_app_score(float(total)),
+                    has_esg=True,
+                    source="yfinance",
+                )
+                return base
+    except Exception as e:
+        base["error"] = f"yfinance: {e}"
+
+    # ── yahooquery fallback ────────────────────────────────────────────────────
+    try:
+        from yahooquery import Ticker as YQTicker
+        data = YQTicker(ticker).esg_scores
+        payload = (data or {}).get(ticker, {})
+        if isinstance(payload, dict) and payload:
+            total = payload.get("totalEsg")
+            if total is not None and pd.notna(total):
+                env = payload.get("environmentScore") or payload.get("environomentScore")
+                soc = payload.get("socialScore")
+                gov = payload.get("governanceScore")
+                base.update(
+                    yahoo_total_esg=float(total),
+                    environment_score=float(env) if env is not None else None,
+                    social_score=float(soc) if soc is not None else None,
+                    governance_score=float(gov) if gov is not None else None,
+                    rating_year=int(payload["ratingYear"]) if payload.get("ratingYear") else None,
+                    rating_month=int(payload["ratingMonth"]) if payload.get("ratingMonth") else None,
+                    app_esg=yahoo_total_esg_to_app_score(float(total)),
+                    has_esg=True,
+                    source="yahooquery",
+                )
+                return base
+    except ImportError:
+        yq_err = "yahooquery not installed"
+    except Exception as e:
+        yq_err = str(e)
+    else:
+        yq_err = "no data"
+
+    prev_err = base.get("error") or ""
+    base["error"] = f"{prev_err} | yahooquery: {yq_err}".strip(" |")
+    return base
 
 
 def fetch_esg_for_tickers(tickers):
@@ -611,40 +433,17 @@ def fetch_esg_for_tickers(tickers):
 with st.sidebar:
     st.markdown("## GreenPort")
     st.markdown("---")
-
     st.markdown("### Investor Preferences")
-    gamma = st.slider(
-        "Risk Aversion (γ)",
-        min_value=0.5,
-        max_value=10.0,
-        value=3.0,
-        step=0.5,
-        help="Higher γ means the investor is more risk-averse.",
-    )
-    lam = st.slider(
-        "ESG Preference (λ)",
-        min_value=0.0,
-        max_value=5.0,
-        value=1.0,
-        step=0.1,
-        help="Higher λ places more weight on ESG quality.",
-    )
-    rf = st.number_input(
-        "Risk-Free Rate (%)",
-        min_value=0.0,
-        max_value=20.0,
-        value=4.0,
-        step=0.1,
-        format="%.1f",
-    ) / 100
+    gamma = st.slider("Risk Aversion (γ)", 0.5, 10.0, 3.0, 0.5,
+                      help="Higher γ = more risk-averse.")
+    lam = st.slider("ESG Preference (λ)", 0.0, 5.0, 1.0, 0.1,
+                    help="Higher λ = more weight on ESG quality.")
+    rf = st.number_input("Risk-Free Rate (%)", 0.0, 20.0, 4.0, 0.1, format="%.1f") / 100
 
     st.markdown("---")
     st.markdown("### ESG Filter")
-    use_exclusion = st.checkbox(
-        "Apply exclusion screen",
-        value=False,
-        help="Exclude assets with ESG score below a chosen minimum threshold.",
-    )
+    use_exclusion = st.checkbox("Apply exclusion screen", value=False,
+                                help="Exclude assets below a minimum ESG score.")
     min_esg = 0.0
     if use_exclusion:
         min_esg = st.slider("Minimum ESG score", 0.0, 10.0, 4.0, 0.5)
@@ -655,15 +454,14 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
+
 # ══════════════════════════════════════════════════════════════════════════════
 # MAIN HEADER
 # ══════════════════════════════════════════════════════════════════════════════
 
 st.markdown('<div class="hero-title">GreenPort</div>', unsafe_allow_html=True)
-st.markdown(
-    '<div class="hero-sub">ESG-aware portfolio optimiser for retail investors</div>',
-    unsafe_allow_html=True,
-)
+st.markdown('<div class="hero-sub">ESG-aware portfolio optimiser for retail investors</div>',
+            unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # INPUT MODE
@@ -673,120 +471,129 @@ st.markdown('<div class="section-header">Asset Universe</div>', unsafe_allow_htm
 
 mode_col1, mode_col2 = st.columns([1.5, 3])
 with mode_col1:
-    input_mode = st.radio(
-        "Input method",
-        ["Manual input", "Ticker-based input"],
-        horizontal=False,
-    )
+    input_mode = st.radio("Input method", ["Manual input", "Ticker-based input"], horizontal=False)
 
-# Common defaults
-default_names = [
-    "Tech ETF", "Green Bond", "Energy Stock", "Healthcare", "Consumer ETF",
-    "Infra Fund", "EM Equity", "Gov Bond", "Real Estate", "Commodity"
-]
-default_ret = [9.0, 4.5, 7.0, 7.5, 6.5, 5.5, 10.0, 3.0, 6.0, 5.0]
-default_vol = [18.0, 5.0, 22.0, 15.0, 14.0, 10.0, 25.0, 4.0, 13.0, 20.0]
-default_esg = [6.5, 8.5, 2.0, 7.0, 5.5, 7.5, 4.0, 6.0, 5.0, 3.5]
-default_tickers = ["AAPL", "MSFT", "XOM", "JNJ", "SPY", "TLT", "NVDA", "VWO", "GLD", "META"]
+default_names   = ["Tech ETF","Green Bond","Energy Stock","Healthcare","Consumer ETF",
+                   "Infra Fund","EM Equity","Gov Bond","Real Estate","Commodity"]
+default_ret     = [9.0, 4.5, 7.0, 7.5, 6.5, 5.5, 10.0, 3.0, 6.0, 5.0]
+default_vol     = [18.0, 5.0, 22.0, 15.0, 14.0, 10.0, 25.0, 4.0, 13.0, 20.0]
+default_esg     = [6.5, 8.5, 2.0, 7.0, 5.5, 7.5, 4.0, 6.0, 5.0, 3.5]
+default_tickers = ["AAPL","MSFT","XOM","JNJ","SPY","TLT","NVDA","VWO","GLD","META"]
+
+asset_data      = []
+ticker_rows     = []
+corr_df         = None
+lookback_period = "3y"
 
 # ══════════════════════════════════════════════════════════════════════════════
 # MANUAL MODE
 # ══════════════════════════════════════════════════════════════════════════════
 
-asset_data = []
-ticker_rows = []
-corr_df = None
-lookback_period = "3y"
-
 if input_mode == "Manual input":
     col_left, col_right = st.columns([2, 1])
-
     with col_right:
         n_assets = st.number_input("Number of assets", min_value=2, max_value=10, value=3, step=1)
-        st.markdown(
-            '<div class="info-box">Enter expected return, volatility and ESG score for each asset. Correlation matrix is entered below.</div>',
-            unsafe_allow_html=True,
-        )
-
+        st.markdown('<div class="info-box">Enter expected return, volatility and ESG score for each asset.</div>',
+                    unsafe_allow_html=True)
     with col_left:
         cols = st.columns([2, 1.2, 1.2, 1.2])
         cols[0].markdown("**Asset name**")
         cols[1].markdown("**E[R] (%)**")
         cols[2].markdown("**σ (%)**")
         cols[3].markdown("**ESG (0–10)**")
-
         for i in range(int(n_assets)):
             c0, c1, c2, c3 = st.columns([2, 1.2, 1.2, 1.2])
             name = c0.text_input("", value=default_names[i], key=f"name_{i}", label_visibility="collapsed")
-            ret = c1.number_input("", value=default_ret[i], key=f"ret_{i}", label_visibility="collapsed", format="%.1f")
-            vol = c2.number_input("", value=default_vol[i], key=f"vol_{i}", label_visibility="collapsed", format="%.1f", min_value=0.1)
-            esg = c3.number_input("", value=default_esg[i], key=f"esg_{i}", label_visibility="collapsed", format="%.1f", min_value=0.0, max_value=10.0)
+            ret  = c1.number_input("", value=default_ret[i], key=f"ret_{i}",  label_visibility="collapsed", format="%.1f")
+            vol  = c2.number_input("", value=default_vol[i], key=f"vol_{i}",  label_visibility="collapsed", format="%.1f", min_value=0.1)
+            esg  = c3.number_input("", value=default_esg[i], key=f"esg_{i}",  label_visibility="collapsed", format="%.1f", min_value=0.0, max_value=10.0)
             asset_data.append({"name": name, "ret": ret / 100, "vol": vol / 100, "esg": esg})
 
     st.markdown("**Correlation Matrix**")
-    st.markdown(
-        '<div class="info-box">Enter pairwise correlations (−1 to 1). The matrix must be positive semi-definite. Diagonal is fixed at 1.</div>',
-        unsafe_allow_html=True,
-    )
-
+    st.markdown('<div class="info-box">Enter pairwise correlations (−1 to 1). Diagonal is fixed at 1.</div>',
+                unsafe_allow_html=True)
     n = int(n_assets)
-    corr_init = pd.DataFrame(
-        np.eye(n),
-        columns=[asset_data[i]["name"] for i in range(n)],
-        index=[asset_data[i]["name"] for i in range(n)],
-    )
-
+    corr_init = pd.DataFrame(np.eye(n),
+                             columns=[asset_data[i]["name"] for i in range(n)],
+                             index=[asset_data[i]["name"] for i in range(n)])
     for r in range(n):
         for c in range(n):
             if r != c:
                 corr_init.iloc[r, c] = 0.25
+    corr_df = st.data_editor(corr_init, use_container_width=True, key="corr_matrix")
 
-    corr_df = st.data_editor(
-        corr_init,
-        use_container_width=True,
-        key="corr_matrix",
-    )
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TICKER MODE
+# TICKER MODE  ── two-phase: collect tickers → fetch ESG → show fallback only
+#                              where needed
 # ══════════════════════════════════════════════════════════════════════════════
 
 else:
     col_left, col_right = st.columns([2, 1])
-
     with col_right:
-        n_assets = st.number_input("Number of assets", min_value=2, max_value=10, value=3, step=1, key="n_ticker_assets")
-        lookback_period = st.selectbox(
-            "History window",
-            ["1y", "3y", "5y", "10y"],
-            index=1,
-        )
-        st.markdown(
-            '<div class="info-box">Enter ticker symbols. ESG scores are fetched automatically from Yahoo data where available. If a ticker has no ESG score, the app uses your manual fallback score and shows a red warning.</div>',
-            unsafe_allow_html=True,
-        )
+        n_assets = st.number_input("Number of assets", min_value=2, max_value=10, value=3,
+                                   step=1, key="n_ticker_assets")
+        lookback_period = st.selectbox("History window", ["1y", "3y", "5y", "10y"], index=1)
 
+    # ── Phase 1: collect tickers & names only ─────────────────────────────────
     with col_left:
-        cols = st.columns([1.1, 1.8, 1.3])
+        cols = st.columns([1.1, 1.8])
         cols[0].markdown("**Ticker**")
         cols[1].markdown("**Display name**")
-        cols[2].markdown("**Manual ESG fallback**")
-
         for i in range(int(n_assets)):
-            c1, c2, c3 = st.columns([1.1, 1.8, 1.3])
-            ticker = c1.text_input("", value=default_tickers[i], key=f"ticker_{i}", label_visibility="collapsed").upper().strip()
-            name = c2.text_input("", value=default_names[i], key=f"ticker_name_{i}", label_visibility="collapsed")
-            manual_esg = c3.number_input(
-                "",
-                value=float(default_esg[i]),
-                key=f"ticker_esg_{i}",
-                label_visibility="collapsed",
-                format="%.1f",
-                min_value=0.0,
-                max_value=10.0,
-                help="Used only if automatic ESG fetch fails for this ticker.",
+            c1, c2 = st.columns([1.1, 1.8])
+            ticker = c1.text_input("", value=default_tickers[i], key=f"ticker_{i}",
+                                   label_visibility="collapsed").upper().strip()
+            name   = c2.text_input("", value=default_names[i],   key=f"ticker_name_{i}",
+                                   label_visibility="collapsed")
+            ticker_rows.append({"ticker": ticker, "name": name or ticker, "manual_esg": None})
+
+    # ── Phase 2: fetch ESG immediately (cached) & show fallback inputs only
+    #            for tickers that failed ────────────────────────────────────────
+    valid_tickers = [r["ticker"] for r in ticker_rows if r["ticker"]]
+    if valid_tickers:
+        with st.spinner("Checking ESG data availability…"):
+            esg_preview = {r["ticker"]: fetch_esg_for_ticker(r["ticker"]) for r in ticker_rows if r["ticker"]}
+
+        missing_esg = [t for t, res in esg_preview.items() if not res["has_esg"]]
+
+        if missing_esg:
+            st.markdown(
+                f'<div class="warn-box"><strong>ESG data not found automatically</strong> for: '
+                f'<strong>{", ".join(missing_esg)}</strong>. '
+                f'Please enter a manual ESG score (0–10) for each below.</div>',
+                unsafe_allow_html=True,
             )
-            ticker_rows.append({"ticker": ticker, "name": name or ticker, "manual_esg": manual_esg})
+            st.markdown("**Manual ESG scores for tickers without automatic data:**")
+            fallback_cols = st.columns(min(len(missing_esg), 5))
+            manual_overrides = {}
+            for idx, t in enumerate(missing_esg):
+                col = fallback_cols[idx % len(fallback_cols)]
+                default_idx = default_tickers.index(t) if t in default_tickers else 0
+                manual_overrides[t] = col.number_input(
+                    f"{t} ESG",
+                    value=float(default_esg[default_idx]),
+                    min_value=0.0,
+                    max_value=10.0,
+                    step=0.1,
+                    format="%.1f",
+                    key=f"manual_esg_{t}",
+                )
+        else:
+            manual_overrides = {}
+            st.markdown(
+                '<div class="info-box">✓ ESG data found automatically for all tickers.</div>',
+                unsafe_allow_html=True,
+            )
+
+        # store manual_esg back into ticker_rows
+        for row in ticker_rows:
+            t = row["ticker"]
+            if t in manual_overrides:
+                row["manual_esg"] = manual_overrides[t]
+            else:
+                row["manual_esg"] = None  # will use auto fetch
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # RUN BUTTON
@@ -797,6 +604,7 @@ run_col, _ = st.columns([1, 3])
 with run_col:
     run = st.button("Optimise Portfolio")
 
+
 # ══════════════════════════════════════════════════════════════════════════════
 # RESULTS
 # ══════════════════════════════════════════════════════════════════════════════
@@ -804,12 +612,13 @@ with run_col:
 if run:
     ticker_data_display = None
 
+    # ── Manual mode ───────────────────────────────────────────────────────────
     if input_mode == "Manual input":
-        names = [d["name"] for d in asset_data]
-        mu = np.array([d["ret"] for d in asset_data], dtype=float)
-        vols = np.array([d["vol"] for d in asset_data], dtype=float)
+        names      = [d["name"] for d in asset_data]
+        mu         = np.array([d["ret"] for d in asset_data], dtype=float)
+        vols       = np.array([d["vol"] for d in asset_data], dtype=float)
         esg_scores = np.array([d["esg"] for d in asset_data], dtype=float)
-        n = len(names)
+        n          = len(names)
 
         try:
             corr_np = corr_df.values.astype(float)
@@ -822,6 +631,7 @@ if run:
         corr_np = np.clip(corr_np, -0.999, 0.999)
         cov = np.outer(vols, vols) * corr_np
 
+    # ── Ticker mode ────────────────────────────────────────────────────────────
     else:
         tickers = [row["ticker"] for row in ticker_rows if row["ticker"]]
         if len(tickers) < 2:
@@ -829,373 +639,319 @@ if run:
             st.stop()
 
         try:
-            prices, returns, mu_series, vols_series, cov_df, corr_df_market = fetch_market_data(tickers, period=lookback_period)
+            prices, returns, mu_series, vols_series, cov_df, corr_df_market = \
+                fetch_market_data(tickers, period=lookback_period)
         except Exception as e:
             st.error(f"Failed to fetch ticker data: {e}")
             st.stop()
 
-        available = [t for t in tickers if t in mu_series.index]
-        if len(available) < 2:
-            st.error("Not enough valid tickers were returned. Please check the symbols and try again.")
-            st.stop()
-
+        available     = [t for t in tickers if t in mu_series.index]
         filtered_rows = [row for row in ticker_rows if row["ticker"] in available]
 
-        esg_df = fetch_esg_for_tickers(available)
-        esg_map = esg_df.set_index("ticker").to_dict(orient="index") if not esg_df.empty else {}
+        if len(available) < 2:
+            st.error("Not enough valid tickers returned. Please check the symbols.")
+            st.stop()
 
-        resolved_rows = []
-        missing_manual_required = []
+        # Re-use already-fetched ESG (cached) ──────────────────────────────────
+        esg_map = {t: fetch_esg_for_ticker(t) for t in available}
+
+        resolved_rows   = []
+        used_manual_for = []
 
         for row in filtered_rows:
-            t = row["ticker"]
+            t    = row["ticker"]
             meta = esg_map.get(t, {})
-            auto_esg = meta.get("app_esg")
-            has_auto_esg = bool(meta.get("has_esg", False))
 
-            if has_auto_esg and auto_esg is not None:
-                final_esg = float(auto_esg)
+            if meta.get("has_esg") and meta.get("app_esg") is not None:
+                final_esg  = float(meta["app_esg"])
                 esg_source = meta.get("source", "Automatic")
             else:
-                final_esg = float(row["manual_esg"])
+                # Use the manual override entered by the user in Phase 2
+                manual_val = row.get("manual_esg")
+                if manual_val is None:
+                    # Safety fallback if somehow manual not entered
+                    manual_val = 5.0
+                final_esg  = float(manual_val)
                 esg_source = "Manual fallback"
-                missing_manual_required.append(t)
+                used_manual_for.append(t)
 
             resolved_rows.append({
-                "ticker": t,
-                "name": row["name"],
-                "final_esg": final_esg,
-                "esg_source": esg_source,
+                "ticker":          t,
+                "name":            row["name"],
+                "final_esg":       final_esg,
+                "esg_source":      esg_source,
                 "yahoo_total_esg": meta.get("yahoo_total_esg"),
                 "environment_score": meta.get("environment_score"),
-                "social_score": meta.get("social_score"),
-                "governance_score": meta.get("governance_score"),
-                "rating_year": meta.get("rating_year"),
-                "rating_month": meta.get("rating_month"),
-                "error": meta.get("error"),
+                "social_score":    meta.get("social_score"),
+                "governance_score":meta.get("governance_score"),
+                "rating_year":     meta.get("rating_year"),
+                "rating_month":    meta.get("rating_month"),
+                "error":           meta.get("error"),
             })
 
-        if missing_manual_required:
+        if used_manual_for:
             st.markdown(
-                f'<div class="error-box"><strong>Manual ESG input used:</strong> automatic ESG data was not found for {", ".join(missing_manual_required)}. The optimiser used the manual fallback score(s) you entered for those ticker(s).</div>',
+                f'<div class="error-box"><strong>Manual ESG scores used for:</strong> '
+                f'{", ".join(used_manual_for)}. These values were taken from your manual inputs above.</div>',
                 unsafe_allow_html=True,
             )
 
-        names = [row["name"] for row in resolved_rows]
+        names      = [row["name"]      for row in resolved_rows]
         esg_scores = np.array([row["final_esg"] for row in resolved_rows], dtype=float)
-
-        mu = mu_series.loc[available].values.astype(float)
-        vols = vols_series.loc[available].values.astype(float)
-        cov = cov_df.loc[available, available].values.astype(float)
-        corr_np = corr_df_market.loc[available, available].values.astype(float)
-        n = len(available)
+        mu         = mu_series.loc[available].values.astype(float)
+        vols       = vols_series.loc[available].values.astype(float)
+        cov        = cov_df.loc[available, available].values.astype(float)
+        corr_np    = corr_df_market.loc[available, available].values.astype(float)
+        n          = len(available)
 
         ticker_data_display = pd.DataFrame({
-            "Ticker": available,
-            "Display Name": names,
+            "Ticker":               available,
+            "Display Name":         names,
             "Expected Return E[R] (%)": (mu_series.loc[available].values * 100).round(2),
-            "Volatility σ (%)": (vols_series.loc[available].values * 100).round(2),
-            "Yahoo totalEsg": [esg_map.get(t, {}).get("yahoo_total_esg") for t in available],
-            "Yahoo Environment": [esg_map.get(t, {}).get("environment_score") for t in available],
-            "Yahoo Social": [esg_map.get(t, {}).get("social_score") for t in available],
-            "Yahoo Governance": [esg_map.get(t, {}).get("governance_score") for t in available],
-            "Yahoo Rating Year": [esg_map.get(t, {}).get("rating_year") for t in available],
-            "Yahoo Rating Month": [esg_map.get(t, {}).get("rating_month") for t in available],
-            "Final ESG Used (0-10)": [row["final_esg"] for row in resolved_rows],
-            "ESG Source": [row["esg_source"] for row in resolved_rows],
-            "Fetch Error": [row["error"] for row in resolved_rows],
+            "Volatility σ (%)":     (vols_series.loc[available].values * 100).round(2),
+            "Yahoo totalEsg":       [esg_map[t].get("yahoo_total_esg") for t in available],
+            "Yahoo Environment":    [esg_map[t].get("environment_score") for t in available],
+            "Yahoo Social":         [esg_map[t].get("social_score") for t in available],
+            "Yahoo Governance":     [esg_map[t].get("governance_score") for t in available],
+            "Yahoo Rating Year":    [esg_map[t].get("rating_year") for t in available],
+            "Yahoo Rating Month":   [esg_map[t].get("rating_month") for t in available],
+            "Final ESG Used (0-10)":[row["final_esg"] for row in resolved_rows],
+            "ESG Source":           [row["esg_source"] for row in resolved_rows],
+            "Fetch Error":          [row["error"] for row in resolved_rows],
         })
 
         st.markdown(
-            f'<div class="info-box">Market data loaded successfully for: {", ".join(available)}. Estimates are annualised using daily historical returns over {lookback_period}.</div>',
+            f'<div class="info-box">Market data loaded for: {", ".join(available)}. '
+            f'Returns annualised from daily data over {lookback_period}.</div>',
             unsafe_allow_html=True,
         )
 
+    # ── PSD check ─────────────────────────────────────────────────────────────
     eigvals = np.linalg.eigvalsh(cov)
     if np.any(eigvals < -1e-8):
         st.markdown(
-            '<div class="warn-box">Covariance matrix is not positive semi-definite. A numerical PSD adjustment has been applied.</div>',
+            '<div class="warn-box">Covariance matrix is not PSD. A numerical adjustment has been applied.</div>',
             unsafe_allow_html=True,
         )
         cov = nearest_psd(cov)
 
+    # ── ESG exclusion screen ──────────────────────────────────────────────────
     active_mask = np.ones(n, dtype=bool)
     if use_exclusion:
         active_mask = esg_scores >= min_esg
         excluded = [names[i] for i in range(n) if not active_mask[i]]
         if excluded:
-            st.markdown(
-                f'<div class="warn-box">Excluded by ESG screen: {", ".join(excluded)}</div>',
-                unsafe_allow_html=True,
-            )
+            st.markdown(f'<div class="warn-box">Excluded by ESG screen: {", ".join(excluded)}</div>',
+                        unsafe_allow_html=True)
 
     active_idx = np.where(active_mask)[0]
     if len(active_idx) < 2:
-        st.error("At least two assets must pass the ESG screen. Relax the filter and try again.")
+        st.error("At least two assets must pass the ESG screen. Relax the filter.")
         st.stop()
 
-    mu_a = mu[active_idx]
-    cov_a = cov[np.ix_(active_idx, active_idx)]
-    esg_a = esg_scores[active_idx]
+    mu_a    = mu[active_idx]
+    cov_a   = cov[np.ix_(active_idx, active_idx)]
+    esg_a   = esg_scores[active_idx]
     names_a = [names[i] for i in active_idx]
-    vols_a = vols[active_idx]
+    vols_a  = vols[active_idx]
 
-    w_opt_a = find_optimal(mu_a, cov_a, esg_a, rf, gamma, lam)
-
-    w_opt = np.zeros(n)
+    w_opt_a   = find_optimal(mu_a, cov_a, esg_a, rf, gamma, lam)
+    w_opt     = np.zeros(n)
     for idx, wi in zip(active_idx, w_opt_a):
         w_opt[idx] = wi
 
     ep, sp, sr, esg_bar = portfolio_stats(w_opt_a, mu_a, cov_a, esg_a, rf)
 
-    with st.spinner("Building ESG-efficient frontier..."):
+    with st.spinner("Building ESG-efficient frontier…"):
         f_esg, f_sharpe, f_ret, f_std, f_weights = build_frontier(mu_a, cov_a, esg_a, rf, n_points=180)
 
     valid = ~np.isnan(f_sharpe)
 
+    # ── Metrics ───────────────────────────────────────────────────────────────
     st.markdown("---")
     st.markdown('<div class="section-header">Optimal Portfolio</div>', unsafe_allow_html=True)
-
     m1, m2, m3, m4 = st.columns(4)
-    with m1:
-        st.markdown(
-            f'<div class="metric-card"><div class="metric-label">Expected Return</div><div class="metric-value">{ep*100:.2f}<span class="metric-unit">%</span></div></div>',
-            unsafe_allow_html=True,
-        )
-    with m2:
-        st.markdown(
-            f'<div class="metric-card"><div class="metric-label">Volatility (σ)</div><div class="metric-value">{sp*100:.2f}<span class="metric-unit">%</span></div></div>',
-            unsafe_allow_html=True,
-        )
-    with m3:
-        st.markdown(
-            f'<div class="metric-card"><div class="metric-label">Sharpe Ratio</div><div class="metric-value">{sr:.3f}</div></div>',
-            unsafe_allow_html=True,
-        )
-    with m4:
-        st.markdown(
-            f'<div class="metric-card"><div class="metric-label">ESG Score</div><div class="metric-value">{esg_bar:.2f}<span class="metric-unit">/ 10</span></div></div>',
-            unsafe_allow_html=True,
-        )
+    for col, label, val, unit in [
+        (m1, "Expected Return", f"{ep*100:.2f}", "%"),
+        (m2, "Volatility (σ)",  f"{sp*100:.2f}", "%"),
+        (m3, "Sharpe Ratio",    f"{sr:.3f}",     ""),
+        (m4, "ESG Score",       f"{esg_bar:.2f}", "/ 10"),
+    ]:
+        with col:
+            st.markdown(
+                f'<div class="metric-card"><div class="metric-label">{label}</div>'
+                f'<div class="metric-value">{val}<span class="metric-unit">{unit}</span></div></div>',
+                unsafe_allow_html=True,
+            )
 
     u_val = ep - gamma / 2 * sp**2 + lam * esg_bar
     st.markdown(
-        f'<div class="info-box">Investor utility U = E[Rp] − (γ/2)σ² + λs̄ = <strong>{u_val:.4f}</strong> &nbsp;|&nbsp; Parameters: γ = {gamma}, λ = {lam}, r_f = {rf*100:.1f}%</div>',
+        f'<div class="info-box">U = E[Rp] − (γ/2)σ² + λs̄ = <strong>{u_val:.4f}</strong>'
+        f' &nbsp;|&nbsp; γ = {gamma}, λ = {lam}, r_f = {rf*100:.1f}%</div>',
         unsafe_allow_html=True,
     )
 
+    # ── Weights table ─────────────────────────────────────────────────────────
     st.markdown("#### Portfolio Weights")
     weight_df = pd.DataFrame({
-        "Asset": names,
+        "Asset":      names,
         "Weight (%)": [f"{w*100:.2f}" for w in w_opt],
-        "E[R] (%)": [f"{r*100:.2f}" for r in mu],
-        "σ (%)": [f"{v*100:.2f}" for v in vols],
-        "ESG Score": [f"{s:.2f}" for s in esg_scores],
-        "Included": ["Yes" if m else "No" for m in active_mask],
+        "E[R] (%)":   [f"{r*100:.2f}" for r in mu],
+        "σ (%)":      [f"{v*100:.2f}" for v in vols],
+        "ESG Score":  [f"{s:.2f}" for s in esg_scores],
+        "Included":   ["Yes" if m else "No" for m in active_mask],
     })
     st.dataframe(weight_df, use_container_width=True, hide_index=True)
 
     if input_mode == "Ticker-based input":
         st.markdown("#### Ticker Data Used")
         st.dataframe(ticker_data_display, use_container_width=True, hide_index=True)
-
         st.markdown("#### Estimated Correlation Matrix")
-        display_corr = pd.DataFrame(corr_np, index=names, columns=names)
-        st.dataframe(display_corr.round(3), use_container_width=True)
-
+        st.dataframe(pd.DataFrame(corr_np, index=names, columns=names).round(3),
+                     use_container_width=True)
         st.markdown("#### Historical Adjusted Close Prices")
         display_prices = prices[available].copy()
         display_prices.columns = names
         st.dataframe(display_prices.tail(30), use_container_width=True)
-
         st.markdown("#### Historical Daily Returns")
         display_returns = returns[available].copy()
         display_returns.columns = names
         st.dataframe((display_returns.tail(30) * 100).round(3), use_container_width=True)
 
+    # ── Frontier charts ───────────────────────────────────────────────────────
     st.markdown('<div class="section-header">ESG-Efficient Frontier</div>', unsafe_allow_html=True)
-
     chart_col1, chart_col2 = st.columns(2)
 
     with chart_col1:
         fig, ax = plt.subplots(figsize=(6, 4.5))
-        fig.patch.set_facecolor('#f5f2ec')
-        ax.set_facecolor('#f5f2ec')
-
+        fig.patch.set_facecolor('#f5f2ec'); ax.set_facecolor('#f5f2ec')
         if valid.sum() > 1:
             ax.plot(f_esg[valid], f_sharpe[valid], color='#2d6a2d', lw=2.5, label='ESG-efficient frontier')
             ax.fill_between(f_esg[valid], f_sharpe[valid], alpha=0.12, color='#6aa35d')
-
         for i in range(len(mu_a)):
             sr_i = (mu_a[i] - rf) / vols_a[i]
             ax.scatter(esg_a[i], sr_i, color='#88b179', zorder=5, s=60, edgecolors='#2d6a2d', lw=1)
-            ax.annotate(names_a[i], (esg_a[i], sr_i), textcoords="offset points", xytext=(5, 4), fontsize=7.5, color='#2d4a2d')
-
-        ax.scatter(esg_bar, sr, color='#c76b2f', zorder=10, s=120, edgecolors='white', lw=2, label='Optimal portfolio')
-
+            ax.annotate(names_a[i], (esg_a[i], sr_i), textcoords="offset points",
+                        xytext=(5, 4), fontsize=7.5, color='#2d4a2d')
+        ax.scatter(esg_bar, sr, color='#c76b2f', zorder=10, s=120, edgecolors='white', lw=2, label='Optimal')
         ax.set_xlabel("Average ESG Score", fontsize=9, color='#2d4a2d')
         ax.set_ylabel("Sharpe Ratio", fontsize=9, color='#2d4a2d')
         ax.set_title("ESG Score vs Sharpe Ratio", fontsize=11, fontweight='bold', color='#1a2e1a', pad=10)
         ax.tick_params(colors='#5a7a5a', labelsize=8)
-        for spine in ax.spines.values():
-            spine.set_color('#c8d8b8')
+        for spine in ax.spines.values(): spine.set_color('#c8d8b8')
         ax.legend(fontsize=8, framealpha=0.85, facecolor='#f5f2ec', edgecolor='#c8d8b8')
         ax.grid(True, alpha=0.3, color='#c8d8b8', linestyle='--')
-        fig.tight_layout()
-        st.pyplot(fig)
-        plt.close()
+        fig.tight_layout(); st.pyplot(fig); plt.close()
 
     with chart_col2:
         fig2, ax2 = plt.subplots(figsize=(6, 4.5))
-        fig2.patch.set_facecolor('#f5f2ec')
-        ax2.set_facecolor('#f5f2ec')
-
+        fig2.patch.set_facecolor('#f5f2ec'); ax2.set_facecolor('#f5f2ec')
         if valid.sum() > 1:
-            sc = ax2.scatter(
-                f_std[valid] * 100,
-                f_ret[valid] * 100,
-                c=f_esg[valid],
-                cmap='YlGn',
-                s=14,
-                zorder=3,
-                vmin=float(np.min(esg_a)),
-                vmax=float(np.max(esg_a)),
-            )
+            sc = ax2.scatter(f_std[valid]*100, f_ret[valid]*100, c=f_esg[valid],
+                             cmap='YlGn', s=14, zorder=3,
+                             vmin=float(np.min(esg_a)), vmax=float(np.max(esg_a)))
             cb = fig2.colorbar(sc, ax=ax2, pad=0.02)
             cb.set_label("ESG Score", fontsize=8, color='#2d4a2d')
             cb.ax.tick_params(labelsize=7, colors='#5a7a5a')
-
         for i in range(len(mu_a)):
-            ax2.scatter(vols_a[i] * 100, mu_a[i] * 100, color='#2d6a2d', zorder=5, s=60, edgecolors='white', lw=1.2)
-            ax2.annotate(names_a[i], (vols_a[i] * 100, mu_a[i] * 100), textcoords="offset points", xytext=(5, 3), fontsize=7.5, color='#2d4a2d')
-
-        ax2.scatter(sp * 100, ep * 100, color='#c76b2f', zorder=10, s=140, edgecolors='white', lw=2, label='Optimal portfolio', marker='*')
-
+            ax2.scatter(vols_a[i]*100, mu_a[i]*100, color='#2d6a2d', zorder=5,
+                        s=60, edgecolors='white', lw=1.2)
+            ax2.annotate(names_a[i], (vols_a[i]*100, mu_a[i]*100),
+                         textcoords="offset points", xytext=(5, 3), fontsize=7.5, color='#2d4a2d')
+        ax2.scatter(sp*100, ep*100, color='#c76b2f', zorder=10, s=140,
+                    edgecolors='white', lw=2, label='Optimal', marker='*')
         ax2.set_xlabel("Volatility σ (%)", fontsize=9, color='#2d4a2d')
         ax2.set_ylabel("Expected Return E[R] (%)", fontsize=9, color='#2d4a2d')
         ax2.set_title("Mean-Variance Space", fontsize=11, fontweight='bold', color='#1a2e1a', pad=10)
         ax2.tick_params(colors='#5a7a5a', labelsize=8)
-        for spine in ax2.spines.values():
-            spine.set_color('#c8d8b8')
+        for spine in ax2.spines.values(): spine.set_color('#c8d8b8')
         ax2.legend(fontsize=8, framealpha=0.85, facecolor='#f5f2ec', edgecolor='#c8d8b8')
         ax2.grid(True, alpha=0.3, color='#c8d8b8', linestyle='--')
-        fig2.tight_layout()
-        st.pyplot(fig2)
-        plt.close()
+        fig2.tight_layout(); st.pyplot(fig2); plt.close()
 
+    # ── Allocation charts ─────────────────────────────────────────────────────
     st.markdown("#### Portfolio Allocation")
     pie_col, bar_col = st.columns(2)
-
     nonzero = [(names[i], w_opt[i]) for i in range(n) if w_opt[i] > 0.005]
     if nonzero:
         pie_labels, pie_vals = zip(*nonzero)
-
+        greens = ['#1a4a1a','#2d6a2d','#4a8a3a','#6aaa5a','#8aba7a',
+                  '#a8cc98','#c4deb8','#d4e8c8','#e4f0d8','#f0f8ec']
         with pie_col:
             fig3, ax3 = plt.subplots(figsize=(5, 4))
-            fig3.patch.set_facecolor('#f5f2ec')
-            ax3.set_facecolor('#f5f2ec')
-            greens = ['#1a4a1a','#2d6a2d','#4a8a3a','#6aaa5a','#8aba7a','#a8cc98','#c4deb8','#d4e8c8','#e4f0d8','#f0f8ec']
-            ax3.pie(
-                pie_vals,
-                labels=pie_labels,
-                autopct='%1.1f%%',
-                colors=greens[:len(pie_vals)],
-                startangle=140,
-                textprops={'fontsize': 8, 'color': '#1a2e1a'},
-                wedgeprops={'edgecolor': 'white', 'linewidth': 1.5},
-            )
+            fig3.patch.set_facecolor('#f5f2ec'); ax3.set_facecolor('#f5f2ec')
+            ax3.pie(pie_vals, labels=pie_labels, autopct='%1.1f%%',
+                    colors=greens[:len(pie_vals)], startangle=140,
+                    textprops={'fontsize': 8, 'color': '#1a2e1a'},
+                    wedgeprops={'edgecolor': 'white', 'linewidth': 1.5})
             ax3.set_title("Weight Allocation", fontsize=11, fontweight='bold', color='#1a2e1a', pad=10)
-            fig3.tight_layout()
-            st.pyplot(fig3)
-            plt.close()
+            fig3.tight_layout(); st.pyplot(fig3); plt.close()
 
         with bar_col:
             fig4, ax4 = plt.subplots(figsize=(5, 4))
-            fig4.patch.set_facecolor('#f5f2ec')
-            ax4.set_facecolor('#f5f2ec')
-
-            bar_names = [names[i] for i in range(n) if w_opt[i] > 0.005]
-            bar_weights = [w_opt[i] * 100 for i in range(n) if w_opt[i] > 0.005]
-            bar_esg = [esg_scores[i] for i in range(n) if w_opt[i] > 0.005]
-            bar_colors = [plt.cm.YlGn(s / 10) for s in bar_esg]
-
+            fig4.patch.set_facecolor('#f5f2ec'); ax4.set_facecolor('#f5f2ec')
+            bar_names   = [names[i]        for i in range(n) if w_opt[i] > 0.005]
+            bar_weights = [w_opt[i]*100    for i in range(n) if w_opt[i] > 0.005]
+            bar_esg     = [esg_scores[i]   for i in range(n) if w_opt[i] > 0.005]
+            bar_colors  = [plt.cm.YlGn(s / 10) for s in bar_esg]
             bars = ax4.barh(bar_names, bar_weights, color=bar_colors, edgecolor='white', height=0.6)
-            for bar, esg_v in zip(bars, bar_esg):
-                ax4.text(bar.get_width() + 0.3, bar.get_y() + bar.get_height() / 2, f'ESG {esg_v:.1f}', va='center', fontsize=7.5, color='#2d4a2d')
-
+            for bar, ev in zip(bars, bar_esg):
+                ax4.text(bar.get_width()+0.3, bar.get_y()+bar.get_height()/2,
+                         f'ESG {ev:.1f}', va='center', fontsize=7.5, color='#2d4a2d')
             ax4.set_xlabel("Weight (%)", fontsize=9, color='#2d4a2d')
             ax4.set_title("Weights with ESG Scores", fontsize=11, fontweight='bold', color='#1a2e1a', pad=10)
             ax4.tick_params(colors='#5a7a5a', labelsize=8)
-            for spine in ax4.spines.values():
-                spine.set_color('#c8d8b8')
+            for spine in ax4.spines.values(): spine.set_color('#c8d8b8')
             ax4.grid(True, alpha=0.3, color='#c8d8b8', axis='x', linestyle='--')
-            fig4.tight_layout()
-            st.pyplot(fig4)
-            plt.close()
+            fig4.tight_layout(); st.pyplot(fig4); plt.close()
 
+    # ── Sensitivity analysis ──────────────────────────────────────────────────
     with st.expander("Sensitivity Analysis — ESG Preference (λ)"):
-        st.markdown("This shows how the optimal portfolio changes as λ varies from 0 to 5.")
-        lam_vals = np.linspace(0, 5, 20)
+        st.markdown("How the optimal portfolio changes as λ varies from 0 to 5.")
+        lam_vals  = np.linspace(0, 5, 20)
         sens_rows = []
-
         for lv in lam_vals:
             ww = find_optimal(mu_a, cov_a, esg_a, rf, gamma, lv)
             ep2, sp2, sr2, esg2 = portfolio_stats(ww, mu_a, cov_a, esg_a, rf)
-            sens_rows.append({
-                "λ": round(float(lv), 2),
-                "E[R] (%)": round(ep2 * 100, 2),
-                "σ (%)": round(sp2 * 100, 2),
-                "Sharpe": round(sr2, 3),
-                "ESG": round(esg2, 2),
-            })
-
+            sens_rows.append({"λ": round(float(lv),2), "E[R] (%)": round(ep2*100,2),
+                               "σ (%)": round(sp2*100,2), "Sharpe": round(sr2,3),
+                               "ESG": round(esg2,2)})
         sens_df = pd.DataFrame(sens_rows)
-
         fig5, axes = plt.subplots(1, 3, figsize=(12, 3.5))
         fig5.patch.set_facecolor('#f5f2ec')
-
         for ax_ in axes:
-            ax_.set_facecolor('#f5f2ec')
-            ax_.tick_params(colors='#5a7a5a', labelsize=8)
-            for sp_ in ax_.spines.values():
-                sp_.set_color('#c8d8b8')
+            ax_.set_facecolor('#f5f2ec'); ax_.tick_params(colors='#5a7a5a', labelsize=8)
+            for sp_ in ax_.spines.values(): sp_.set_color('#c8d8b8')
             ax_.grid(True, alpha=0.3, color='#c8d8b8', linestyle='--')
-
         axes[0].plot(sens_df["λ"], sens_df["Sharpe"], color='#2d6a2d', lw=2)
         axes[0].set_title("Sharpe vs λ", fontsize=10, color='#1a2e1a')
-        axes[0].set_xlabel("λ", fontsize=9)
-        axes[0].set_ylabel("Sharpe Ratio", fontsize=9)
-
+        axes[0].set_xlabel("λ", fontsize=9); axes[0].set_ylabel("Sharpe Ratio", fontsize=9)
         axes[1].plot(sens_df["λ"], sens_df["ESG"], color='#4a8a3a', lw=2)
         axes[1].set_title("ESG Score vs λ", fontsize=10, color='#1a2e1a')
-        axes[1].set_xlabel("λ", fontsize=9)
-        axes[1].set_ylabel("ESG Score", fontsize=9)
-
+        axes[1].set_xlabel("λ", fontsize=9); axes[1].set_ylabel("ESG Score", fontsize=9)
         axes[2].plot(sens_df["λ"], sens_df["E[R] (%)"], color='#6aaa5a', lw=2, label='E[R]')
         axes[2].plot(sens_df["λ"], sens_df["σ (%)"], color='#c76b2f', lw=2, linestyle='--', label='σ')
         axes[2].set_title("Return and Risk vs λ", fontsize=10, color='#1a2e1a')
-        axes[2].set_xlabel("λ", fontsize=9)
-        axes[2].set_ylabel("%", fontsize=9)
+        axes[2].set_xlabel("λ", fontsize=9); axes[2].set_ylabel("%", fontsize=9)
         axes[2].legend(fontsize=8, facecolor='#f5f2ec', edgecolor='#c8d8b8')
-
-        fig5.tight_layout()
-        st.pyplot(fig5)
-        plt.close()
-
+        fig5.tight_layout(); st.pyplot(fig5); plt.close()
         st.dataframe(sens_df, use_container_width=True, hide_index=True)
 
     st.markdown("---")
     st.markdown(
-        '<div class="info-box"><strong>Methodology:</strong> Utility function U = E[Rp] − (γ/2)σ²p + λs̄. The ESG-efficient frontier is computed by maximising Sharpe ratio subject to a minimum ESG constraint at each point. Optimisation uses Sequential Least Squares Programming with no short-selling. In ticker mode, return and risk inputs are estimated from Yahoo historical prices, while ESG is fetched automatically using Yahoo wrappers where available and otherwise falls back to manual user input.</div>',
+        '<div class="info-box"><strong>Methodology:</strong> Utility U = E[Rp] − (γ/2)σ²p + λs̄. '
+        'ESG-efficient frontier maximises Sharpe ratio subject to a minimum ESG constraint at each point. '
+        'Optimisation uses SLSQP with no short-selling. Sustainalytics totalEsg (lower = better) is '
+        'converted to a 0–10 higher-is-better scale via score = 10 − totalEsg/5.</div>',
         unsafe_allow_html=True,
     )
 
 else:
     st.markdown(
-        '<div class="warn-box">Configure the asset universe and preferences, then click <strong>Optimise Portfolio</strong> to generate results.</div>',
+        '<div class="warn-box">Configure the asset universe and preferences, then click '
+        '<strong>Optimise Portfolio</strong> to generate results.</div>',
         unsafe_allow_html=True,
     )
-
     with st.expander("How does the model work?"):
         st.markdown("""
 **Utility Function**
@@ -1208,22 +964,26 @@ $$U = E[R_p] - \\frac{\\gamma}{2}\\sigma_p^2 + \\lambda \\bar{s}$$
 | $\\sigma_p^2$ | Portfolio variance |
 | $\\gamma$ | Risk aversion parameter |
 | $\\lambda$ | ESG preference intensity |
-| $\\bar{s}$ | Weighted average ESG score of the portfolio |
+| $\\bar{s}$ | Weighted average ESG score |
 
 **ESG-Efficient Frontier**
 
-For each level of ESG score, the model finds the portfolio with the highest Sharpe ratio subject to meeting that ESG target. This produces a frontier in ESG–Sharpe space and shows the sustainability-performance trade-off.
+For each ESG level, the model finds the portfolio with the highest Sharpe ratio subject to meeting that ESG target, producing a frontier in ESG–Sharpe space.
 
-**Practical Input Modes**
+**ESG Score Conversion**
 
-- **Manual input** allows you to enter expected returns, volatilities and correlations directly.
-- **Ticker-based input** estimates return and risk from historical market data using Yahoo Finance.
-- In ticker mode, the app tries to fetch ESG data automatically.
-- If automatic ESG data is unavailable, the app uses your **manual fallback ESG input** and shows a red prompt.
+Yahoo Finance / Sustainalytics provide a `totalEsg` *risk* score (lower = better, roughly 0–50). GreenPort converts this to a 0–10 higher-is-better scale:
 
-**Installation note**
+$$\\text{app\\_esg} = 10 - \\frac{\\text{totalEsg}}{5}$$
 
-For the fallback ESG fetch path, install:
+**Input Modes**
+
+- **Manual input** — enter expected returns, volatilities and correlations directly.
+- **Ticker-based input** — estimates return and risk from Yahoo Finance history. ESG is fetched automatically; manual inputs appear **only** for tickers where automatic data is unavailable.
+
+**Optional fallback**
 
 ```bash
 pip install yahooquery
+```
+""")
