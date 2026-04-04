@@ -1009,10 +1009,10 @@ canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display
   <div class="badge">ECN316 &nbsp;&middot;&nbsp; Sustainable Finance &nbsp;&middot;&nbsp; 2026</div>
   <h1 class="title">Green<span class="dim">Port</span></h1>
   <p class="subtitle">ESG-integrated portfolio optimisation. Build and analyse sustainable investments with live LSEG data and mean-variance theory.</p>
-  <a class="enter-btn" href="?enter=1" target="_parent"
-     onclick="try{window.parent.location.href=window.parent.location.href.split('?')[0]+'?enter=1';}catch(e){} return true;">
-    Enter GreenPort &rarr;
-  </a>
+  <button class="enter-btn" onclick="
+    try { window.parent.location.href = window.parent.location.href.split('?')[0] + '?enter=1'; }
+    catch(e) { window.location.href = window.location.href.split('?')[0] + '?enter=1'; }
+  ">Enter GreenPort &rarr;</button>
 </div>
 <script>
 var canvas = document.getElementById('canvas');
@@ -1123,21 +1123,8 @@ draw();
 
     components.html(_HOME_HTML, height=620, scrolling=False)
 
-    # ── Fallback Streamlit button (hidden — primary button lives in HTML overlay)
-    st.markdown("<div style='position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;'>",
-                unsafe_allow_html=True)
-    if st.button("Enter GreenPort →", use_container_width=True, key="home_enter"):
-        st.session_state["page"] = "input"
-        st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown("""
-<p style="text-align:center;margin-top:1.1rem;font-size:0.58rem;
-   color:rgba(255,255,255,0.20);letter-spacing:0.1em;text-transform:uppercase;
-   font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#000;
-   padding-bottom:1.5rem;">
-  LSEG ESG Data &nbsp;&middot;&nbsp; Mean-Variance Optimisation &nbsp;&middot;&nbsp; AI Explainer
-</p>""", unsafe_allow_html=True)
+    # No Streamlit button on home page — navigation handled entirely by JS in HTML overlay above.
+    # The query-param handler at the top of this file catches ?enter=1 and routes to input.
 
     st.stop()
 
