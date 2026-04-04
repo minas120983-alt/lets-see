@@ -17,297 +17,334 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── Custom CSS ────────────────────────────────────────────────────────────────
+# ── Custom CSS — iOS SaaS · monochrome · frosted glass ──────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
-/* ── Reset & Base ── */
+/* ── Variables ── */
+:root {
+  --bg:          #111114;
+  --surface-1:   rgba(255,255,255,0.04);
+  --surface-2:   rgba(255,255,255,0.07);
+  --surface-3:   rgba(255,255,255,0.10);
+  --border:      rgba(255,255,255,0.08);
+  --border-hi:   rgba(255,255,255,0.16);
+  --text-hi:     rgba(255,255,255,0.92);
+  --text-mid:    rgba(255,255,255,0.55);
+  --text-lo:     rgba(255,255,255,0.28);
+  --accent:      rgba(255,255,255,0.88);
+  --radius-sm:   10px;
+  --radius-md:   14px;
+  --radius-lg:   20px;
+  --radius-xl:   26px;
+  --blur:        saturate(180%) blur(20px);
+}
+
+/* ── Base ── */
 *, *::before, *::after { box-sizing: border-box; }
 html, body, [class*="css"] {
-    font-family: 'Syne', -apple-system, BlinkMacSystemFont, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    letter-spacing: -0.01em;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-size: 14px;
 }
-
-/* ── Frosted glass background ── */
 .stApp {
-    background: #0c0c0e;
-    background-image:
-        radial-gradient(ellipse 80% 50% at 20% 10%, rgba(255,255,255,0.03) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(255,255,255,0.02) 0%, transparent 60%);
-    color: #f0f0f2;
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse 100% 60% at 50% -10%, rgba(255,255,255,0.04) 0%, transparent 70%);
+  color: var(--text-hi);
 }
 .block-container {
-    padding-top: 2.5rem !important;
-    padding-left: 2rem !important;
-    padding-right: 2rem !important;
-    max-width: 1440px !important;
+  padding: 2.5rem 2.5rem 4rem !important;
+  max-width: 1380px !important;
 }
 
-/* ── Sidebar — frosted ── */
+/* ── Sidebar ── */
 [data-testid="stSidebar"] {
-    background: rgba(14,14,16,0.85) !important;
-    backdrop-filter: blur(20px) !important;
-    -webkit-backdrop-filter: blur(20px) !important;
-    border-right: 1px solid rgba(255,255,255,0.06) !important;
+  background: rgba(17,17,20,0.85) !important;
+  backdrop-filter: var(--blur) !important;
+  -webkit-backdrop-filter: var(--blur) !important;
+  border-right: 1px solid var(--border) !important;
 }
-[data-testid="stSidebar"] * { color: rgba(240,240,242,0.5) !important; }
+[data-testid="stSidebar"] * { color: var(--text-mid) !important; }
 [data-testid="stSidebar"] h2,
 [data-testid="stSidebar"] h3 {
-    color: rgba(240,240,242,0.9) !important;
-    font-size: 0.65rem !important; font-weight: 700 !important;
-    letter-spacing: 0.15em !important; text-transform: uppercase !important;
+  color: var(--text-hi) !important;
+  font-size: 11px !important; font-weight: 600 !important;
+  letter-spacing: 0.08em !important; text-transform: uppercase !important;
 }
 [data-testid="stSidebar"] hr {
-    border: none !important;
-    border-top: 1px solid rgba(255,255,255,0.06) !important;
-    margin: 1.2rem 0 !important;
+  border: none !important;
+  border-top: 1px solid var(--border) !important;
+  margin: 1.2rem 0 !important;
 }
 [data-testid="stSidebar"] label {
-    font-size: 0.68rem !important; font-weight: 600 !important;
-    letter-spacing: 0.12em !important; text-transform: uppercase !important;
-    color: rgba(240,240,242,0.35) !important;
+  font-size: 11px !important; font-weight: 500 !important;
+  letter-spacing: 0.06em !important; text-transform: uppercase !important;
+  color: var(--text-lo) !important;
 }
 [data-testid="stSidebar"] .stSlider [role="slider"] {
-    background: #f0f0f2 !important;
-    border: none !important;
-    width: 14px !important; height: 14px !important;
-    box-shadow: 0 0 0 3px rgba(240,240,242,0.12) !important;
-}
-[data-testid="stSidebar"] .stSlider > div > div > div {
-    background: rgba(255,255,255,0.15) !important;
+  background: var(--text-hi) !important;
+  border: none !important;
+  width: 18px !important; height: 18px !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5) !important;
 }
 [data-testid="stSidebar"] .stNumberInput input {
-    background: rgba(255,255,255,0.04) !important;
-    color: rgba(240,240,242,0.9) !important;
-    border: 1px solid rgba(255,255,255,0.08) !important;
-    border-radius: 6px !important; font-size: 0.88rem !important;
+  background: var(--surface-1) !important;
+  color: var(--text-hi) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
+  font-size: 13px !important;
 }
 [data-testid="stSidebar"] .stCheckbox label {
-    font-size: 0.78rem !important;
-    color: rgba(240,240,242,0.5) !important;
-    letter-spacing: 0.04em !important;
+  font-size: 12px !important; color: var(--text-mid) !important;
+  letter-spacing: 0.01em !important;
 }
+[data-testid="stSidebar"] small { color: var(--text-lo) !important; }
 
-/* ── Typography ── */
-h1, h2, h3, h4, h5, h6 { color: #f0f0f2 !important; }
-p, div, label, span { color: rgba(240,240,242,0.55); }
-strong { color: rgba(240,240,242,0.85) !important; }
+/* ── Global text ── */
+h1,h2,h3,h4,h5,h6 { color: var(--text-hi) !important; }
+p, div, label, span { color: var(--text-mid); }
+strong, b { color: var(--text-hi) !important; }
 
 /* ── Wordmark ── */
 .gp-wordmark {
-    font-size: 1.6rem; font-weight: 800; letter-spacing: -0.04em;
-    color: #f0f0f2 !important; margin-bottom: 0.2rem;
-    display: inline-block;
+  font-family: 'Inter', sans-serif;
+  font-size: 22px; font-weight: 700; letter-spacing: -0.03em;
+  color: var(--text-hi) !important; margin-bottom: 4px;
 }
 .gp-subtitle {
-    font-size: 0.72rem; font-weight: 500; letter-spacing: 0.14em;
-    text-transform: uppercase; color: rgba(240,240,242,0.3) !important;
-    margin-bottom: 2rem;
+  font-size: 11px; font-weight: 500; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-lo) !important;
+  margin-bottom: 28px;
 }
 
-/* ── Section headers ── */
+/* ── Section labels ── */
 .section-header {
-    font-size: 0.65rem; font-weight: 700; letter-spacing: 0.18em;
-    text-transform: uppercase; color: rgba(240,240,242,0.28) !important;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    padding-bottom: 0.6rem; margin: 2rem 0 1.2rem;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-lo) !important;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px; margin: 2rem 0 1.1rem;
 }
 
 /* ── Frosted metric cards ── */
 .metric-card {
-    background: rgba(255,255,255,0.03);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 14px;
-    padding: 1.25rem 1.4rem 1.1rem;
-    margin-bottom: 0.75rem;
-    transition: background 0.2s, border-color 0.2s;
+  background: var(--surface-1);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px 16px;
+  margin-bottom: 10px;
+  transition: background 0.2s, border-color 0.2s;
 }
 .metric-card:hover {
-    background: rgba(255,255,255,0.055);
-    border-color: rgba(255,255,255,0.12);
+  background: var(--surface-2);
+  border-color: var(--border-hi);
 }
 .metric-label {
-    font-size: 0.62rem; font-weight: 700; letter-spacing: 0.16em;
-    text-transform: uppercase; color: rgba(240,240,242,0.3) !important;
-    margin-bottom: 0.5rem;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--text-lo) !important;
+  margin-bottom: 6px;
 }
 .metric-value {
-    font-size: 2rem; font-weight: 700; letter-spacing: -0.04em;
-    color: #f0f0f2 !important; line-height: 1;
-    font-family: 'DM Mono', monospace;
+  font-size: 28px; font-weight: 300; letter-spacing: -0.04em;
+  color: var(--text-hi) !important; line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 .metric-unit {
-    font-size: 0.78rem; font-weight: 400;
-    color: rgba(240,240,242,0.3) !important;
-    margin-left: 3px; letter-spacing: 0;
+  font-size: 13px; font-weight: 400;
+  color: var(--text-lo) !important;
+  margin-left: 2px; letter-spacing: 0;
 }
-.metric-pos { color: #f0f0f2 !important; }
-.metric-neg { color: rgba(240,240,242,0.4) !important; }
 
 /* ── Status boxes ── */
 .info-box {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 10px; padding: 0.8rem 1.1rem; margin: 0.6rem 0;
-    font-size: 0.82rem; color: rgba(240,240,242,0.6) !important;
-    line-height: 1.55;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: var(--radius-md);
+  padding: 12px 16px; margin: 8px 0;
+  font-size: 12.5px; color: var(--text-mid) !important;
+  line-height: 1.6;
 }
 .warn-box {
-    background: rgba(255,200,100,0.04);
-    border: 1px solid rgba(255,200,100,0.15);
-    border-radius: 10px; padding: 0.8rem 1.1rem; margin: 0.6rem 0;
-    font-size: 0.82rem; color: rgba(255,210,120,0.8) !important;
-    line-height: 1.55;
+  background: rgba(255,214,0,0.04);
+  border: 1px solid rgba(255,214,0,0.12);
+  border-radius: var(--radius-md);
+  padding: 12px 16px; margin: 8px 0;
+  font-size: 12.5px; color: rgba(255,220,80,0.75) !important;
+  line-height: 1.6;
 }
 .error-box {
-    background: rgba(255,100,100,0.04);
-    border: 1px solid rgba(255,100,100,0.15);
-    border-radius: 10px; padding: 0.8rem 1.1rem; margin: 0.6rem 0;
-    font-size: 0.82rem; color: rgba(255,140,140,0.8) !important;
-    line-height: 1.55;
+  background: rgba(255,69,58,0.04);
+  border: 1px solid rgba(255,69,58,0.12);
+  border-radius: var(--radius-md);
+  padding: 12px 16px; margin: 8px 0;
+  font-size: 12.5px; color: rgba(255,120,110,0.8) !important;
+  line-height: 1.6;
 }
 
-/* ── Buttons ── */
+/* ── iOS-style pill buttons ── */
 div.stButton > button {
-    background: rgba(240,240,242,0.9) !important;
-    color: #0c0c0e !important;
-    border: none !important; border-radius: 8px !important;
-    padding: 0.62rem 1.6rem !important;
-    font-family: 'Syne', sans-serif !important;
-    font-weight: 700 !important; font-size: 0.84rem !important;
-    letter-spacing: 0.04em !important; text-transform: uppercase !important;
-    width: 100% !important; transition: opacity 0.15s, transform 0.1s !important;
+  background: var(--surface-2) !important;
+  color: var(--text-hi) !important;
+  border: 1px solid var(--border-hi) !important;
+  border-radius: var(--radius-xl) !important;
+  padding: 10px 22px !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 500 !important; font-size: 13px !important;
+  letter-spacing: 0.01em !important;
+  width: 100% !important;
+  transition: all 0.15s ease !important;
+  backdrop-filter: blur(10px) !important;
 }
 div.stButton > button:hover {
-    opacity: 0.82 !important; transform: translateY(-1px) !important;
+  background: var(--surface-3) !important;
+  border-color: rgba(255,255,255,0.28) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
 }
 div.stButton > button:active {
-    opacity: 0.65 !important; transform: translateY(0) !important;
+  transform: scale(0.97) !important;
+  opacity: 0.7 !important;
+}
+
+/* Optimise button — primary pill ── */
+[data-testid="column"] div.stButton > button,
+.run-btn div.stButton > button {
+  background: rgba(255,255,255,0.9) !important;
+  color: #111114 !important;
+  border: none !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em !important;
 }
 
 /* ── Inputs ── */
 .stNumberInput input, .stTextInput input, .stTextArea textarea {
-    background: rgba(255,255,255,0.04) !important;
-    color: rgba(240,240,242,0.9) !important;
-    border: 1px solid rgba(255,255,255,0.08) !important;
-    border-radius: 8px !important; font-size: 0.88rem !important;
-    transition: border-color 0.15s !important;
+  background: var(--surface-1) !important;
+  color: var(--text-hi) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
+  font-size: 13px !important;
+  padding: 8px 12px !important;
+  transition: border-color 0.15s !important;
 }
 .stNumberInput input:focus, .stTextInput input:focus {
-    border-color: rgba(255,255,255,0.25) !important;
-    box-shadow: 0 0 0 2px rgba(255,255,255,0.06) !important;
-    outline: none !important;
+  border-color: var(--border-hi) !important;
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.06) !important;
+  outline: none !important;
 }
 .stSelectbox div[data-baseweb="select"] > div {
-    background: rgba(255,255,255,0.04) !important;
-    color: rgba(240,240,242,0.9) !important;
-    border: 1px solid rgba(255,255,255,0.08) !important;
+  background: var(--surface-1) !important;
+  color: var(--text-hi) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
 }
-.stRadio label { color: rgba(240,240,242,0.55) !important; }
+.stRadio label { color: var(--text-mid) !important; }
 .stRadio div[role="radiogroup"] label {
-    font-size: 0.86rem !important; font-weight: 500 !important;
+  font-size: 13px !important; font-weight: 500 !important;
 }
 .stCheckbox div[data-testid="stMarkdownContainer"] p {
-    color: rgba(240,240,242,0.55) !important;
+  color: var(--text-mid) !important;
 }
 
-/* ── Tables ── */
+/* ── DataFrames ── */
 .stDataFrame, [data-testid="stDataEditor"] {
-    border-radius: 12px !important; overflow: hidden !important;
-    border: 1px solid rgba(255,255,255,0.07) !important;
+  border-radius: var(--radius-md) !important;
+  overflow: hidden !important;
+  border: 1px solid var(--border) !important;
 }
 [data-testid="stDataEditor"] * {
-    color: rgba(240,240,242,0.8) !important;
-    background: rgba(255,255,255,0.02) !important;
+  color: var(--text-hi) !important;
+  background: var(--surface-1) !important;
 }
-[data-testid="stTable"] * { color: rgba(240,240,242,0.8) !important; }
 
 /* ── Expander ── */
 [data-testid="stExpander"] {
-    border: 1px solid rgba(255,255,255,0.07) !important;
-    border-radius: 12px !important;
-    background: rgba(255,255,255,0.02) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
+  background: var(--surface-1) !important;
+  backdrop-filter: var(--blur) !important;
 }
 [data-testid="stExpander"] summary {
-    color: rgba(240,240,242,0.5) !important;
-    font-size: 0.86rem !important; font-weight: 600 !important;
+  color: var(--text-mid) !important;
+  font-size: 13px !important; font-weight: 500 !important;
 }
 [data-testid="stExpander"] p {
-    color: rgba(240,240,242,0.55) !important;
-    line-height: 1.6 !important;
+  color: var(--text-mid) !important; line-height: 1.65 !important;
+  font-size: 13px !important;
 }
 
-/* ── Tables in markdown ── */
-table { color: #f0f0f2 !important; border-collapse: collapse; width: 100%; }
+/* ── Tables ── */
+table { color: var(--text-hi) !important; border-collapse: collapse; width: 100%; }
 thead tr th {
-    color: rgba(240,240,242,0.3) !important;
-    font-size: 0.65rem !important; letter-spacing: 0.12em !important;
-    text-transform: uppercase !important;
-    border-bottom: 1px solid rgba(255,255,255,0.07) !important;
-    padding: 0.55rem 0.8rem !important; font-weight: 700 !important;
+  color: var(--text-lo) !important;
+  font-size: 10px !important; letter-spacing: 0.1em !important;
+  text-transform: uppercase !important; font-weight: 600 !important;
+  border-bottom: 1px solid var(--border) !important;
+  padding: 8px 12px !important;
 }
 tbody tr td {
-    color: rgba(240,240,242,0.65) !important;
-    border-bottom: 1px solid rgba(255,255,255,0.04) !important;
-    padding: 0.55rem 0.8rem !important;
+  color: var(--text-mid) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+  padding: 8px 12px !important; font-size: 12.5px !important;
 }
-tbody tr:hover td { background: rgba(255,255,255,0.025) !important; }
+tbody tr:hover td { background: var(--surface-1) !important; }
 
 /* ── Divider ── */
 hr {
-    border: none !important;
-    border-top: 1px solid rgba(255,255,255,0.06) !important;
-    margin: 2rem 0 !important;
+  border: none !important;
+  border-top: 1px solid var(--border) !important;
+  margin: 2rem 0 !important;
 }
 
 /* ── Chatbot ── */
 .chat-wrap {
-    background: rgba(255,255,255,0.025);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 16px; overflow: hidden;
-    margin-top: 0.75rem;
+  background: var(--surface-1);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  margin-top: 10px;
 }
 .chat-header {
-    background: rgba(255,255,255,0.03);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    padding: 1.1rem 1.4rem;
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 20px;
 }
 .chat-header-title {
-    color: rgba(240,240,242,0.9) !important;
-    font-size: 0.88rem !important; font-weight: 700 !important;
-    letter-spacing: 0.02em !important; margin: 0 0 0.15rem !important;
+  color: var(--text-hi) !important;
+  font-size: 14px !important; font-weight: 600 !important;
+  letter-spacing: -0.01em !important; margin: 0 0 2px !important;
 }
 .chat-header-sub {
-    color: rgba(240,240,242,0.3) !important;
-    font-size: 0.74rem !important; margin: 0 !important;
-    letter-spacing: 0.01em !important;
+  color: var(--text-lo) !important;
+  font-size: 11px !important; margin: 0 !important;
+  letter-spacing: 0.01em !important;
 }
-.chat-body { padding: 1.1rem 1.4rem 0.8rem; }
+.chat-body { padding: 16px 20px 12px; }
 .chat-msg-user {
-    background: rgba(240,240,242,0.9);
-    color: #0c0c0e !important;
-    border-radius: 14px 14px 3px 14px;
-    padding: 0.65rem 1rem; margin: 0.5rem 0 0.5rem 22%;
-    font-size: 0.84rem; font-weight: 600; display: block;
-    text-align: right; line-height: 1.45;
+  background: rgba(255,255,255,0.88);
+  color: #111114 !important;
+  border-radius: 18px 18px 4px 18px;
+  padding: 10px 14px; margin: 6px 0 6px 25%;
+  font-size: 13px; font-weight: 500; display: block;
+  text-align: right; line-height: 1.5;
 }
 .chat-msg-assistant {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.07);
-    color: rgba(240,240,242,0.75) !important;
-    border-radius: 14px 14px 14px 3px;
-    padding: 0.75rem 1rem; margin: 0.5rem 22% 0.5rem 0;
-    font-size: 0.84rem; display: block; line-height: 1.7;
-    font-family: 'DM Mono', monospace;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-mid) !important;
+  border-radius: 18px 18px 18px 4px;
+  padding: 12px 14px; margin: 6px 25% 6px 0;
+  font-size: 12.5px; display: block; line-height: 1.75;
+  font-family: 'SF Mono', 'Fira Mono', monospace;
 }
 </style>
 """, unsafe_allow_html=True)
+
 
 
 
@@ -1541,106 +1578,123 @@ if run:
                      use_container_width=True)
 
     # ══════════════════════════════════════════════════════════════════════════
-    # CHARTS
+    # CHARTS — iOS Stocks aesthetic
     # ══════════════════════════════════════════════════════════════════════════
-    BG     = '#0c0c0e'
-    BLUE   = '#a0a0aa'
-    GREEN  = '#d0d0d4'
-    ORANGE = '#f0f0f2'
-    GREY   = '#555560'
 
-    st.markdown('<div class="section-header">ESG-Efficient Frontier</div>', unsafe_allow_html=True)
+    # Palette — monochrome, iOS Stocks inspired
+    BG      = '#111114'
+    PLOT_BG = '#161618'
+    C1      = '#e8e8ec'   # primary line / curve (bright)
+    C2      = '#606068'   # secondary line / curve (dim)
+    C_DOT   = '#a8a8b0'   # individual asset dots
+    C_OPT   = '#ffffff'   # optimal portfolio marker
+    C_ANN   = '#6e6e78'   # annotation text
+    C_GRID  = '#1e1e22'   # grid lines
+    C_TICK  = '#48484e'   # tick labels
+    C_TITLE = '#e8e8ec'   # chart title
+
+    def _style_ax(ax, fig, title=""):
+        """Apply iOS Stocks styling to an axes."""
+        fig.patch.set_facecolor(BG)
+        ax.set_facecolor(PLOT_BG)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['left'].set_color(C_GRID)
+        ax.spines['bottom'].set_color(C_GRID)
+        ax.tick_params(colors=C_TICK, labelsize=8, length=3)
+        ax.grid(True, color=C_GRID, linewidth=0.5, linestyle='-', alpha=0.8)
+        ax.set_axisbelow(True)
+        if title:
+            ax.set_title(title, fontsize=11, fontweight='600',
+                         color=C_TITLE, pad=12, loc='left')
+
+    st.markdown('<div class="section-header">Efficient Frontier</div>',
+                unsafe_allow_html=True)
     c1, c2 = st.columns(2)
 
-    # ── Chart 1: Mean-Variance Frontier (matches lecture slide) ──────────────
+    # ── Chart 1: Mean-Variance Frontier ─────────────────────────────────────
     with c1:
-        fig, ax = plt.subplots(figsize=(6.5, 5.5))
-        fig.patch.set_facecolor(BG); ax.set_facecolor(BG)
+        fig, ax = plt.subplots(figsize=(6, 5))
+        _style_ax(ax, fig, "Mean-Variance Frontier")
 
-        # Blue frontier — all assets
+        # Unconstrained frontier — dim
         if len(std_blue) > 2:
-            ax.plot(std_blue, ret_blue, color=BLUE, lw=2.4, zorder=4,
-                    label='Mean-variance frontier\n(all assets)')
+            ax.plot(std_blue, ret_blue, color=C2, lw=1.8, zorder=4,
+                    label='All assets', alpha=0.7)
 
-        # Green frontier — ESG-screened
+        # ESG frontier — bright
         if len(std_green) > 2:
-            ax.plot(std_green, ret_green, color=GREEN, lw=2.4, zorder=4,
-                    label=f'Mean-variance frontier\n(ESG ≥ {esg_thresh:.1f})')
+            ax.plot(std_green, ret_green, color=C1, lw=2.2, zorder=5,
+                    label=f'ESG ≥ {esg_thresh:.1f}')
+            ax.fill_between(std_green, ret_green,
+                            alpha=0.06, color=C1, zorder=2)
 
-        # CML for all-assets tangency (blue dashed)
+        # CMLs — hairline dashed
         if sp_tan_all > 1e-9 and len(std_blue) > 0:
-            cml_max = max(np.nanmax(std_blue), sp_tan_all*100) * 1.5
-            sd_cml  = np.linspace(0, cml_max, 300)
+            cml_max = max(float(np.nanmax(std_blue)), sp_tan_all*100) * 1.6
+            sd_cml  = np.linspace(0, cml_max, 200)
             ax.plot(sd_cml, rf*100 + (ep_tan_all-rf)/sp_tan_all*sd_cml,
-                    color=BLUE, lw=1.5, linestyle='--', zorder=3,
-                    label='CML (all assets)')
+                    color=C2, lw=1, linestyle=(0,(4,3)), zorder=3, alpha=0.5)
 
-        # CML for ESG-constrained tangency (green dashed)
         if sp_tan_esg > 1e-9 and len(std_green) > 0:
-            cml_max2 = max(np.nanmax(std_green), sp_tan_esg*100) * 1.5
-            sd_cml2  = np.linspace(0, cml_max2, 300)
+            cml_max2 = max(float(np.nanmax(std_green)), sp_tan_esg*100) * 1.6
+            sd_cml2  = np.linspace(0, cml_max2, 200)
             ax.plot(sd_cml2, rf*100 + (ep_tan_esg-rf)/sp_tan_esg*sd_cml2,
-                    color=GREEN, lw=1.5, linestyle='--', zorder=3,
-                    label=f'CML (ESG ≥ {esg_thresh:.1f})')
+                    color=C1, lw=1, linestyle=(0,(4,3)), zorder=3, alpha=0.4)
 
-        # Tangency: all assets (blue star)
-        ax.scatter(sp_tan_all*100, ep_tan_all*100, color=BLUE, s=160,
-                   zorder=9, edgecolors='white', lw=1.5, marker='*')
-        ax.annotate('tangency portfolio\n(all assets)',
-                    (sp_tan_all*100, ep_tan_all*100),
-                    textcoords="offset points", xytext=(8, 2),
-                    fontsize=7, color=BLUE, fontstyle='italic')
-
-        # Tangency: ESG-constrained (green star)
+        # Tangency markers
+        ax.scatter(sp_tan_all*100, ep_tan_all*100,
+                   color=C2, s=60, zorder=9, edgecolors='none', marker='o')
         if len(std_green) > 2:
-            ax.scatter(sp_tan_esg*100, ep_tan_esg*100, color=GREEN, s=160,
-                       zorder=9, edgecolors='white', lw=1.5, marker='*')
-            ax.annotate('tangency portfolio\n(ESG screen)',
-                        (sp_tan_esg*100, ep_tan_esg*100),
-                        textcoords="offset points", xytext=(8, -20),
-                        fontsize=7, color=GREEN, fontstyle='italic')
+            ax.scatter(sp_tan_esg*100, ep_tan_esg*100,
+                       color=C1, s=60, zorder=9, edgecolors='none', marker='o')
 
-        # Risk-free
-        ax.scatter(0, rf*100, color=GREY, s=70, zorder=8,
-                   edgecolors='white', lw=1, marker='s')
+        # Risk-free dot
+        ax.scatter(0, rf*100, color=C_TICK, s=40, zorder=8,
+                   edgecolors='none', marker='o')
 
-        # ESG-optimal
-        ax.scatter(sp*100, ep*100, color=ORANGE, s=180, zorder=10,
-                   edgecolors='white', lw=2, marker='*', label='ESG-Optimal portfolio')
-
-        # Individual assets — blue dots if excluded from ESG frontier, green if included
+        # Individual assets
         for i in range(n):
-            col_pt = GREEN if active_mask[i] else BLUE
-            ax.scatter(vols[i]*100, mu[i]*100, color=col_pt, s=50, zorder=6,
-                       edgecolors='rgba(12,12,14,0.6)', lw=0.5, alpha=0.9)
+            ax.scatter(vols[i]*100, mu[i]*100,
+                       color=C_DOT if active_mask[i] else C2,
+                       s=36, zorder=6, edgecolors='none', alpha=0.85)
             ax.annotate(names[i], (vols[i]*100, mu[i]*100),
-                        textcoords="offset points", xytext=(4,3),
-                        fontsize=7, color='rgba(240,240,242,0.45)')
+                        textcoords="offset points", xytext=(5, 3),
+                        fontsize=7, color=C_ANN, va='bottom')
 
-        ax.set_xlabel("Std (%)", fontsize=9, color='rgba(240,240,242,0.45)')
-        ax.set_ylabel("Expected Return (%)", fontsize=9, color='rgba(240,240,242,0.45)')
-        ax.set_title("Mean-Variance Frontier", fontsize=11, fontweight='bold',
-                     color='rgba(240,240,242,0.85)', pad=10)
+        # Optimal portfolio — white circle
+        ax.scatter(sp*100, ep*100, color=C_OPT, s=110, zorder=10,
+                   edgecolors='none', marker='o')
+        ax.annotate(f'  Optimal  SR={sr:.2f}',
+                    (sp*100, ep*100),
+                    textcoords="offset points", xytext=(8, -4),
+                    fontsize=7.5, color=C_OPT, fontweight='600')
+
+        ax.set_xlabel("Volatility (%)", fontsize=8.5, color=C_ANN, labelpad=6)
+        ax.set_ylabel("Expected Return (%)", fontsize=8.5, color=C_ANN, labelpad=6)
         ax.set_xlim(left=0)
-        ax.tick_params(colors='#505058', labelsize=7.5)
-        for sp_ in ax.spines.values(): sp_.set_color('#1a1a1e')
-        ax.legend(fontsize=7, framealpha=0.92, facecolor='#161622', edgecolor='#1e1e22',
-                  loc='upper left')
-        ax.grid(True, alpha=0.3, color='#252535', linestyle='--')
-        fig.tight_layout(); st.pyplot(fig); plt.close()
 
-    # ── Chart 2: ESG-SR Frontier — matching the lecture slide ──────────────────
-    # Lecture: single curve = max Sharpe for each ESG level (sweep ESG constraint).
-    # Two labelled dots:
-    #   - "Tangency portfolio using ESG information"   = peak of the curve (ESG-aware tangency)
-    #   - "Tangency portfolio ignoring ESG information" = unconstrained tangency plotted at its ESG score
-    # Individual assets shown as dots below the curve.
+        # Minimal legend
+        handles = [
+            plt.Line2D([0],[0], color=C1, lw=2, label='ESG frontier'),
+            plt.Line2D([0],[0], color=C2, lw=1.5, alpha=0.7, label='All-assets frontier'),
+            plt.scatter([],[], color=C_OPT, s=50, label='Optimal', edgecolors='none'),
+        ]
+        ax.legend(handles=handles, fontsize=7.5,
+                  framealpha=0, edgecolor='none',
+                  labelcolor=C_ANN, loc='upper left')
+
+        fig.tight_layout(pad=1.5)
+        st.pyplot(fig, use_container_width=True)
+        plt.close()
+
+    # ── Chart 2: ESG-SR Frontier ─────────────────────────────────────────────
     with c2:
-        # Sweep minimum-ESG constraint from min to max; record (achieved_ESG, Sharpe)
+        # Compute ESG-SR sweep
         esg_min_val = float(np.min(esg_a))
         esg_max_val = float(np.max(esg_a))
-        esg_sweep   = np.linspace(esg_min_val, esg_max_val, 150)
-        sw_esg, sw_sr = [], []
+        esg_sweep   = np.linspace(esg_min_val, esg_max_val, 120)
+        sw_esg, sw_sr_vals = [], []
         for et in esg_sweep:
             res = minimize(
                 lambda w: -port_sr(w, mu_a, cov_a, rf),
@@ -1653,73 +1707,60 @@ if run:
                 options={"ftol": 1e-9, "maxiter": 400})
             if res.success:
                 sw_esg.append(float(res.x @ esg_a))
-                sw_sr.append(port_sr(res.x, mu_a, cov_a, rf))
+                sw_sr_vals.append(port_sr(res.x, mu_a, cov_a, rf))
 
-        # "Tangency using ESG info" = unconstrained tangency among ESG assets (peak of curve)
-        # This is w_tan_esg restricted to active assets
         esg_tan_using    = float(w_tan_esg[active_mask] @ esg_a) if active_mask.any() else esg_bar
-        sr_tan_using     = sr_tan_esg
+        esg_tan_ignoring = float(w_tan_all @ esg_scores)
 
-        # "Tangency ignoring ESG info" = unconstrained tangency across ALL assets
-        # plotted at its own ESG score — sits BELOW the frontier (exactly as in lecture)
-        esg_tan_ignoring = float(w_tan_all @ esg_scores)   # its actual ESG score
-        sr_tan_ignoring  = sr_tan_all                       # its Sharpe ratio
+        fig2, ax2 = plt.subplots(figsize=(6, 5))
+        _style_ax(ax2, fig2, "ESG-SR Frontier")
 
-        fig2, ax2 = plt.subplots(figsize=(6.5, 5.5))
-        fig2.patch.set_facecolor(BG); ax2.set_facecolor(BG)
-
-        # Frontier curve
+        # Frontier curve with gradient fill
         if sw_esg:
-            ax2.plot(sw_esg, sw_sr, color=BLUE, lw=2.5, zorder=4,
-                     label="ESG-SR frontier")
-            ax2.fill_between(sw_esg, sw_sr,
-                             alpha=0.08, color=BLUE)
+            ax2.plot(sw_esg, sw_sr_vals, color=C1, lw=2.2, zorder=4)
+            ax2.fill_between(sw_esg, sw_sr_vals,
+                             min(sw_sr_vals) - 0.02,
+                             alpha=0.07, color=C1, zorder=2)
 
-        # Individual assets (dots below curve)
+        # Individual asset dots
         for i in range(len(mu_a)):
             sr_i = (mu_a[i] - rf) / vols_a[i]
-            ax2.scatter(esg_a[i], sr_i, color=BLUE, s=55, zorder=5,
-                        edgecolors="white", lw=0.8, alpha=0.85)
+            ax2.scatter(esg_a[i], sr_i, color=C_DOT, s=36,
+                        zorder=5, edgecolors='none', alpha=0.85)
             ax2.annotate(names_a[i], (esg_a[i], sr_i),
-                         textcoords="offset points", xytext=(5, 4),
-                         fontsize=7.5, color="#2d4a2d")
+                         textcoords="offset points", xytext=(5, 3),
+                         fontsize=7, color=C_ANN)
 
-        # Tangency using ESG info (on or near peak of curve)
-        ax2.scatter(esg_tan_using, sr_tan_using, color=BLUE, s=140, zorder=9,
-                    edgecolors="white", lw=1.5)
-        ax2.annotate("Tangency portfolio\nusing ESG information",
-                     (esg_tan_using, sr_tan_using),
-                     textcoords="offset points", xytext=(8, 4),
-                     fontsize=7.5, color="#1a2e1a",
-                     arrowprops=dict(arrowstyle="-", color="#888888", lw=0.8))
+        # Tangency using ESG — bright dot on curve
+        ax2.scatter(esg_tan_using, sr_tan_esg, color=C1, s=80,
+                    zorder=9, edgecolors='none')
+        ax2.annotate('Tangency (ESG)',
+                     (esg_tan_using, sr_tan_esg),
+                     textcoords="offset points", xytext=(6, 6),
+                     fontsize=7.5, color=C1, fontweight='600')
 
-        # Tangency ignoring ESG info (below curve — same as lecture)
-        ax2.scatter(esg_tan_ignoring, sr_tan_ignoring, color=BLUE, s=100, zorder=8,
-                    edgecolors="white", lw=1.5)
-        ax2.annotate("Tangency portfolio\nignoring ESG information",
-                     (esg_tan_ignoring, sr_tan_ignoring),
-                     textcoords="offset points", xytext=(8, -28),
-                     fontsize=7.5, color="#1a2e1a",
-                     arrowprops=dict(arrowstyle="-", color="#888888", lw=0.8))
+        # Tangency ignoring ESG — dim dot below curve
+        ax2.scatter(esg_tan_ignoring, sr_tan_all, color=C2, s=60,
+                    zorder=8, edgecolors='none')
+        ax2.annotate('Tangency (no ESG)',
+                     (esg_tan_ignoring, sr_tan_all),
+                     textcoords="offset points", xytext=(6, -16),
+                     fontsize=7.5, color=C2)
 
-        # ESG-optimal portfolio (orange, same as lecture's red dot)
-        ax2.scatter(esg_bar, sr, color=ORANGE, s=120, zorder=10,
-                    edgecolors="white", lw=2)
-        ax2.annotate("Optimal portfolio",
+        # Optimal portfolio
+        ax2.scatter(esg_bar, sr, color=C_OPT, s=100,
+                    zorder=10, edgecolors='none')
+        ax2.annotate(f'  Optimal  SR={sr:.2f}',
                      (esg_bar, sr),
-                     textcoords="offset points", xytext=(-80, 8),
-                     fontsize=7.5, color=ORANGE,
-                     arrowprops=dict(arrowstyle="-", color="#888888", lw=0.8))
+                     textcoords="offset points", xytext=(7, 3),
+                     fontsize=7.5, color=C_OPT, fontweight='600')
 
-        ax2.set_xlabel("ESG Score (0–10)", fontsize=9, color="#2d4a2d")
-        ax2.set_ylabel("Sharpe Ratio",     fontsize=9, color="#2d4a2d")
-        ax2.set_title("ESG-SR Frontier", fontsize=11, fontweight="bold",
-                      color="#1a2e1a", pad=10)
-        ax2.tick_params(colors="#5a7a5a", labelsize=8)
-        for sp_ in ax2.spines.values(): sp_.set_color("#c8d8b8")
-        ax2.legend(fontsize=8, framealpha=0.9, facecolor='#161622', edgecolor="#c8d8b8")
-        ax2.grid(True, alpha=0.3, color="#c8d8b8", linestyle="--")
-        fig2.tight_layout(); st.pyplot(fig2); plt.close()
+        ax2.set_xlabel("ESG Score (0–10)", fontsize=8.5, color=C_ANN, labelpad=6)
+        ax2.set_ylabel("Sharpe Ratio",     fontsize=8.5, color=C_ANN, labelpad=6)
+
+        fig2.tight_layout(pad=1.5)
+        st.pyplot(fig2, use_container_width=True)
+        plt.close()
 
     # ── Allocation charts ─────────────────────────────────────────────────────
     st.markdown("#### Portfolio Allocation")
@@ -1731,25 +1772,25 @@ if run:
                 '#a8cc98','#c4deb8','#d4e8c8','#e4f0d8','#f0f8ec']
         with pc:
             f3,a3 = plt.subplots(figsize=(5,4))
-            f3.patch.set_facecolor(BG); a3.set_facecolor(BG)
+            f3.patch.set_facecolor('#111114'); a3.set_facecolor('#161618')
             a3.pie(pvals,labels=plabels,autopct='%1.1f%%',colors=greens[:len(pvals)],
-                   startangle=140,textprops={'fontsize':7.5,'color':'rgba(240,240,242,0.8)'},
-                   wedgeprops={'edgecolor':'white','linewidth':1.5})
-            a3.set_title("Weight Allocation",fontsize=11,fontweight='bold',color='#1a2e1a',pad=10)
+                   startangle=140,textprops={'fontsize':7.5,'color':'#c8c8d0'},
+                   wedgeprops={'edgecolor':'#111114','linewidth':1.5})
+            a3.set_title('Weight Allocation',fontsize=11,fontweight='600',color='#e8e8ec',pad=12)
             f3.tight_layout(); st.pyplot(f3); plt.close()
         with bc:
             f4,a4 = plt.subplots(figsize=(5,4))
-            f4.patch.set_facecolor(BG); a4.set_facecolor(BG)
-            bcols = [plt.cm.YlGn(s/10) for s in pesg]
+            f4.patch.set_facecolor('#111114'); a4.set_facecolor('#161618')
+            bcols = ['#e8e8ec' if s >= 7 else '#a0a0a8' if s >= 5 else '#60606a' for s in pesg]
             bars  = a4.barh(plabels,[v*100 for v in pvals],color=bcols,edgecolor='white',height=0.6)
             for bar,ev in zip(bars,pesg):
                 a4.text(bar.get_width()+0.3,bar.get_y()+bar.get_height()/2,
-                        f'ESG {ev:.2f}',va='center',fontsize=7,color='rgba(240,240,242,0.35)')
-            a4.set_xlabel("Weight (%)",fontsize=9,color='rgba(240,240,242,0.45)')
-            a4.set_title("Weights with ESG Scores",fontsize=11,fontweight='bold',color='#1a2e1a',pad=10)
+                        f'ESG {ev:.2f}',va='center',fontsize=7,color='#5a5a68')
+            a4.set_xlabel("Weight (%)",fontsize=9,color='#6e6e80')
+            a4.set_title('Weights with ESG Scores',fontsize=11,fontweight='600',color='#e8e8ec',pad=12)
             a4.tick_params(colors='#5a7a5a',labelsize=8)
-            for sp_ in a4.spines.values(): sp_.set_color('#1a1a1e')
-            a4.grid(True,alpha=0.3,color='#c8d8b8',axis='x',linestyle='--')
+            for sp_ in a4.spines.values(): sp_.set_color('#1e1e22')
+            a4.grid(True,alpha=0.5,color='#1e1e22',axis='x',linestyle='-')
             f4.tight_layout(); st.pyplot(f4); plt.close()
 
     # ── Sensitivity ───────────────────────────────────────────────────────────
@@ -1762,26 +1803,26 @@ if run:
             sens_rows.append({"λ":round(float(lv),2),"E[R](%)":round(ep2*100,2),
                               "σ(%)":round(sp2*100,2),"Sharpe":round(sr2,3),"ESG":round(esg2,2)})
         sens_df = pd.DataFrame(sens_rows)
-        f5,axes = plt.subplots(1,3,figsize=(12,3.5)); f5.patch.set_facecolor(BG)
+        f5,axes = plt.subplots(1,3,figsize=(12,3.5)); f5.patch.set_facecolor('#111114')
         for ax_,col_,c_,yl_,tl_ in [
             (axes[0],"Sharpe",'#d0d0d4',"Sharpe Ratio","Sharpe vs λ"),
             (axes[1],"ESG",   '#a0a0aa',"ESG Score",   "ESG Score vs λ"),
         ]:
-            ax_.set_facecolor(BG); ax_.plot(sens_df["λ"],sens_df[col_],color=c_,lw=1.8)
-            ax_.set_title(tl_,fontsize=10,color='#1a2e1a')
-            ax_.set_xlabel("λ",fontsize=9); ax_.set_ylabel(yl_,fontsize=9)
+            ax_.set_facecolor('#161618'); ax_.plot(sens_df["λ"],sens_df[col_],color=c_,lw=1.8)
+            ax_.set_title(tl_,fontsize=10,color='#e8e8ec')
+            ax_.set_xlabel('λ',fontsize=9,color='#6e6e78'); ax_.set_ylabel(yl_,fontsize=9,color='#6e6e78')
             ax_.tick_params(colors='#5a7a5a',labelsize=8)
-            for sp_ in ax_.spines.values(): sp_.set_color('#1a1a1e')
-            ax_.grid(True,alpha=0.3,color='#c8d8b8',linestyle='--')
-        axes[2].set_facecolor(BG)
+            for sp_ in ax_.spines.values(): sp_.set_color('#1e1e22')
+            ax_.grid(True,alpha=0.5,color='#1e1e22',linestyle='-')
+        axes[2].set_facecolor('#161618')
         axes[2].plot(sens_df["λ"],sens_df["E[R](%)"],color='#d0d0d4',lw=1.8,label='E[R]')
         axes[2].plot(sens_df["λ"],sens_df["σ(%)"],color='#707078',lw=1.8,linestyle='--',label='σ')
-        axes[2].set_title("Return & Risk vs λ",fontsize=10,color='#1a2e1a')
-        axes[2].set_xlabel("λ",fontsize=9); axes[2].set_ylabel("%",fontsize=9)
+        axes[2].set_title('Return & Risk vs λ',fontsize=10,color='#e8e8ec')
+        axes[2].set_xlabel('λ',fontsize=9,color='#6e6e78'); axes[2].set_ylabel('%',fontsize=9,color='#6e6e78')
         axes[2].legend(fontsize=8,facecolor='#161622',edgecolor='#1e1e22')
         axes[2].tick_params(colors='#5a7a5a',labelsize=8)
-        for sp_ in axes[2].spines.values(): sp_.set_color('#1a1a1e')
-        axes[2].grid(True,alpha=0.3,color='#c8d8b8',linestyle='--')
+        for sp_ in axes[2].spines.values(): sp_.set_color('#1e1e22')
+        axes[2].grid(True,alpha=0.5,color='#1e1e22',linestyle='-')
         f5.tight_layout(); st.pyplot(f5); plt.close()
         st.dataframe(sens_df,use_container_width=True,hide_index=True)
 
