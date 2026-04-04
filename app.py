@@ -360,6 +360,16 @@ hr { border: none !important; border-top: 1px solid var(--sep) !important; margi
 [data-testid="column"]:nth-child(2) [data-testid="stImage"] img { animation-delay: 0.24s; }
 [data-testid="column"]:nth-child(3) [data-testid="stImage"] img { animation-delay: 0.43s; }
 [data-testid="column"]:nth-child(4) [data-testid="stImage"] img { animation-delay: 0.62s; }
+/* ── Chip / suggested-question buttons — auto-width, smaller ── */
+[data-testid="stVerticalBlock"] [data-testid="stHorizontalBlock"]:not(:first-of-type)
+  div.stButton > button {
+  font-size: 0.75rem !important;
+  padding: 0.35rem 0.7rem !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
 /* ── Rotating nav text — CSS-only ticker ── */
 @keyframes gp-rw-out {
   0%,42%  { transform: translateY(0);     opacity: 1; }
@@ -372,24 +382,24 @@ hr { border: none !important; border-top: 1px solid var(--sep) !important; margi
   100%    { transform: translateY(160%);  opacity: 0; }
 }
 .gp-rw-outer {
-  display: flex; align-items: center; height: 62px;
+  display: flex; align-items: center; height: 62px; overflow: visible;
 }
 .gp-rw-text {
-  font-size: 0.78rem; font-weight: 600;
+  font-size: 0.88rem; font-weight: 600;
   color: var(--text-2); font-family: var(--font);
-  white-space: nowrap; display: inline-flex; align-items: baseline; gap: 4px;
+  white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;
 }
 .gp-rw-wrap {
   position: relative; display: inline-block;
-  width: 70px; height: 1em; overflow: hidden; vertical-align: baseline;
+  width: 72px; height: 1.2em; overflow: hidden; vertical-align: middle;
 }
 .gp-rw-a {
-  position: absolute; top: 0; left: 0;
+  position: absolute; top: 0; left: 0; white-space: nowrap;
   animation: gp-rw-out 5s cubic-bezier(0.16, 1, 0.3, 1) infinite;
   color: var(--accent); font-weight: 700;
 }
 .gp-rw-b {
-  position: absolute; top: 0; left: 0;
+  position: absolute; top: 0; left: 0; white-space: nowrap;
   animation: gp-rw-in  5s cubic-bezier(0.16, 1, 0.3, 1) infinite;
   color: var(--accent); font-weight: 700;
 }
@@ -485,8 +495,12 @@ def find_tangency(mu, cov, rf, bounds=None):
 
 def find_optimal(mu, cov, esg, rf, gamma, lam):
     n = len(mu)
+    # Normalise ESG to [0,1] so it is on the same scale as E[R] (also ≈ 0–1).
+    # Without this, ESG (0–10) dominates and the optimiser always picks the
+    # highest-ESG asset regardless of return/risk (λ×8.5 >> E[R]≈0.07).
+    esg_norm = np.asarray(esg) / 10.0
     res = minimize(
-        lambda w: -(port_ret(w,mu) - gamma/2*port_var(w,cov) + lam*float(np.asarray(w)@esg)),
+        lambda w: -(port_ret(w,mu) - gamma/2*port_var(w,cov) + lam*float(np.asarray(w)@esg_norm)),
         np.ones(n)/n, method="SLSQP",
         bounds=[(0.,1.)]*n,
         constraints=[{"type":"eq","fun":lambda w: np.sum(w)-1}],
@@ -530,9 +544,18 @@ SUGGESTED_QUESTIONS = [
     "What is the cost of the ESG constraint here?",
     "Explain the utility function used here.",
     "How does the Capital Market Line work?",
-    "What would happen if I removed the ESG screen?",
-    "Which asset has the best individual Sharpe ratio?",
-    "Why is the tangency portfolio important?",
+]
+# Short labels for the button row (matches index-for-index with SUGGESTED_QUESTIONS)
+_CHIP_LABELS = [
+    "Why these weights?",
+    "Is my Sharpe ratio good?",
+    "Why green frontier right of blue?",
+    "What does λ do?",
+    "How does γ change things?",
+    "Worst ESG asset?",
+    "Cost of ESG constraint?",
+    "Explain the utility function",
+    "How does the CML work?",
 ]
 
 def _portfolio_answer(question: str, d: dict) -> str:
@@ -554,128 +577,266 @@ def _portfolio_answer(question: str, d: dict) -> str:
     sharpe_cost = sr_tan_all - sr_tan_esg
     ret_cost    = ep_tan_all - ep_tan_esg
 
+    # ── helpers ───────────────────────────────────────────────────────────────
+    top_w_name  = names[sorted_by_w[0]]
+    top_w_pct   = w_opt[sorted_by_w[0]] * 100
+    worst_esg_i = sorted_by_esg[0]
+    best_sr_i   = sorted_by_sr[0]
+    sr_benchmark = 0.5   # rough "good" Sharpe threshold for commentary
+
+    def _sr_verdict(s):
+        if s > 1.0:   return "excellent"
+        if s > 0.6:   return "good"
+        if s > 0.3:   return "moderate"
+        return "low"
+
+    # ── utility function ──────────────────────────────────────────────────────
     if any(k in q for k in ["utility", "objective", "maximis", "optimi", "formula", "u ="]):
+        esg_term = lam * (esg_bar / 10)
+        var_term = gamma / 2 * sp ** 2
         lines = [
-            "The model maximises investor utility defined as:",
-            "", "    U = E[Rp] - (γ/2) × σ²p + λ × ESG_bar", "",
-            f"With your current parameters (γ={gamma}, λ={lam}, rf={rf*100:.1f}%):",
-            f"  • E[Rp] = {ep*100:.2f}% — rewards higher expected return",
-            f"  • -(γ/2)σ² = -{gamma/2:.2f} × {sp**2*100:.4f} — penalises variance",
-            f"  • λ × ESG_bar = {lam} × {esg_bar:.3f} = {lam*esg_bar:.4f} — rewards ESG quality",
-            f"  • Total utility U = {u_val:.5f}",
+            "The model maximises investor utility:",
+            "    U = E[Rp] − (γ/2)·σ²p + λ·(ESḠ/10)",
+            "",
+            f"For your portfolio (γ={gamma}, λ={lam}, rf={rf*100:.1f}%):",
+            f"  E[Rp]          =  {ep*100:.2f}%  → rewards return",
+            f"  −(γ/2)σ²       = −{var_term*100:.3f}%  → penalises variance (your σ={sp*100:.2f}%)",
+            f"  λ·(ESḠ/10)    = {lam}·({esg_bar:.2f}/10) = +{esg_term:.4f}  → rewards ESG quality",
+            f"  Total U        =  {u_val:.5f}",
+            "",
+            f"ESG is divided by 10 to match the decimal scale of returns. With λ={lam}, "
+            f"each extra ESG point is worth {lam/10*100:.1f} basis points of return.",
         ]
         return "\n".join(lines)
 
+    # ── portfolio weights ─────────────────────────────────────────────────────
     if any(k in q for k in ["weight", "allocation", "holding", "position", "why does my portfolio"]):
-        lines = ["Portfolio weights are determined by maximising U = E[Rp] - (γ/2)σ² + λ×ESG_bar.", ""]
+        lines = [
+            f"Weights maximise U = E[Rp] − (γ/2)σ² + λ·(ESG/10) with γ={gamma}, λ={lam}.",
+            f"The dominant holding is {top_w_name} at {top_w_pct:.1f}% because it scores well on",
+            f"the combination of return, low risk, and ESG that γ and λ imply.",
+            "",
+        ]
         for i in sorted_by_w:
             w = w_opt[i]
+            sr_i = ind_sr[i]
             if w < 0.001:
-                reason = f"excluded — E[R]={mu[i]*100:.1f}%, σ={vols[i]*100:.1f}%, ESG={esg_scores[i]:.1f}/10"
+                verdict = "zero weight — its contribution to U is beaten by other assets"
+                lines.append(f"  {names[i]} (0%): {verdict}")
+                lines.append(f"    E[R]={mu[i]*100:.1f}%, σ={vols[i]*100:.1f}%, ESG={esg_scores[i]:.1f}/10, SR={sr_i:.3f}")
             else:
-                reason = f"E[R]={mu[i]*100:.1f}%, σ={vols[i]*100:.1f}%, ESG={esg_scores[i]:.1f}/10, Sharpe={ind_sr[i]:.3f}"
-            lines.append(f"  {names[i]} ({w*100:.1f}%): {reason}")
+                lines.append(f"  {names[i]} ({w*100:.1f}%): E[R]={mu[i]*100:.1f}%, σ={vols[i]*100:.1f}%, ESG={esg_scores[i]:.1f}/10, SR={sr_i:.3f}")
         return "\n".join(lines)
 
+    # ── sharpe ratio ──────────────────────────────────────────────────────────
     if any(k in q for k in ["sharpe", "risk-adjusted", "risk adjusted"]):
+        verdict = _sr_verdict(sr)
+        vs_tan  = sr_tan_all - sr
         lines = [
-            "Sharpe ratio = (E[Rp] - rf) / σp", "",
-            f"Your portfolio: SR = ({ep*100:.2f}% - {rf*100:.1f}%) / {sp*100:.2f}% = {sr:.3f}", "",
-            f"Unconstrained tangency SR: {sr_tan_all:.3f}",
-            f"ESG-constrained tangency SR: {sr_tan_esg:.3f}",
-            "", "Individual asset Sharpe ratios:",
+            f"Sharpe ratio = (E[Rp] − rf) / σp",
+            f"Your portfolio: ({ep*100:.2f}% − {rf*100:.1f}%) / {sp*100:.2f}% = {sr:.3f}",
+            f"That is a {verdict} risk-adjusted return.",
+            "",
+            f"For context:",
+            f"  Best achievable (unconstrained tangency): {sr_tan_all:.3f}",
+            f"  ESG-screened tangency: {sr_tan_esg:.3f}",
+            f"  Your portfolio is {vs_tan:.3f} Sharpe points below the unconstrained maximum,",
+            f"  partly because λ={lam} tilts toward ESG rather than pure Sharpe maximisation.",
+            "",
+            "Individual asset Sharpe ratios:",
         ]
         for i in sorted_by_sr:
-            lines.append(f"  {names[i]}: {ind_sr[i]:.3f}")
+            lines.append(f"  {names[i]}: {ind_sr[i]:.3f}  (E[R]={mu[i]*100:.1f}%, σ={vols[i]*100:.1f}%)")
         return "\n".join(lines)
 
+    # ── ESG cost ──────────────────────────────────────────────────────────────
     if any(k in q for k in ["cost", "constraint", "penalty", "sacrifice", "tradeoff",
                               "price of esg", "esg screen", "what is the cost"]):
+        pct_loss = sharpe_cost / max(sr_tan_all, 0.001) * 100
         lines = [
-            f"Sharpe cost of ESG constraint: {sharpe_cost:.4f} ({sharpe_cost/max(sr_tan_all,0.001)*100:.1f}% reduction)",
-            f"  Unconstrained tangency SR:   {sr_tan_all:.4f}",
-            f"  ESG-constrained tangency SR: {sr_tan_esg:.4f}",
-            f"Return cost: {ret_cost*100:.2f}% per year",
-            f"Portfolio ESG gained: {esg_bar:.2f}/10",
+            f"Applying the ESG screen (min ESG ≥ {esg_thresh:.1f}) costs:",
+            f"  Sharpe loss:  {sharpe_cost:.4f}  ({pct_loss:.1f}% reduction)",
+            f"  Return loss:  {ret_cost*100:.2f}% per year",
+            f"  ESG gained:   portfolio ESG rises to {esg_bar:.2f}/10",
+            "",
+            f"Unconstrained tangency SR = {sr_tan_all:.4f}",
+            f"ESG-constrained tangency SR = {sr_tan_esg:.4f}",
+            "",
+            f"In other words, investors in this portfolio sacrifice ~{ret_cost*100:.1f}%/yr of expected",
+            f"return in exchange for a weighted ESG score of {esg_bar:.2f}/10. Whether that trade-off",
+            f"is worth it depends on your ESG preference λ (currently {lam}).",
         ]
         return "\n".join(lines)
 
+    # ── lambda ────────────────────────────────────────────────────────────────
     if any(k in q for k in ["lambda", "λ", "esg preference", "what does the esg"]):
+        esg_term = lam * (esg_bar / 10)
         lines = [
-            f"λ={lam} scales the ESG term in U = E[Rp] - (γ/2)σ² + λ×ESG_bar",
-            f"Each 1-point ESG gain adds {lam:.2f} utility (~{lam/10*100:.1f}bps of return)",
-            f"ESG contribution: {lam}×{esg_bar:.3f} = {lam*esg_bar:.4f}",
-            f"Total utility: {u_val:.4f}",
+            f"λ (lambda) = {lam} is your ESG preference parameter.",
+            f"It enters utility as: +λ·(ESḠ/10) = {lam}·({esg_bar:.2f}/10) = {esg_term:.4f}",
+            "",
+            f"Interpretation: with λ={lam}, each 1-point improvement in portfolio ESG score",
+            f"is worth {lam/10*100:.1f} basis points of expected return in your utility function.",
+            "",
+            f"If λ were 0 (pure financial investor), you'd hold the tangency portfolio with SR={sr_tan_all:.3f}.",
+            f"At λ={lam}, ESG quality is a real objective, shifting allocation toward {top_w_name}",
+            f"(ESG={esg_scores[sorted_by_w[0]]:.1f}/10) at the cost of {sharpe_cost:.3f} Sharpe points.",
         ]
         return "\n".join(lines)
 
+    # ── gamma ─────────────────────────────────────────────────────────────────
     if any(k in q for k in ["gamma", "γ", "risk aversion", "how does increasing risk"]):
+        var_pen = gamma / 2 * sp ** 2
+        sorted_by_vol = sorted(range(n), key=lambda i: vols[i])
         lines = [
-            f"γ={gamma} penalises variance in U = E[Rp] - (γ/2)σ² + λ×ESG_bar",
-            f"Variance penalty = -{gamma/2:.2f}×{sp**2:.6f} = {-gamma/2*sp**2:.5f}",
-            "Higher γ → more weight to low-volatility assets. Assets by vol:",
+            f"γ (gamma) = {gamma} is your risk aversion.",
+            f"It penalises variance: −(γ/2)σ² = −{gamma/2:.1f}×{sp**2*100:.3f} = −{var_pen*100:.3f}% in utility.",
+            "",
+            f"Higher γ → stronger preference for low-volatility assets.",
+            f"At γ={gamma}, the lowest-vol asset gets extra utility from the small variance penalty.",
+            "",
+            "Assets sorted by volatility (low → high):",
         ]
-        for i in sorted(range(n), key=lambda i: vols[i]):
-            lines.append(f"  {names[i]}: σ={vols[i]*100:.1f}%, weight={w_opt[i]*100:.1f}%")
+        for i in sorted_by_vol:
+            lines.append(f"  {names[i]}: σ={vols[i]*100:.1f}%  →  weight={w_opt[i]*100:.1f}%")
+        lines += [
+            "",
+            f"Try raising γ to 8+: you'll see allocation shift toward {names[sorted_by_vol[0]]} (lowest σ).",
+            f"Try γ=0.5: allocation moves toward {names[best_sr_i]} (highest individual Sharpe).",
+        ]
         return "\n".join(lines)
 
+    # ── worst ESG asset ───────────────────────────────────────────────────────
     if any(k in q for k in ["drags", "drag", "worst esg", "lowest esg", "which asset"]):
-        lines = ["Assets by ESG score (lowest first):", ""]
+        worst = names[worst_esg_i]
+        wt    = w_opt[worst_esg_i] * 100
+        drag  = w_opt[worst_esg_i] * esg_scores[worst_esg_i]
+        lines = [
+            f"The asset with the lowest ESG score is {worst}: {esg_scores[worst_esg_i]:.2f}/10.",
+            f"It currently holds {wt:.1f}% of the portfolio, contributing {drag:.3f} to the ESG average.",
+            "",
+            "All assets by ESG (worst first):",
+        ]
         for i in sorted_by_esg:
-            flag = " [excluded]" if not active_mask[i] else ""
+            flag = "  [excluded by screen]" if not active_mask[i] else ""
             lines.append(f"  {names[i]}: ESG={esg_scores[i]:.2f}/10, weight={w_opt[i]*100:.1f}%{flag}")
         lines += ["", f"Portfolio weighted ESG = {esg_bar:.3f}/10"]
+        if wt > 0:
+            lines.append(f"Raising the ESG floor above {esg_scores[worst_esg_i]:.1f} would exclude {worst} and push the portfolio ESG higher.")
         return "\n".join(lines)
 
+    # ── CML ───────────────────────────────────────────────────────────────────
     if any(k in q for k in ["capital market line", "cml", "market line"]):
         lines = [
-            "CML connects the risk-free asset to the tangency portfolio.",
-            f"Blue CML (all assets): rf={rf*100:.2f}%, tangency SR={sr_tan_all:.4f}",
-            f"Green CML (ESG-screened): tangency SR={sr_tan_esg:.4f}",
-            f"Cost of ESG constraint: {sharpe_cost:.4f} Sharpe points",
+            "The Capital Market Line (CML) is a straight line from the risk-free asset",
+            "through the tangency portfolio. Any portfolio ON the CML is a mix of cash",
+            "and the tangency portfolio — the most efficient set of risk/return combos.",
+            "",
+            f"Blue CML (all assets):  rf={rf*100:.2f}%  →  tangency SR={sr_tan_all:.4f}",
+            f"  Tangency: E[R]={ep_tan_all*100:.2f}%, σ={sp_tan_all*100:.2f}%",
+            "",
+            f"Green CML (ESG-screened):  tangency SR={sr_tan_esg:.4f}",
+            f"  Tangency: E[R]={ep_tan_esg*100:.2f}%, σ={sp_tan_esg*100:.2f}%",
+            "",
+            f"Your ESG-optimal portfolio (orange star) has SR={sr:.4f}, which lies below both CMLs",
+            f"because λ={lam} pulls weight toward ESG rather than pure Sharpe maximisation.",
         ]
         return "\n".join(lines)
 
+    # ── green frontier right of blue ──────────────────────────────────────────
     if any(k in q for k in ["green frontier", "right of blue", "frontier sit", "why does the green"]):
+        excluded_names = [names[i] for i in range(n) if not active_mask[i]]
         lines = [
-            "Green frontier lies RIGHT of blue — a fundamental result of constrained optimisation.",
-            "Blue = all assets (largest feasible set → lowest risk at each return).",
-            f"Green = ESG-screened assets (min ESG ≥ {esg_thresh:.1f}) → smaller set → higher risk.",
-            f"Sharpe cost: {sharpe_cost:.4f} ({sharpe_cost/max(sr_tan_all,0.001)*100:.1f}% reduction)",
+            "This is a fundamental result of constrained optimisation.",
+            "",
+            "Blue frontier = ALL assets available (largest feasible set).",
+            "Green frontier = only ESG-screened assets (smaller feasible set).",
+            "",
+            "A smaller feasible set can NEVER do better than a larger one — at best it",
+            "ties. So the green frontier is to the RIGHT of (or at best touching) blue.",
+            f"That means: for any target return, the ESG-screened portfolio carries MORE risk.",
+        ]
+        if excluded_names:
+            lines += ["", f"Excluded by your screen (ESG < {esg_thresh:.1f}): {', '.join(excluded_names)}"]
+        lines += [
+            "",
+            f"Sharpe cost of the constraint: {sharpe_cost:.4f} ({sharpe_cost/max(sr_tan_all,0.001)*100:.1f}% reduction)",
+            f"Unconstrained tangency SR = {sr_tan_all:.4f}",
+            f"ESG-screened tangency SR  = {sr_tan_esg:.4f}",
         ]
         return "\n".join(lines)
 
+    # ── tangency portfolio ────────────────────────────────────────────────────
     if any(k in q for k in ["tangency", "tangent", "why is the tangency"]):
         lines = [
-            "Tangency portfolio = highest Sharpe ratio portfolio.",
-            f"All assets: E[R]={ep_tan_all*100:.2f}%, σ={sp_tan_all*100:.2f}%, SR={sr_tan_all:.4f}",
-            f"ESG-screened: E[R]={ep_tan_esg*100:.2f}%, σ={sp_tan_esg*100:.2f}%, SR={sr_tan_esg:.4f}",
-            f"Your ESG-optimal SR={sr:.4f} differs because λ={lam} shifts weights toward ESG.",
+            "The tangency portfolio is the single portfolio that maximises the Sharpe ratio.",
+            "It is the point where the Capital Market Line is tangent to the efficient frontier.",
+            "Any rational mean-variance investor (with λ=0) should hold this portfolio",
+            "combined with the risk-free asset — regardless of risk aversion.",
+            "",
+            f"Unconstrained tangency (all assets):",
+            f"  E[R]={ep_tan_all*100:.2f}%, σ={sp_tan_all*100:.2f}%, SR={sr_tan_all:.4f}",
+            f"  Weights: {', '.join(f'{names[i]} {w:.0f}%' for i, w in enumerate(find_tangency(mu, cov, rf)[0]*100))}",
+            "",
+            f"ESG-screened tangency:",
+            f"  E[R]={ep_tan_esg*100:.2f}%, σ={sp_tan_esg*100:.2f}%, SR={sr_tan_esg:.4f}",
+            "",
+            f"Your portfolio has SR={sr:.4f} because λ={lam} trades Sharpe for ESG quality.",
         ]
         return "\n".join(lines)
 
+    # ── best individual Sharpe ────────────────────────────────────────────────
     if any(k in q for k in ["best individual", "best asset", "individual sharpe"]):
-        best_i = sorted_by_sr[0]
-        lines = ["Individual Sharpe ratios:"]
+        lines = [
+            "Individual asset Sharpe ratios (standalone, not in portfolio):",
+            "",
+        ]
         for i in sorted_by_sr:
-            lines.append(f"  {names[i]}: SR={ind_sr[i]:.3f} (E[R]={mu[i]*100:.1f}%, σ={vols[i]*100:.1f}%)")
-        lines.append(f"\nBest: {names[best_i]} with SR={ind_sr[best_i]:.3f}")
+            tag = " ← best" if i == best_sr_i else ""
+            lines.append(f"  {names[i]}: SR={ind_sr[i]:.3f}  (E[R]={mu[i]*100:.1f}%, σ={vols[i]*100:.1f}%){tag}")
+        lines += [
+            "",
+            f"Note: the highest individual SR ({names[best_sr_i]}, {ind_sr[best_sr_i]:.3f}) is not",
+            f"necessarily 100% of the optimal portfolio — diversification and ESG preference both",
+            f"matter. At γ={gamma}, λ={lam}, the optimiser found {top_w_name} at {top_w_pct:.1f}% most attractive.",
+        ]
         return "\n".join(lines)
 
+    # ── remove ESG ────────────────────────────────────────────────────────────
     if any(k in q for k in ["remove", "without esg", "no esg", "ignore esg"]):
         lines = [
-            f"Without ESG (λ=0, no screen): SR gain = +{sharpe_cost:.4f}",
-            f"  Unconstrained tangency SR: {sr_tan_all:.4f} vs current {sr_tan_esg:.4f}",
-            f"  Return gain: +{ret_cost*100:.2f}%/yr",
-            f"  But portfolio ESG would fall from {esg_bar:.2f}/10",
+            f"If you set λ=0 and remove the ESG screen:",
+            f"  Best achievable SR = {sr_tan_all:.4f}  (unconstrained tangency)",
+            f"  Your current SR    = {sr:.4f}",
+            f"  SR gain            = +{sr_tan_all - sr:.4f}",
+            f"  Return gain        = +{ret_cost*100:.2f}%/yr",
+            "",
+            f"The trade-off: you would gain {ret_cost*100:.2f}%/yr of expected return but your",
+            f"portfolio ESG score would fall from {esg_bar:.2f}/10 toward {float(np.dot(find_tangency(mu,cov,rf)[0], esg_scores)):.2f}/10.",
+            "",
+            f"Whether that trade-off is acceptable depends on your ESG mandate.",
+            f"At λ={lam}, each ESG point is worth {lam/10*100:.1f} bps — so you are implicitly",
+            f"valuing the {esg_bar:.2f}/10 ESG level at roughly {lam*(esg_bar/10)*100:.2f}% equivalent return.",
         ]
         return "\n".join(lines)
 
+    # ── fallback: full portfolio summary ──────────────────────────────────────
+    active_holdings = [(names[i], w_opt[i]) for i in range(n) if w_opt[i] > 0.001]
     lines = [
-        f"Your portfolio summary:",
-        f"  Assets: {', '.join(f'{names[i]} ({w_opt[i]*100:.1f}%)' for i in range(n) if w_opt[i]>0.001)}",
-        f"  E[R]={ep*100:.2f}%, σ={sp*100:.2f}%, Sharpe={sr:.3f}, ESG={esg_bar:.2f}/10",
-        f"  Parameters: γ={gamma}, λ={lam}, rf={rf*100:.1f}%",
+        f"Portfolio summary (γ={gamma}, λ={lam}, rf={rf*100:.1f}%):",
+        f"  E[R] = {ep*100:.2f}%  |  σ = {sp*100:.2f}%  |  SR = {sr:.3f}  |  ESG = {esg_bar:.2f}/10",
+        "",
+        "Holdings:",
+    ]
+    for nm, wt in active_holdings:
+        i = names.index(nm)
+        lines.append(f"  {nm}: {wt*100:.1f}%  (E[R]={mu[i]*100:.1f}%, σ={vols[i]*100:.1f}%, ESG={esg_scores[i]:.1f}/10)")
+    lines += [
+        "",
+        f"Unconstrained tangency SR = {sr_tan_all:.3f};  ESG-screened tangency SR = {sr_tan_esg:.3f}",
+        f"ESG constraint cost = {sharpe_cost:.3f} Sharpe points  ({sharpe_cost/max(sr_tan_all,0.001)*100:.1f}% reduction)",
+        "",
+        "Try asking: 'Why does my portfolio have these weights?' or 'What is the Sharpe ratio?'",
     ]
     return "\n".join(lines)
 
@@ -1170,7 +1331,7 @@ if _page == "input":
         min_esg_filter = st.slider("Minimum ESG score (0–10)", 0.0, 10.0, 4.0, 0.5)
 
     st.markdown("<div style='height:1.5rem;'></div>", unsafe_allow_html=True)
-    _, cta_col, _ = st.columns([1, 2, 1])
+    _, cta_col, _ = st.columns([3, 2, 3])
     with cta_col:
         run = st.button("Run Optimisation", use_container_width=True)
 
@@ -1418,6 +1579,91 @@ elif _page == "results":
                 st.dataframe(pd.DataFrame(corr_np, index=names, columns=names).round(3),
                              use_container_width=True)
 
+    # ── Scroll-stack reveal CSS + IntersectionObserver ────────────────────────
+    # Each chart section becomes a "stack card" that slides in from below as it
+    # enters the viewport, matching the reactbits scroll-stack aesthetic.
+    components.html("""
+<script>
+(function(){
+  var style = document.createElement('style');
+  style.textContent = `
+    /* Target chart rows injected into the parent Streamlit frame */
+    /* We style via a MutationObserver on the parent document    */
+  `;
+  document.head.appendChild(style);
+
+  /* Inject styles + observer into the parent Streamlit page */
+  try {
+    var pd = window.parent.document;
+
+    /* Scroll-stack card styles */
+    var ps = pd.createElement('style');
+    ps.id = 'gp-scroll-stack-styles';
+    if (!pd.getElementById('gp-scroll-stack-styles')) {
+      ps.textContent = `
+        .gp-stack-card {
+          background: var(--bg-card, #111);
+          border: 1px solid rgba(255,255,255,0.07);
+          border-radius: 16px;
+          padding: 1.2rem 1.2rem 0.8rem;
+          margin-bottom: 1.5rem;
+          position: sticky;
+          top: 0px;
+          opacity: 0;
+          transform: translateY(40px) scale(0.97);
+          transition: opacity 0.55s cubic-bezier(0.16,1,0.3,1),
+                      transform 0.55s cubic-bezier(0.16,1,0.3,1);
+          will-change: transform, opacity;
+          z-index: 1;
+          box-shadow: 0 8px 40px rgba(0,0,0,0.45);
+        }
+        .gp-stack-card.visible {
+          opacity: 1 !important;
+          transform: translateY(0) scale(1) !important;
+        }
+        .gp-stack-card:nth-child(1) { top: 12px;  z-index: 4; transition-delay: 0.00s; }
+        .gp-stack-card:nth-child(2) { top: 20px;  z-index: 3; transition-delay: 0.08s; }
+        .gp-stack-card:nth-child(3) { top: 28px;  z-index: 2; transition-delay: 0.16s; }
+        .gp-stack-card:nth-child(4) { top: 36px;  z-index: 1; transition-delay: 0.24s; }
+      `;
+      pd.head.appendChild(ps);
+    }
+
+    /* Wrap chart rows in .gp-stack-card divs then observe them */
+    function wrapCharts() {
+      /* Chart rows are horizontal blocks that contain stImage elements */
+      var rows = pd.querySelectorAll('[data-testid="stHorizontalBlock"]:not(.gp-wrapped)');
+      rows.forEach(function(row) {
+        var imgs = row.querySelectorAll('[data-testid="stImage"]');
+        if (imgs.length === 0) return;
+        row.classList.add('gp-wrapped', 'gp-stack-card');
+      });
+
+      /* Set up IntersectionObserver */
+      if (!window._gpObserver) {
+        window._gpObserver = new IntersectionObserver(function(entries) {
+          entries.forEach(function(e) {
+            if (e.isIntersecting) {
+              e.target.classList.add('visible');
+            }
+          });
+        }, { threshold: 0.12 });
+      }
+      pd.querySelectorAll('.gp-stack-card:not(.observed)').forEach(function(el) {
+        el.classList.add('observed');
+        window._gpObserver.observe(el);
+      });
+    }
+
+    /* Run once now and watch for Streamlit re-renders */
+    wrapCharts();
+    var mo = new MutationObserver(wrapCharts);
+    mo.observe(pd.body, { childList: true, subtree: true });
+  } catch(e) { /* cross-origin — silent fail */ }
+})();
+</script>
+""", height=0, scrolling=False)
+
     st.markdown('<div class="section-header">Efficient Frontier</div>', unsafe_allow_html=True)
     _c1, _c2 = st.columns(2)
 
@@ -1469,51 +1715,97 @@ elif _page == "results":
         fig.tight_layout(); st.pyplot(fig); plt.close()
 
     with _c2:
-        _esg_constraints = np.linspace(0, max(esg_scores) * 0.97, 60)
-        _sr_curve  = []; _esg_x_curve = []
+        # Build ESG-SR frontier: sweep min-ESG threshold from 0 to near-max
+        # Use 'continue' (not 'break') so isolated solver failures don't truncate the curve
+        _esg_constraints = np.linspace(0, float(np.max(esg_scores)) * 0.96, 80)
+        _sr_curve = []; _esg_x_curve = []
         for _esg_min in _esg_constraints:
             _mask = esg_scores >= _esg_min
-            if _mask.sum() < 2: break
+            if _mask.sum() < 2:
+                continue          # ← was 'break'; keep sweeping
             _bnds = [(0., 1.) if _mask[i] else (0., 0.) for i in range(n)]
             try:
                 _w_, _ep_, _sp_, _sr_ = find_tangency(mu, cov, rf, bounds=_bnds)
                 if _sp_ > 1e-9:
                     _port_esg = float(np.dot(_w_, esg_scores))
-                    _sr_curve.append(_sr_); _esg_x_curve.append(_port_esg)
-            except Exception: break
+                    _sr_curve.append(_sr_)
+                    _esg_x_curve.append(_port_esg)
+            except Exception:
+                continue          # ← was 'break'
+        # Sort by ESG so the line draws left → right cleanly
         if _esg_x_curve:
-            _sorted = sorted(zip(_esg_x_curve, _sr_curve))
-            _esg_x_sorted = [p[0] for p in _sorted]
-            _sr_sorted     = [p[1] for p in _sorted]
+            _pts = sorted(zip(_esg_x_curve, _sr_curve))
+            _esg_x_sorted = [p[0] for p in _pts]
+            _sr_sorted     = [p[1] for p in _pts]
         else:
             _esg_x_sorted = []; _sr_sorted = []
+
         _w_unc, _ep_unc, _sp_unc, _sr_unc = find_tangency(mu, cov, rf)
         _esg_unc = float(np.dot(_w_unc, esg_scores))
         _bounds_cur = [(0., 1.) if active_mask[i] else (0., 0.) for i in range(n)]
-        _w_esg, _ep_esg, _sp_esg, _sr_esg = find_tangency(mu, cov, rf, bounds=_bounds_cur)
-        _esg_esg_pt = float(np.dot(_w_esg, esg_scores))
-        _indiv_sr  = (mu - rf) / vols
+        _w_esg_t, _ep_esg_t, _sp_esg_t, _sr_esg_t = find_tangency(mu, cov, rf, bounds=_bounds_cur)
+        _esg_esg_pt = float(np.dot(_w_esg_t, esg_scores))
+        _indiv_sr  = (mu - rf) / np.maximum(vols, 1e-9)
+
         fig2, ax2 = plt.subplots(figsize=(6.5, 5.5))
         fig2.patch.set_facecolor(CHART_BG)
-        if _esg_x_sorted:
-            ax2.plot(_esg_x_sorted, _sr_sorted, color=GREEN, lw=2.4, zorder=4, label="ESG-SR frontier")
-            ax2.fill_between(_esg_x_sorted, _sr_sorted, alpha=0.07, color=GREEN)
+        ax2.set_facecolor(CHART_BG)
+
+        # ── ESG-SR frontier curve ──────────────────────────────────────────
+        if len(_esg_x_sorted) > 2:
+            ax2.plot(_esg_x_sorted, _sr_sorted, color=GREEN, lw=2.4, zorder=4,
+                     label="ESG–SR frontier")
+            # shade below the frontier to match lecture-slide style
+            ax2.fill_between(_esg_x_sorted, ax2.get_ylim()[0] if ax2.get_ylim()[0] < min(_sr_sorted) else min(_sr_sorted)*0.92,
+                             _sr_sorted, alpha=0.06, color=GREEN)
+
+        # ── individual assets ──────────────────────────────────────────────
         for _i in range(n):
-            _col_i = GREEN if active_mask[_i] else BLUE
-            ax2.scatter(esg_scores[_i], _indiv_sr[_i], color=_col_i, s=55, zorder=6, edgecolors="white", lw=0.8, alpha=0.85)
+            _col_i = GREEN if active_mask[_i] else GREY
+            ax2.scatter(esg_scores[_i], _indiv_sr[_i], color=_col_i, s=60,
+                        zorder=6, edgecolors="white", lw=0.8, alpha=0.9)
+            _ofs = (6, 4) if _i % 2 == 0 else (6, -14)
             ax2.annotate(names[_i], (esg_scores[_i], _indiv_sr[_i]),
-                         textcoords="offset points", xytext=(5, 2), fontsize=7, color=GREY)
+                         textcoords="offset points", xytext=_ofs,
+                         fontsize=7, color=GREY)
+
+        # ── unconstrained tangency ─────────────────────────────────────────
         if _sp_unc > 1e-9:
-            ax2.scatter(_esg_unc, _sr_unc, color=BLUE, s=130, zorder=9, edgecolors="white", lw=1.5, marker="o", label="Tangency — ignoring ESG")
-            ax2.annotate("Tangency\n(ignoring ESG)", (_esg_unc, _sr_unc),
-                         textcoords="offset points", xytext=(6, -22), fontsize=7, color=BLUE, fontstyle="italic")
-        if _sp_esg > 1e-9:
-            ax2.scatter(_esg_esg_pt, _sr_esg, color=GREEN, s=160, zorder=10, edgecolors="white", lw=2, marker="*", label="Tangency — using ESG")
-            ax2.annotate("Tangency\n(using ESG)", (_esg_esg_pt, _sr_esg),
-                         textcoords="offset points", xytext=(6, 4), fontsize=7, color=GREEN, fontstyle="italic")
+            ax2.scatter(_esg_unc, _sr_unc, color=BLUE, s=140, zorder=9,
+                        edgecolors="white", lw=1.5, marker="D",
+                        label=f"Tangency — no ESG  (SR={_sr_unc:.3f})")
+            ax2.annotate(f"Tangency\n(no ESG)\nSR={_sr_unc:.3f}",
+                         (_esg_unc, _sr_unc),
+                         textcoords="offset points", xytext=(8, -28),
+                         fontsize=7, color=BLUE, fontstyle="italic",
+                         bbox=dict(boxstyle="round,pad=0.2", fc=CHART_BG, ec="none", alpha=0.7))
+
+        # ── ESG-screened tangency ──────────────────────────────────────────
+        if _sp_esg_t > 1e-9:
+            ax2.scatter(_esg_esg_pt, _sr_esg_t, color=GREEN, s=170, zorder=10,
+                        edgecolors="white", lw=2, marker="*",
+                        label=f"Tangency — ESG screen  (SR={_sr_esg_t:.3f})")
+            ax2.annotate(f"Tangency\n(ESG screen)\nSR={_sr_esg_t:.3f}",
+                         (_esg_esg_pt, _sr_esg_t),
+                         textcoords="offset points", xytext=(8, 6),
+                         fontsize=7, color=GREEN, fontstyle="italic",
+                         bbox=dict(boxstyle="round,pad=0.2", fc=CHART_BG, ec="none", alpha=0.7))
+
+        # ── ESG-optimal portfolio (user's portfolio) ───────────────────────
+        _esg_opt_pt = float(np.dot(w_opt, esg_scores))
+        ax2.scatter(_esg_opt_pt, sr, color=ORANGE, s=160, zorder=11,
+                    edgecolors="white", lw=2, marker="*",
+                    label=f"Your portfolio  (SR={sr:.3f})")
+        ax2.annotate(f"Your portfolio\nSR={sr:.3f}",
+                     (_esg_opt_pt, sr),
+                     textcoords="offset points", xytext=(-60, 6),
+                     fontsize=7, color=ORANGE, fontstyle="italic",
+                     bbox=dict(boxstyle="round,pad=0.2", fc=CHART_BG, ec="none", alpha=0.7))
+
         ax2.set_xlabel("Portfolio ESG Score (0–10)", fontsize=9, color=GREY)
         ax2.set_ylabel("Sharpe Ratio", fontsize=9, color=GREY)
-        ax2.legend(fontsize=7, framealpha=0.9, facecolor=LEG_BG, edgecolor=LEG_ED, labelcolor=LABEL_C, loc="lower left")
+        ax2.legend(fontsize=7, framealpha=0.92, facecolor=LEG_BG,
+                   edgecolor=LEG_ED, labelcolor=LABEL_C, loc="upper right")
         _style_ax(ax2, "ESG–Sharpe Frontier")
         fig2.tight_layout(); st.pyplot(fig2); plt.close()
 
@@ -1662,9 +1954,10 @@ Green frontier: restricted to assets passing the ESG screen. ESG data: LSEG ESGC
     st.markdown("<div style='margin-top:1.25rem;'>", unsafe_allow_html=True)
     st.caption("Suggested questions:")
     _pc = st.columns(3)
-    for _i, _q in enumerate(SUGGESTED_QUESTIONS[:9]):
+    for _i, _q in enumerate(SUGGESTED_QUESTIONS):
+        _label = _CHIP_LABELS[_i] if _i < len(_CHIP_LABELS) else _q
         with _pc[_i % 3]:
-            if st.button(_q, key=f"chip_{_i}", use_container_width=True):
+            if st.button(_label, key=f"chip_{_i}", use_container_width=True):
                 _r = answer_question(_q)
                 st.session_state["chat_history"].append({"role": "user",    "content": _q})
                 st.session_state["chat_history"].append({"role": "assistant","content": _r})
