@@ -5,54 +5,40 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 import yfinance as yf
 from scipy.optimize import minimize
-
 warnings.filterwarnings("ignore")
-
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="GreenPort · ESG Portfolio Optimiser",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
-
 # ── CSS ─────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-/* ================================================================
-   GREENPORT  ·  Design System
-   Night (dark) is default — :root defines dark tokens.
-   Day (light) override injected via conditional st.markdown.
-   ================================================================ */
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
-
 :root {
-  /* ── Night palette ── */
   --bg:          #080808;
   --bg-card:     #111111;
   --bg-elevated: #181818;
   --bg-3:        #222222;
   --bg-input:    rgba(255,255,255,0.07);
-
   --text-1:  #f2f2f2;
   --text-2:  rgba(242,242,242,0.60);
   --text-3:  rgba(242,242,242,0.36);
-
   --accent:       #22c55e;
   --accent-hover: #4ade80;
   --accent-light: rgba(34,197,94,0.14);
   --accent-dark:  rgba(34,197,94,0.07);
-  --accent-on:    #000000;   /* text on accent bg */
-
+  --accent-on:    #000000;
   --sys-red:    #f87171;
   --sys-orange: #fb923c;
   --sys-indigo: #818cf8;
-
   --sep:        rgba(255,255,255,0.08);
   --sep-strong: rgba(255,255,255,0.16);
   --border:     rgba(255,255,255,0.05);
-
   --chat-bg:          #080808;
   --chat-header-bg:   #111111;
   --chat-chip-bg:     #1a1a1a;
@@ -62,19 +48,14 @@ st.markdown("""
   --bubble-bot-bg:    #1a1a1a;
   --bubble-bot-text:  rgba(242,242,242,0.88);
   --input-bar-bg:     #111111;
-
   --font: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont,
           "Segoe UI", Helvetica, Arial, sans-serif;
   --font-mono: "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-
   --ease:     cubic-bezier(0.25, 0.46, 0.45, 0.94);
   --ease-out: cubic-bezier(0.0, 0.0, 0.2, 1.0);
-
   --r-xs: 4px;  --r-sm: 8px;  --r-md: 12px;
   --r-lg: 16px; --r-xl: 20px;
 }
-
-/* ── Base reset ── */
 html, body, [class*="css"] {
   font-family: var(--font) !important;
   -webkit-font-smoothing: antialiased;
@@ -84,8 +65,6 @@ html, body, [class*="css"] {
   background: var(--bg) !important;
   transition: background 0.25s var(--ease);
 }
-
-/* ── Remove Streamlit chrome ── */
 header[data-testid="stHeader"]  { display: none !important; }
 [data-testid="stToolbar"]        { display: none !important; }
 [data-testid="collapsedControl"] { display: none !important; }
@@ -93,8 +72,6 @@ header[data-testid="stHeader"]  { display: none !important; }
 footer                           { display: none !important; }
 #MainMenu                        { display: none !important; }
 .stDeployButton                  { display: none !important; }
-
-/* ── Layout ── */
 .block-container {
   padding-top:    0 !important;
   padding-bottom: 4rem !important;
@@ -102,8 +79,6 @@ footer                           { display: none !important; }
   padding-left:   2rem !important;
   padding-right:  2rem !important;
 }
-
-/* ── Navbar wrapper ── */
 .gp-nav {
   display: flex;
   align-items: center;
@@ -129,9 +104,7 @@ footer                           { display: none !important; }
   color: var(--text-1) !important;
   font-family: var(--font) !important;
 }
-.gp-wordmark span {
-  color: var(--accent) !important;
-}
+.gp-wordmark span { color: var(--accent) !important; }
 .gp-badge {
   font-size: 0.58rem;
   font-weight: 700;
@@ -145,16 +118,12 @@ footer                           { display: none !important; }
   vertical-align: middle;
   font-family: var(--font) !important;
 }
-
-/* Nav-row: style the entire first horizontal strip as nav */
 div[data-testid="stHorizontalBlock"]:first-of-type {
   border-bottom: 1px solid var(--sep) !important;
   padding-bottom: 0 !important;
   margin-bottom: 2.5rem !important;
   align-items: center !important;
 }
-
-/* Nav buttons (ghost style — never fill full column width) */
 div[data-testid="stHorizontalBlock"]:first-of-type div.stButton {
   display: flex !important;
   justify-content: flex-end !important;
@@ -176,114 +145,51 @@ div[data-testid="stHorizontalBlock"]:first-of-type div.stButton > button:hover {
   color: var(--text-1) !important;
   transform: none !important;
 }
-
-/* ── Hero (input page) ── */
-.gp-hero {
-  padding: 3.5rem 0 2.5rem;
-}
+.gp-hero { padding: 3.5rem 0 2.5rem; }
 .gp-eyebrow {
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--accent) !important;
-  margin-bottom: 0.85rem;
-  font-family: var(--font) !important;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--accent) !important;
+  margin-bottom: 0.85rem; font-family: var(--font) !important;
 }
 .gp-title {
-  font-size: 3.4rem;
-  font-weight: 800;
-  letter-spacing: -0.05em;
-  line-height: 1.0;
-  color: var(--text-1) !important;
-  margin-bottom: 1rem;
+  font-size: 3.4rem; font-weight: 800; letter-spacing: -0.05em;
+  line-height: 1.0; color: var(--text-1) !important; margin-bottom: 1rem;
   font-family: var(--font) !important;
 }
 .gp-subtitle {
-  font-size: 1.05rem;
-  font-weight: 400;
-  color: var(--text-2) !important;
-  line-height: 1.7;
-  max-width: 500px;
-  font-family: var(--font) !important;
+  font-size: 1.05rem; font-weight: 400; color: var(--text-2) !important;
+  line-height: 1.7; max-width: 500px; font-family: var(--font) !important;
 }
-
-/* ── Section labels ── */
 .gp-label {
-  font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-3) !important;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin: 2.5rem 0 1rem;
-  font-family: var(--font) !important;
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-3) !important;
+  display: flex; align-items: center; gap: 0.75rem;
+  margin: 2.5rem 0 1rem; font-family: var(--font) !important;
 }
-.gp-label::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: var(--sep);
-}
-/* Alias for results page */
+.gp-label::after { content: ""; flex: 1; height: 1px; background: var(--sep); }
 .section-header {
-  font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-3) !important;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin: 2.5rem 0 1.25rem;
-  font-family: var(--font) !important;
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-3) !important;
+  display: flex; align-items: center; gap: 0.75rem;
+  margin: 2.5rem 0 1.25rem; font-family: var(--font) !important;
 }
-.section-header::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: var(--sep);
-}
-
-/* ── Cards ── */
+.section-header::after { content: ""; flex: 1; height: 1px; background: var(--sep); }
 .gp-card {
-  background: var(--bg-card);
-  border: 1px solid var(--sep);
-  border-radius: var(--r-lg);
-  padding: 1.4rem 1.5rem;
-  margin-bottom: 0.75rem;
+  background: var(--bg-card); border: 1px solid var(--sep);
+  border-radius: var(--r-lg); padding: 1.4rem 1.5rem; margin-bottom: 0.75rem;
   transition: border-color 0.18s var(--ease);
 }
 .gp-card:hover { border-color: var(--sep-strong); }
-
-/* ── Results hero ── */
-.results-hero {
-  padding: 2rem 0 1.5rem;
-}
+.results-hero { padding: 2rem 0 1.5rem; }
 .results-title {
-  font-size: 2.0rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  color: var(--text-1) !important;
-  margin-bottom: 0.4rem;
-  font-family: var(--font) !important;
+  font-size: 2.0rem; font-weight: 800; letter-spacing: -0.04em;
+  color: var(--text-1) !important; margin-bottom: 0.4rem; font-family: var(--font) !important;
 }
-.results-meta {
-  font-size: 0.82rem;
-  color: var(--text-3) !important;
-  font-family: var(--font) !important;
-}
-
-/* ── Metric cards ── */
+.results-meta { font-size: 0.82rem; color: var(--text-3) !important; font-family: var(--font) !important; }
 .metric-card {
-  background: var(--bg-card);
-  border: 1px solid var(--sep);
-  border-radius: var(--r-lg);
-  padding: 1.4rem 1.5rem 1.3rem;
-  position: relative;
-  overflow: hidden;
+  background: var(--bg-card); border: 1px solid var(--sep);
+  border-radius: var(--r-lg); padding: 1.4rem 1.5rem 1.3rem;
+  position: relative; overflow: hidden;
   transition: border-color 0.18s var(--ease), transform 0.18s var(--ease);
 }
 .metric-card:hover { border-color: var(--sep-strong); transform: translateY(-2px); }
@@ -292,103 +198,60 @@ div[data-testid="stHorizontalBlock"]:first-of-type div.stButton > button:hover {
 .metric-card.card-sr   { border-top: 2px solid var(--sys-indigo); }
 .metric-card.card-esg  { border-top: 2px solid var(--accent); }
 .metric-label {
-  font-size: 0.60rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-3) !important;
-  margin-bottom: 0.65rem;
-  font-family: var(--font) !important;
+  font-size: 0.60rem; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-3) !important;
+  margin-bottom: 0.65rem; font-family: var(--font) !important;
 }
 .metric-value {
-  font-size: 2.2rem;
-  font-weight: 700;
-  letter-spacing: -0.04em;
-  color: var(--text-1) !important;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
+  font-size: 2.2rem; font-weight: 700; letter-spacing: -0.04em;
+  color: var(--text-1) !important; line-height: 1; font-variant-numeric: tabular-nums;
   font-family: var(--font) !important;
 }
 .metric-unit { font-size: 0.78rem; color: var(--text-3) !important; margin-left: 2px; font-weight: 400; }
 .metric-pos  { color: var(--accent) !important; }
 .metric-neg  { color: var(--sys-red) !important; }
-
-/* ── Status boxes ── */
 .info-box {
-  background: var(--accent-dark);
-  border: 1px solid rgba(34,197,94,0.18);
-  border-radius: var(--r-sm);
-  padding: 0.75rem 1rem;
-  margin: 0.5rem 0;
-  font-size: 0.81rem;
-  color: var(--accent) !important;
-  line-height: 1.6;
+  background: var(--accent-dark); border: 1px solid rgba(34,197,94,0.18);
+  border-radius: var(--r-sm); padding: 0.75rem 1rem; margin: 0.5rem 0;
+  font-size: 0.81rem; color: var(--accent) !important; line-height: 1.6;
   font-family: var(--font) !important;
 }
 .warn-box {
-  background: rgba(251,146,60,0.07);
-  border: 1px solid rgba(251,146,60,0.20);
-  border-radius: var(--r-sm);
-  padding: 0.75rem 1rem;
-  margin: 0.5rem 0;
-  font-size: 0.81rem;
-  color: var(--sys-orange) !important;
-  line-height: 1.6;
+  background: rgba(251,146,60,0.07); border: 1px solid rgba(251,146,60,0.20);
+  border-radius: var(--r-sm); padding: 0.75rem 1rem; margin: 0.5rem 0;
+  font-size: 0.81rem; color: var(--sys-orange) !important; line-height: 1.6;
   font-family: var(--font) !important;
 }
 .error-box {
-  background: rgba(248,113,113,0.07);
-  border: 1px solid rgba(248,113,113,0.20);
-  border-radius: var(--r-sm);
-  padding: 0.75rem 1rem;
-  margin: 0.5rem 0;
-  font-size: 0.81rem;
-  color: var(--sys-red) !important;
-  line-height: 1.6;
+  background: rgba(248,113,113,0.07); border: 1px solid rgba(248,113,113,0.20);
+  border-radius: var(--r-sm); padding: 0.75rem 1rem; margin: 0.5rem 0;
+  font-size: 0.81rem; color: var(--sys-red) !important; line-height: 1.6;
   font-family: var(--font) !important;
 }
-
-/* ── Buttons ── */
 div.stButton > button {
-  background: var(--accent) !important;
-  color: var(--accent-on) !important;
-  border: none !important;
-  border-radius: var(--r-sm) !important;
-  padding: 0.6rem 1.8rem !important;
-  font-family: var(--font) !important;
-  font-weight: 700 !important;
-  font-size: 0.88rem !important;
-  letter-spacing: -0.01em !important;
-  width: 100% !important;
+  background: var(--accent) !important; color: var(--accent-on) !important;
+  border: none !important; border-radius: var(--r-sm) !important;
+  padding: 0.6rem 1.8rem !important; font-family: var(--font) !important;
+  font-weight: 700 !important; font-size: 0.88rem !important;
+  letter-spacing: -0.01em !important; width: 100% !important;
   transition: background 0.15s var(--ease), transform 0.12s var(--ease) !important;
   cursor: pointer !important;
 }
-div.stButton > button:hover {
-  background: var(--accent-hover) !important;
-  transform: translateY(-1px) !important;
-}
+div.stButton > button:hover { background: var(--accent-hover) !important; transform: translateY(-1px) !important; }
 div.stButton > button:active { transform: translateY(0) scale(0.99) !important; }
-
-/* Input/Form styling */
 .stNumberInput input, .stTextInput input, .stTextArea textarea {
-  background: var(--bg-input) !important;
-  color: var(--text-1) !important;
-  border: 1px solid var(--sep) !important;
-  border-radius: var(--r-sm) !important;
-  font-family: var(--font) !important;
-  font-size: 0.88rem !important;
+  background: var(--bg-input) !important; color: var(--text-1) !important;
+  border: 1px solid var(--sep) !important; border-radius: var(--r-sm) !important;
+  font-family: var(--font) !important; font-size: 0.88rem !important;
   transition: border-color 0.15s !important;
 }
 .stNumberInput input:focus, .stTextInput input:focus, .stTextArea textarea:focus {
   border-color: var(--accent) !important;
-  box-shadow: 0 0 0 3px var(--accent-light) !important;
-  outline: none !important;
+  box-shadow: 0 0 0 3px var(--accent-light) !important; outline: none !important;
 }
 .stSelectbox div[data-baseweb="select"] > div {
-  background: var(--bg-input) !important;
-  color: var(--text-1) !important;
-  border: 1px solid var(--sep) !important;
-  border-radius: var(--r-sm) !important;
+  background: var(--bg-input) !important; color: var(--text-1) !important;
+  border: 1px solid var(--sep) !important; border-radius: var(--r-sm) !important;
   font-family: var(--font) !important;
 }
 .stRadio label { color: var(--text-2) !important; font-family: var(--font) !important; font-size: 0.88rem !important; }
@@ -396,41 +259,24 @@ div.stButton > button:active { transform: translateY(0) scale(0.99) !important; 
 .stSlider [role="slider"] { background: var(--accent) !important; border: none !important; box-shadow: 0 0 0 3px var(--accent-light) !important; }
 .stSlider div[data-testid="stTickBar"] { display: none; }
 label, .stSlider label {
-  color: var(--text-3) !important;
-  font-size: 0.68rem !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.08em !important;
-  text-transform: uppercase !important;
-  font-family: var(--font) !important;
+  color: var(--text-3) !important; font-size: 0.68rem !important;
+  font-weight: 700 !important; letter-spacing: 0.08em !important;
+  text-transform: uppercase !important; font-family: var(--font) !important;
 }
-
-/* ── Typography ── */
 h1, h2, h3, h4, h5, h6 { color: var(--text-1) !important; font-family: var(--font) !important; }
 p, div, span, li { font-family: var(--font) !important; color: var(--text-2); }
 code {
-  font-family: var(--font-mono) !important;
-  background: var(--bg-input);
-  color: var(--accent);
-  border-radius: 4px;
-  padding: 1px 6px;
-  font-size: 0.84em;
+  font-family: var(--font-mono) !important; background: var(--bg-input);
+  color: var(--accent); border-radius: 4px; padding: 1px 6px; font-size: 0.84em;
 }
-
-/* ── Tables ── */
 .stDataFrame, [data-testid="stDataEditor"] {
-  border-radius: var(--r-md);
-  overflow: hidden;
-  border: 1px solid var(--sep) !important;
+  border-radius: var(--r-md); overflow: hidden; border: 1px solid var(--sep) !important;
 }
 [data-testid="stDataEditor"] * { color: var(--text-1) !important; background: var(--bg-card) !important; }
 .stDataFrame thead th {
-  background: var(--bg-elevated) !important;
-  color: var(--text-3) !important;
-  font-size: 0.64rem !important;
-  letter-spacing: 0.1em !important;
-  text-transform: uppercase !important;
-  font-weight: 700 !important;
-  font-family: var(--font) !important;
+  background: var(--bg-elevated) !important; color: var(--text-3) !important;
+  font-size: 0.64rem !important; letter-spacing: 0.1em !important;
+  text-transform: uppercase !important; font-weight: 700 !important; font-family: var(--font) !important;
 }
 .stDataFrame tbody tr { border-bottom: 1px solid var(--sep) !important; }
 .stDataFrame tbody tr:hover { background: var(--bg-elevated) !important; }
@@ -438,97 +284,49 @@ table { color: var(--text-1) !important; border-collapse: collapse; width: 100%;
 thead tr th { color: var(--text-3) !important; font-size: 0.64rem !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; border-bottom: 1px solid var(--sep) !important; padding: 0.55rem 0.8rem !important; font-weight: 700 !important; }
 tbody tr td { color: var(--text-2) !important; border-bottom: 1px solid var(--sep) !important; padding: 0.5rem 0.8rem !important; }
 tbody tr:hover td { background: var(--bg-elevated) !important; }
-
-/* ── Expander ── */
 [data-testid="stExpander"] {
-  border: 1px solid var(--sep) !important;
-  border-radius: var(--r-md) !important;
-  background: var(--bg-card) !important;
-  margin-bottom: 0.75rem !important;
+  border: 1px solid var(--sep) !important; border-radius: var(--r-md) !important;
+  background: var(--bg-card) !important; margin-bottom: 0.75rem !important;
 }
-/* Expander summary text */
-[data-testid="stExpander"] summary {
-  color: var(--text-2) !important;
-  font-size: 0.88rem !important;
-  font-weight: 500 !important;
-  font-family: var(--font) !important;
-}
-/* Hide the icon label that renders as "arrowdown"/"arrowup" text in some Streamlit builds */
+[data-testid="stExpander"] summary { color: var(--text-2) !important; font-size: 0.88rem !important; font-weight: 500 !important; font-family: var(--font) !important; }
 [data-testid="stExpander"] summary svg { display: none !important; }
 [data-testid="stExpander"] summary [data-testid="stExpanderToggleIcon"] { display: none !important; }
-[data-testid="stExpander"] summary > div > div:first-child:not(:only-child) {
-  display: none !important;
-}
-
-/* ── Transitions & animations ── */
-@keyframes gpFadeUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes gpFadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
+[data-testid="stExpander"] summary > div > div:first-child:not(:only-child) { display: none !important; }
+@keyframes gpFadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes gpFadeIn { from { opacity: 0; } to { opacity: 1; } }
 .gp-hero       { animation: gpFadeUp 0.45s var(--ease-out) both; }
 .gp-label      { animation: gpFadeIn 0.35s var(--ease-out) 0.05s both; }
 .results-hero  { animation: gpFadeUp 0.40s var(--ease-out) both; }
 .gp-card       { animation: gpFadeUp 0.35s var(--ease-out) both; }
 .gp-eyebrow    { animation: gpFadeIn 0.3s var(--ease-out) both; }
-
-/* Stagger metric cards */
 .metric-card { animation: gpFadeUp 0.4s var(--ease-out) both; }
 .metric-card.card-ret { animation-delay: 0.05s; }
 .metric-card.card-vol { animation-delay: 0.10s; }
 .metric-card.card-sr  { animation-delay: 0.15s; }
 .metric-card.card-esg { animation-delay: 0.20s; }
-
-/* Section headers fade in */
 .section-header { animation: gpFadeIn 0.3s var(--ease-out) 0.1s both; }
-
-/* Status boxes */
-.info-box, .warn-box, .error-box {
-  transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
-}
-
-/* Smooth theme transition on everything */
+.info-box, .warn-box, .error-box { transition: border-color 0.2s var(--ease), background 0.2s var(--ease); }
 *, *::before, *::after {
-  transition: background-color 0.25s var(--ease),
-              border-color 0.25s var(--ease),
-              color 0.18s var(--ease) !important;
+  transition: background-color 0.25s var(--ease), border-color 0.25s var(--ease), color 0.18s var(--ease) !important;
 }
-/* But keep motion transitions fast */
 div.stButton > button, .metric-card, .gp-card, .chat-page {
-  transition: background-color 0.25s var(--ease),
-              border-color 0.25s var(--ease),
-              color 0.18s var(--ease),
-              transform 0.15s var(--ease),
-              box-shadow 0.15s var(--ease) !important;
+  transition: background-color 0.25s var(--ease), border-color 0.25s var(--ease),
+              color 0.18s var(--ease), transform 0.15s var(--ease), box-shadow 0.15s var(--ease) !important;
 }
-
-/* ── Divider ── */
 hr { border: none !important; border-top: 1px solid var(--sep) !important; margin: 2rem 0 !important; }
-
-/* ── iMessage chat ── */
 .chat-page {
-  background: var(--chat-bg);
-  border: 1px solid var(--sep);
-  border-radius: var(--r-xl);
-  overflow: hidden;
-  margin-top: 1rem;
+  background: var(--chat-bg); border: 1px solid var(--sep);
+  border-radius: var(--r-xl); overflow: hidden; margin-top: 1rem;
 }
 .chat-header {
-  background: var(--chat-header-bg);
-  border-bottom: 1px solid var(--sep);
-  padding: 1rem 1.5rem;
-  display: flex; align-items: center; gap: 0.9rem;
+  background: var(--chat-header-bg); border-bottom: 1px solid var(--sep);
+  padding: 1rem 1.5rem; display: flex; align-items: center; gap: 0.9rem;
 }
 .chat-avatar {
-  width: 38px; height: 38px; border-radius: 50%;
-  background: var(--accent);
+  width: 38px; height: 38px; border-radius: 50%; background: var(--accent);
   display: flex; align-items: center; justify-content: center;
-  font-size: 0.75rem; font-weight: 800; color: #000;
-  flex-shrink: 0; font-family: var(--font) !important;
+  font-size: 0.75rem; font-weight: 800; color: #000; flex-shrink: 0;
+  font-family: var(--font) !important;
 }
 .chat-name { font-size: 0.92rem; font-weight: 700; color: var(--text-1) !important; margin: 0; line-height: 1.2; letter-spacing: -0.01em; font-family: var(--font) !important; }
 .chat-status { font-size: 0.68rem; color: var(--accent) !important; margin: 0; display: flex; align-items: center; gap: 4px; font-family: var(--font) !important; }
@@ -548,30 +346,19 @@ hr { border: none !important; border-top: 1px solid var(--sep) !important; margi
 .chat-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 0.5rem; text-align: center; color: var(--text-3) !important; font-size: 0.8rem; line-height: 1.65; padding: 2rem 1rem; font-family: var(--font) !important; }
 .chat-input-bar { background: var(--input-bar-bg); border-top: 1px solid var(--sep); padding: 0.6rem 1.1rem 0.7rem; }
 .chat-input-bar .stTextInput input { border-radius: 20px !important; font-size: 0.88rem !important; background: var(--bg-elevated) !important; }
-
-/* ── Input-page centering (injected when page == input) ── */
 .input-centered .block-container { max-width: 740px !important; }
 </style>
 """, unsafe_allow_html=True)
 
-
-
 # ══════════════════════════════════════════════════════════════════════════════
-# ESG DATABASE — loaded from the uploaded LSEG CSV
-# valuescore: 0–1 scale, higher = better (LSEG/Refinitiv ESGCombinedScore).
-# We take the most recent year per ticker and scale to 0–10 for display.
+# ESG DATABASE
 # ══════════════════════════════════════════════════════════════════════════════
-
-# Raw GitHub URL for the ESG CSV (filename has a space — encoded as %20)
 _ESG_CSV_URL = (
     "https://raw.githubusercontent.com/minas120983-alt/lets-see/main/ESG%20data%202026.csv"
 )
-# Local fallback path (works when running locally or on Streamlit Community Cloud)
 _ESG_CSV_LOCAL = "/mnt/user-data/uploads/ESG data 2026.csv"
 
-
 def _parse_esg_df(df: pd.DataFrame) -> dict:
-    """Convert a raw ESG DataFrame into the app's ticker→dict lookup."""
     df = df[df["fieldname"] == "ESGCombinedScore"].copy()
     df["valuescore"] = pd.to_numeric(df["valuescore"], errors="coerce")
     df = df.dropna(subset=["valuescore", "ticker"])
@@ -588,16 +375,8 @@ def _parse_esg_df(df: pd.DataFrame) -> dict:
         for _, row in latest.iterrows()
     }
 
-
 @st.cache_data(show_spinner=False)
 def load_esg_db() -> dict:
-    """
-    Load ESG data with two-source fallback:
-      1. Raw GitHub URL (primary — works on any deployment)
-      2. Local upload path (fallback for Streamlit Cloud / local runs)
-    Returns a ticker→dict lookup or empty dict on complete failure.
-    """
-    # Source 1: GitHub raw URL
     try:
         resp = requests.get(_ESG_CSV_URL, timeout=15)
         resp.raise_for_status()
@@ -608,8 +387,6 @@ def load_esg_db() -> dict:
             return result
     except Exception:
         pass
-
-    # Source 2: local file
     try:
         df = pd.read_csv(_ESG_CSV_LOCAL)
         result = _parse_esg_df(df)
@@ -617,12 +394,9 @@ def load_esg_db() -> dict:
             return result
     except Exception:
         pass
-
     return {}
 
-
 _ESG_DB: dict = load_esg_db()
-
 
 def lookup_esg(ticker: str) -> dict:
     t = ticker.upper().strip()
@@ -632,16 +406,13 @@ def lookup_esg(ticker: str) -> dict:
             "source": None, "has_esg": False,
             "error": f"'{t}' not found in ESG CSV."}
 
-
 # ══════════════════════════════════════════════════════════════════════════════
 # PORTFOLIO MATH
 # ══════════════════════════════════════════════════════════════════════════════
-
 def port_ret(w, mu):    return float(np.asarray(w) @ np.asarray(mu))
 def port_var(w, cov):   return float(np.asarray(w) @ np.asarray(cov) @ np.asarray(w))
 def port_sd(w, cov):    return float(max(port_var(w, cov), 1e-14) ** 0.5)
 def port_sr(w, mu, cov, rf): ep = port_ret(w,mu); sp = port_sd(w,cov); return (ep-rf)/sp if sp>1e-9 else 0.
-
 def port_stats(w, mu, cov, esg, rf):
     w = np.asarray(w)
     ep = port_ret(w, mu); sp = port_sd(w, cov)
@@ -677,17 +448,11 @@ def find_optimal(mu, cov, esg, rf, gamma, lam):
     return res.x if res.success else np.ones(n)/n
 
 def build_mv_frontier(mu, cov, bounds=None, n_points=100):
-    """
-    True mean-variance frontier by minimising σ for each target return.
-    Returns (std_arr_pct, ret_arr_pct).
-    """
     n = len(mu)
     b = bounds or [(0.,1.)]*n
     w_mv = _minimise_sd(mu, cov, bounds=b)
     ret_min = port_ret(w_mv, mu)
-    # Upper bound: max return achievable with these bounds
-    ret_max = float(np.max([port_ret(np.eye(n)[i], mu) for i in range(n)
-                             if b[i][1] > 0]))
+    ret_max = float(np.max([port_ret(np.eye(n)[i], mu) for i in range(n) if b[i][1] > 0]))
     targets = np.linspace(ret_min, ret_max, n_points)
     stds, rets = [], []
     for rt in targets:
@@ -701,66 +466,14 @@ def build_mv_frontier(mu, cov, bounds=None, n_points=100):
             rets.append(port_ret(res.x, mu)*100)
     return np.array(stds), np.array(rets)
 
-
 def nearest_psd(matrix):
     ev, evec = np.linalg.eigh(matrix)
     ev[ev < 1e-8] = 1e-8
     return evec @ np.diag(ev) @ evec.T
 
-
 # ══════════════════════════════════════════════════════════════════════════════
-# CHATBOT — portfolio explainer
+# CHATBOT
 # ══════════════════════════════════════════════════════════════════════════════
-
-def build_portfolio_context(names, mu, vols, esg_scores, w_opt,
-                             ep, sp, sr, esg_bar, gamma, lam, rf,
-                             ep_tan_all, sp_tan_all, sr_tan_all,
-                             ep_tan_esg, sp_tan_esg, sr_tan_esg,
-                             active_mask, esg_thresh):
-    """Build a plain-text summary of the computed portfolio for the AI system prompt."""
-    lines = [
-        "=== GreenPort Portfolio Summary ===",
-        f"Investor parameters: gamma (risk aversion)={gamma}, lambda (ESG preference)={lam}, "
-        f"risk-free rate={rf*100:.2f}%",
-        "",
-        "--- Assets ---",
-    ]
-    for i, name in enumerate(names):
-        flag = "yes" if active_mask[i] else f"no (ESG {esg_scores[i]:.2f} < threshold {esg_thresh:.1f})"
-        lines.append(
-            f"  {name}: E[R]={mu[i]*100:.2f}%, sigma={vols[i]*100:.2f}%, "
-            f"ESG={esg_scores[i]:.2f}/10, weight={w_opt[i]*100:.2f}%, in ESG frontier: {flag}"
-        )
-    lines += [
-        "",
-        "--- ESG-Aware Optimal Portfolio ---",
-        f"  Expected return:  {ep*100:.2f}%",
-        f"  Volatility:       {sp*100:.2f}%",
-        f"  Sharpe ratio:     {sr:.4f}",
-        f"  ESG score:        {esg_bar:.3f} / 10",
-        f"  Utility U:        {ep - gamma/2*sp**2 + lam*esg_bar:.5f}",
-        "",
-        "--- Tangency Portfolio (all assets, unconstrained) ---",
-        f"  E[R]={ep_tan_all*100:.2f}%, sigma={sp_tan_all*100:.2f}%, Sharpe={sr_tan_all:.4f}",
-        "",
-        "--- Tangency Portfolio (ESG-screened assets only) ---",
-        f"  E[R]={ep_tan_esg*100:.2f}%, sigma={sp_tan_esg*100:.2f}%, Sharpe={sr_tan_esg:.4f}",
-        "",
-        "--- Model ---",
-        "Utility: U = E[Rp] - (gamma/2)*sigma^2 + lambda*ESG_bar",
-        "Blue frontier = unconstrained MV frontier (all assets).",
-        "Green frontier = MV frontier for ESG-screened assets only.",
-        "Green lies RIGHT of blue: same return requires more risk when ESG-constrained.",
-        "ESG data: LSEG ESGCombinedScore scaled 0-10 (higher = better).",
-    ]
-    return "\n".join(lines)
-
-
-# ── Simulated chatbot — no API key required ──────────────────────────────────
-# All answers are computed directly from the portfolio numbers stored in
-# st.session_state["chat_data"]. The engine matches keywords in the user
-# question and returns a precise, numerically-grounded response.
-
 SUGGESTED_QUESTIONS = [
     "Why does my portfolio have these weights?",
     "What is the Sharpe ratio and is mine good?",
@@ -776,416 +489,159 @@ SUGGESTED_QUESTIONS = [
     "Why is the tangency portfolio important?",
 ]
 
-
 def _portfolio_answer(question: str, d: dict) -> str:
-    """
-    Generate a precise, data-driven answer from portfolio data dict d.
-    d keys: names, mu, vols, esg_scores, w_opt, ep, sp, sr, esg_bar,
-            gamma, lam, rf, ep_tan_all, sp_tan_all, sr_tan_all,
-            ep_tan_esg, sp_tan_esg, sr_tan_esg, active_mask, esg_thresh,
-            cov (np array), n
-    """
     import numpy as np
     q = question.lower()
-
-    names      = d["names"]
-    mu         = d["mu"]
-    vols       = d["vols"]
-    esg_scores = d["esg_scores"]
-    w_opt      = d["w_opt"]
-    ep         = d["ep"]
-    sp         = d["sp"]
-    sr         = d["sr"]
-    esg_bar    = d["esg_bar"]
-    gamma      = d["gamma"]
-    lam        = d["lam"]
-    rf         = d["rf"]
-    ep_tan_all = d["ep_tan_all"]
-    sp_tan_all = d["sp_tan_all"]
-    sr_tan_all = d["sr_tan_all"]
-    ep_tan_esg = d["ep_tan_esg"]
-    sp_tan_esg = d["sp_tan_esg"]
-    sr_tan_esg = d["sr_tan_esg"]
-    active_mask= d["active_mask"]
-    esg_thresh = d["esg_thresh"]
-    cov        = d["cov"]
-    n          = d["n"]
-
-    # Individual Sharpe ratios
+    names      = d["names"]; mu = d["mu"]; vols = d["vols"]
+    esg_scores = d["esg_scores"]; w_opt = d["w_opt"]
+    ep = d["ep"]; sp = d["sp"]; sr = d["sr"]; esg_bar = d["esg_bar"]
+    gamma = d["gamma"]; lam = d["lam"]; rf = d["rf"]
+    ep_tan_all = d["ep_tan_all"]; sp_tan_all = d["sp_tan_all"]; sr_tan_all = d["sr_tan_all"]
+    ep_tan_esg = d["ep_tan_esg"]; sp_tan_esg = d["sp_tan_esg"]; sr_tan_esg = d["sr_tan_esg"]
+    active_mask = d["active_mask"]; esg_thresh = d["esg_thresh"]
+    cov = d["cov"]; n = d["n"]
     ind_sr = [(mu[i] - rf) / vols[i] for i in range(n)]
-    # Sort assets by weight descending
-    sorted_by_w = sorted(range(n), key=lambda i: w_opt[i], reverse=True)
-    # Sort by ESG ascending (worst first)
+    sorted_by_w   = sorted(range(n), key=lambda i: w_opt[i], reverse=True)
     sorted_by_esg = sorted(range(n), key=lambda i: esg_scores[i])
-    # Sort by Sharpe descending
-    sorted_by_sr = sorted(range(n), key=lambda i: ind_sr[i], reverse=True)
-
+    sorted_by_sr  = sorted(range(n), key=lambda i: ind_sr[i], reverse=True)
     u_val = ep - gamma/2 * sp**2 + lam * esg_bar
     sharpe_cost = sr_tan_all - sr_tan_esg
     ret_cost    = ep_tan_all - ep_tan_esg
-    esg_gain    = esg_bar  # portfolio ESG vs unconstrained
 
-    # ── Utility function ──────────────────────────────────────────────────────
     if any(k in q for k in ["utility", "objective", "maximis", "optimi", "formula", "u ="]):
         lines = [
             "The model maximises investor utility defined as:",
-            "",
-            "    U = E[Rp] - (γ/2) × σ²p + λ × ESG_bar",
-            "",
+            "", "    U = E[Rp] - (γ/2) × σ²p + λ × ESG_bar", "",
             f"With your current parameters (γ={gamma}, λ={lam}, rf={rf*100:.1f}%):",
             f"  • E[Rp] = {ep*100:.2f}% — rewards higher expected return",
-            f"  • -(γ/2)σ² = -{gamma/2:.2f} × {sp**2*100:.4f} — penalises variance; "
-            f"γ={gamma} means moderate{'ly high' if gamma>5 else 'ly low' if gamma<2 else ''} risk aversion",
+            f"  • -(γ/2)σ² = -{gamma/2:.2f} × {sp**2*100:.4f} — penalises variance",
             f"  • λ × ESG_bar = {lam} × {esg_bar:.3f} = {lam*esg_bar:.4f} — rewards ESG quality",
             f"  • Total utility U = {u_val:.5f}",
-            "",
-            "The three terms are in direct tension: chasing higher return increases risk,"
-            " and imposing ESG constraints limits the feasible set. The weights you see are"
-            " the exact combination that resolves this tradeoff optimally given your γ and λ.",
         ]
         return "\n".join(lines)
 
-    # ── Weights explanation ───────────────────────────────────────────────────
     if any(k in q for k in ["weight", "allocation", "holding", "position", "why does my portfolio"]):
-        lines = [
-            "Portfolio weights are determined by maximising U = E[Rp] - (γ/2)σ² + λ×ESG_bar.",
-            "",
-            "Here is why each asset received its weight:",
-            "",
-        ]
+        lines = ["Portfolio weights are determined by maximising U = E[Rp] - (γ/2)σ² + λ×ESG_bar.", ""]
         for i in sorted_by_w:
             w = w_opt[i]
             if w < 0.001:
-                reason = (f"excluded — its return/risk profile adds no marginal utility "
-                          f"(E[R]={mu[i]*100:.1f}%, σ={vols[i]*100:.1f}%, "
-                          f"ESG={esg_scores[i]:.1f}/10, individual Sharpe={ind_sr[i]:.3f})")
+                reason = f"excluded — E[R]={mu[i]*100:.1f}%, σ={vols[i]*100:.1f}%, ESG={esg_scores[i]:.1f}/10"
             else:
-                drivers = []
-                if ind_sr[i] == max(ind_sr): drivers.append("highest individual Sharpe ratio")
-                if esg_scores[i] == max(esg_scores): drivers.append("highest ESG score")
-                if vols[i] == min(vols): drivers.append("lowest volatility")
-                if mu[i] == max(mu): drivers.append("highest expected return")
-                reason_str = (", ".join(drivers) + " — "
-                              if drivers else "balance of return, risk and ESG — ")
-                reason = (f"{reason_str}E[R]={mu[i]*100:.1f}%, σ={vols[i]*100:.1f}%, "
-                          f"ESG={esg_scores[i]:.1f}/10, Sharpe={ind_sr[i]:.3f}")
+                reason = f"E[R]={mu[i]*100:.1f}%, σ={vols[i]*100:.1f}%, ESG={esg_scores[i]:.1f}/10, Sharpe={ind_sr[i]:.3f}"
             lines.append(f"  {names[i]} ({w*100:.1f}%): {reason}")
-        lines += [
-            "",
-            f"Risk aversion γ={gamma} {'heavily ' if gamma>6 else ''}penalises variance, "
-            f"so {'low-volatility' if gamma>4 else 'balanced'} assets receive higher weights.",
-            f"ESG preference λ={lam} {'strongly ' if lam>3 else ''}tilts allocations toward "
-            f"higher-ESG assets; portfolio ESG = {esg_bar:.2f}/10.",
-        ]
         return "\n".join(lines)
 
-    # ── Sharpe ratio ──────────────────────────────────────────────────────────
     if any(k in q for k in ["sharpe", "risk-adjusted", "risk adjusted"]):
-        best_i = sorted_by_sr[0]
         lines = [
-            "The Sharpe ratio measures return earned per unit of risk above the risk-free rate:",
-            "",
-            "    SR = (E[Rp] - rf) / σp",
-            "",
-            f"Your optimal portfolio: SR = ({ep*100:.2f}% - {rf*100:.1f}%) / {sp*100:.2f}% = {sr:.3f}",
-            "",
-            f"Benchmark comparisons:",
-            f"  • Unconstrained tangency portfolio:   SR = {sr_tan_all:.3f}",
-            f"  • ESG-constrained tangency portfolio: SR = {sr_tan_esg:.3f}",
-            f"  • Your ESG-optimal portfolio:         SR = {sr:.3f}",
-            "",
-            "Individual asset Sharpe ratios:",
+            "Sharpe ratio = (E[Rp] - rf) / σp", "",
+            f"Your portfolio: SR = ({ep*100:.2f}% - {rf*100:.1f}%) / {sp*100:.2f}% = {sr:.3f}", "",
+            f"Unconstrained tangency SR: {sr_tan_all:.3f}",
+            f"ESG-constrained tangency SR: {sr_tan_esg:.3f}",
+            "", "Individual asset Sharpe ratios:",
         ]
         for i in sorted_by_sr:
-            lines.append(f"  {names[i]}: ({mu[i]*100:.1f}% - {rf*100:.1f}%) / {vols[i]*100:.1f}% = {ind_sr[i]:.3f}")
-        lines += [
-            "",
-            f"Note: your portfolio SR ({sr:.3f}) {'exceeds' if sr > ind_sr[sorted_by_sr[0]] else 'is below'} "
-            f"the best individual asset SR ({ind_sr[sorted_by_sr[0]]:.3f}) because diversification "
-            f"{'reduces portfolio variance below any single asset.' if sr > ind_sr[sorted_by_sr[0]] else 'is constrained by ESG and risk-aversion requirements.'}",
-        ]
+            lines.append(f"  {names[i]}: {ind_sr[i]:.3f}")
         return "\n".join(lines)
 
-    # ── ESG cost / constraint cost ────────────────────────────────────────────
-    if any(k in q for k in ["cost", "constraint", "penalty", "sacrifice", "tradeoff", "trade-off",
+    if any(k in q for k in ["cost", "constraint", "penalty", "sacrifice", "tradeoff",
                               "price of esg", "esg screen", "what is the cost"]):
         lines = [
-            "The ESG constraint restricts the feasible investment set, which has a measurable cost:",
-            "",
-            "    Sharpe ratio cost of ESG constraint:",
-            f"      Unconstrained tangency SR:   {sr_tan_all:.4f}",
-            f"      ESG-constrained tangency SR: {sr_tan_esg:.4f}",
-            f"      Cost:                        {sharpe_cost:.4f} ({sharpe_cost/sr_tan_all*100:.1f}% reduction)",
-            "",
-            "    Return cost at the tangency level:",
-            f"      Unconstrained E[R]:   {ep_tan_all*100:.2f}%",
-            f"      ESG-constrained E[R]: {ep_tan_esg*100:.2f}%",
-            f"      Cost:                 {ret_cost*100:.2f}% per year",
-            "",
-        ]
-        if esg_thresh > 0:
-            excluded = [names[i] for i in range(n) if not active_mask[i]]
-            if excluded:
-                lines += [
-                    f"    Assets excluded by ESG screen (min score {esg_thresh:.1f}):",
-                    f"      {', '.join(excluded)}",
-                    "",
-                ]
-        lines += [
-            f"    ESG benefit gained:",
-            f"      Portfolio ESG score: {esg_bar:.2f}/10",
-            f"      This is the social/environmental premium the investor accepts lower",
-            f"      financial return to achieve — the ESG-SR frontier quantifies exactly",
-            f"      how much Sharpe ratio is given up at each ESG level.",
-            "",
-            f"With λ={lam}, the utility model values each ESG point at λ×(1/10)={lam/10:.3f} "
-            f"utility units, making the tradeoff {'worthwhile' if lam > 1 else 'marginal'} "
-            f"at the current ESG level.",
+            f"Sharpe cost of ESG constraint: {sharpe_cost:.4f} ({sharpe_cost/max(sr_tan_all,0.001)*100:.1f}% reduction)",
+            f"  Unconstrained tangency SR:   {sr_tan_all:.4f}",
+            f"  ESG-constrained tangency SR: {sr_tan_esg:.4f}",
+            f"Return cost: {ret_cost*100:.2f}% per year",
+            f"Portfolio ESG gained: {esg_bar:.2f}/10",
         ]
         return "\n".join(lines)
 
-    # ── ESG preference lambda ─────────────────────────────────────────────────
-    if any(k in q for k in ["lambda", "λ", "esg preference", "what does the esg", "esg weight",
-                              "esg parameter"]):
+    if any(k in q for k in ["lambda", "λ", "esg preference", "what does the esg"]):
         lines = [
-            f"λ (lambda) = {lam} is the ESG preference parameter in the utility function:",
-            "",
-            "    U = E[Rp] - (γ/2)σ² + λ × ESG_bar",
-            "",
-            f"It scales the ESG term relative to financial return. Concretely:",
-            f"  • λ=0: ESG is completely ignored — pure mean-variance optimisation",
-            f"  • λ={lam}: each 1-point increase in portfolio ESG score (0–10 scale) "
-            f"adds {lam:.2f} to utility, equivalent to ~{lam/10*100:.1f}bps of extra return",
-            f"  • λ=5: maximum setting — strong ESG tilt, significant return sacrifice",
-            "",
-            f"With your λ={lam}:",
-            f"  • ESG contribution to utility: {lam} × {esg_bar:.3f} = {lam*esg_bar:.4f}",
-            f"  • Financial contribution: E[Rp] - (γ/2)σ² = {ep - gamma/2*sp**2:.4f}",
-            f"  • Total utility: {u_val:.4f}",
-            "",
-            "Increasing λ would shift weights toward higher-ESG assets, reducing Sharpe "
-            "but improving the sustainability profile. The sensitivity analysis in the "
-            "expander below the charts shows exactly how each metric changes with λ.",
+            f"λ={lam} scales the ESG term in U = E[Rp] - (γ/2)σ² + λ×ESG_bar",
+            f"Each 1-point ESG gain adds {lam:.2f} utility (~{lam/10*100:.1f}bps of return)",
+            f"ESG contribution: {lam}×{esg_bar:.3f} = {lam*esg_bar:.4f}",
+            f"Total utility: {u_val:.4f}",
         ]
         return "\n".join(lines)
 
-    # ── Risk aversion gamma ───────────────────────────────────────────────────
-    if any(k in q for k in ["gamma", "γ", "risk aversion", "risk-aversion", "aversion",
-                              "how does increasing risk"]):
+    if any(k in q for k in ["gamma", "γ", "risk aversion", "how does increasing risk"]):
         lines = [
-            f"γ (gamma) = {gamma} is the risk aversion coefficient in the utility function:",
-            "",
-            "    U = E[Rp] - (γ/2) × σ²p + λ × ESG_bar",
-            "",
-            f"The term -(γ/2)σ² penalises portfolio variance. With γ={gamma}:",
-            f"  • Variance penalty = -{gamma/2:.2f} × {sp**2:.6f} = {-gamma/2*sp**2:.5f}",
-            f"  • This represents {abs(gamma/2*sp**2)/ep*100:.1f}% of your expected return, lost to risk",
-            "",
-            "Effect of changing γ on optimal weights:",
-            f"  • γ < {gamma}: less risk averse → higher allocation to high-return/high-risk assets",
-            f"  • γ > {gamma}: more risk averse → higher allocation to low-volatility assets",
-            "",
-            "Highest-volatility assets in your universe:",
+            f"γ={gamma} penalises variance in U = E[Rp] - (γ/2)σ² + λ×ESG_bar",
+            f"Variance penalty = -{gamma/2:.2f}×{sp**2:.6f} = {-gamma/2*sp**2:.5f}",
+            "Higher γ → more weight to low-volatility assets. Assets by vol:",
         ]
-        sorted_vol = sorted(range(n), key=lambda i: vols[i], reverse=True)
-        for i in sorted_vol[:3]:
-            lines.append(f"  {names[i]}: σ={vols[i]*100:.1f}%, weight={w_opt[i]*100:.1f}%")
-        lines += [
-            "",
-            f"Lowest-volatility assets (beneficiaries of high γ):",
-        ]
-        for i in sorted(range(n), key=lambda i: vols[i])[:3]:
+        for i in sorted(range(n), key=lambda i: vols[i]):
             lines.append(f"  {names[i]}: σ={vols[i]*100:.1f}%, weight={w_opt[i]*100:.1f}%")
         return "\n".join(lines)
 
-    # ── ESG drag ──────────────────────────────────────────────────────────────
-    if any(k in q for k in ["drags", "drag", "worst esg", "lowest esg", "bad esg",
-                              "which asset", "esg score the most"]):
-        worst_i = sorted_by_esg[0]
-        weighted_esg = [(names[i], esg_scores[i], w_opt[i], esg_scores[i]*w_opt[i])
-                        for i in range(n) if w_opt[i] > 0.001]
-        weighted_esg.sort(key=lambda x: x[3])
-        lines = [
-            "Assets ranked by ESG score (lowest first):",
-            "",
-        ]
+    if any(k in q for k in ["drags", "drag", "worst esg", "lowest esg", "which asset"]):
+        lines = ["Assets by ESG score (lowest first):", ""]
         for i in sorted_by_esg:
-            flag = " [excluded from ESG frontier]" if not active_mask[i] else ""
+            flag = " [excluded]" if not active_mask[i] else ""
             lines.append(f"  {names[i]}: ESG={esg_scores[i]:.2f}/10, weight={w_opt[i]*100:.1f}%{flag}")
-        lines += [
-            "",
-            f"Biggest drag on portfolio ESG score (weighted contribution):",
-        ]
-        for name, esg, w, contrib in weighted_esg:
-            lines.append(f"  {name}: {esg:.2f}/10 × {w*100:.1f}% weight = {contrib:.4f} contribution")
-        lines += [
-            "",
-            f"Portfolio weighted ESG = {esg_bar:.3f}/10",
-            f"If {sorted_by_esg[0]} (ESG={esg_scores[sorted_by_esg[0]]:.2f}) were replaced "
-            f"with the highest-ESG asset ({names[sorted_by_esg[-1]]}, ESG={esg_scores[sorted_by_esg[-1]]:.2f}), "
-            f"portfolio ESG would increase significantly.",
-        ]
+        lines += ["", f"Portfolio weighted ESG = {esg_bar:.3f}/10"]
         return "\n".join(lines)
 
-    # ── CML / Capital Market Line ─────────────────────────────────────────────
     if any(k in q for k in ["capital market line", "cml", "market line"]):
         lines = [
-            "The Capital Market Line (CML) connects the risk-free asset to the tangency portfolio.",
-            "Any point on the CML represents a mix of the risk-free asset and the tangency portfolio.",
-            "",
-            "    E[R]_CML = rf + (E[Rt] - rf) / σt × σ",
-            "",
-            f"CML using all assets (blue dashed line):",
-            f"  rf = {rf*100:.2f}%, Tangency: E[R]={ep_tan_all*100:.2f}%, σ={sp_tan_all*100:.2f}%",
-            f"  Slope (Sharpe of tangency) = {sr_tan_all:.4f}",
-            "",
-            f"CML using ESG-screened assets (green dashed line):",
-            f"  rf = {rf*100:.2f}%, Tangency: E[R]={ep_tan_esg*100:.2f}%, σ={sp_tan_esg*100:.2f}%",
-            f"  Slope (Sharpe of tangency) = {sr_tan_esg:.4f}",
-            "",
-            f"The green CML has a {'lower' if sr_tan_esg < sr_tan_all else 'similar'} slope "
-            f"({sr_tan_esg:.4f} vs {sr_tan_all:.4f}), reflecting the cost of the ESG constraint "
-            f"— fewer assets means a less efficient tangency portfolio.",
-            "",
-            f"Your optimal portfolio (E[R]={ep*100:.2f}%, σ={sp*100:.2f}%) sits "
-            f"{'on' if abs(sr - sr_tan_esg) < 0.01 else 'below'} the green CML because "
-            f"the ESG preference λ={lam} shifts the optimal point away from pure Sharpe maximisation.",
+            "CML connects the risk-free asset to the tangency portfolio.",
+            f"Blue CML (all assets): rf={rf*100:.2f}%, tangency SR={sr_tan_all:.4f}",
+            f"Green CML (ESG-screened): tangency SR={sr_tan_esg:.4f}",
+            f"Cost of ESG constraint: {sharpe_cost:.4f} Sharpe points",
         ]
         return "\n".join(lines)
 
-    # ── Green frontier right of blue ──────────────────────────────────────────
-    if any(k in q for k in ["green frontier", "right of blue", "right of the blue",
-                              "frontier sit", "why does the green", "two frontier"]):
+    if any(k in q for k in ["green frontier", "right of blue", "frontier sit", "why does the green"]):
         lines = [
-            "The green frontier lies to the RIGHT of the blue frontier.",
-            "This is a fundamental result of constrained optimisation:",
-            "",
-            "  Blue frontier = mean-variance frontier using ALL assets",
-            "    → the largest feasible set → lowest possible risk at each return level",
-            "",
-            "  Green frontier = mean-variance frontier using only ESG-screened assets",
-            f"    → restricted to assets with ESG ≥ {esg_thresh:.1f}/10",
-            "    → smaller feasible set → higher risk for the same expected return",
-            "",
-            "Mathematically: adding constraints can only reduce or maintain portfolio efficiency,"
-            " never improve it. The distance between the curves is the ESG constraint cost.",
-            "",
-        ]
-        if esg_thresh > 0:
-            excluded = [names[i] for i in range(n) if not active_mask[i]]
-            if excluded:
-                lines.append(f"Assets excluded by your ESG screen (ESG < {esg_thresh:.1f}):")
-                for name in excluded:
-                    i = names.index(name)
-                    lines.append(f"  {name}: ESG={esg_scores[i]:.2f}/10, E[R]={mu[i]*100:.1f}%, σ={vols[i]*100:.1f}%")
-                lines.append("")
-        lines += [
-            f"The Sharpe ratio cost of this restriction:",
-            f"  Blue tangency SR:  {sr_tan_all:.4f}",
-            f"  Green tangency SR: {sr_tan_esg:.4f}",
-            f"  Reduction:         {sharpe_cost:.4f} ({sharpe_cost/max(sr_tan_all,0.001)*100:.1f}%)",
+            "Green frontier lies RIGHT of blue — a fundamental result of constrained optimisation.",
+            "Blue = all assets (largest feasible set → lowest risk at each return).",
+            f"Green = ESG-screened assets (min ESG ≥ {esg_thresh:.1f}) → smaller set → higher risk.",
+            f"Sharpe cost: {sharpe_cost:.4f} ({sharpe_cost/max(sr_tan_all,0.001)*100:.1f}% reduction)",
         ]
         return "\n".join(lines)
 
-    # ── Best individual Sharpe ────────────────────────────────────────────────
-    if any(k in q for k in ["best individual", "best asset", "individual sharpe",
-                              "which asset has the best"]):
+    if any(k in q for k in ["tangency", "tangent", "why is the tangency"]):
+        lines = [
+            "Tangency portfolio = highest Sharpe ratio portfolio.",
+            f"All assets: E[R]={ep_tan_all*100:.2f}%, σ={sp_tan_all*100:.2f}%, SR={sr_tan_all:.4f}",
+            f"ESG-screened: E[R]={ep_tan_esg*100:.2f}%, σ={sp_tan_esg*100:.2f}%, SR={sr_tan_esg:.4f}",
+            f"Your ESG-optimal SR={sr:.4f} differs because λ={lam} shifts weights toward ESG.",
+        ]
+        return "\n".join(lines)
+
+    if any(k in q for k in ["best individual", "best asset", "individual sharpe"]):
         best_i = sorted_by_sr[0]
-        lines = [
-            "Individual Sharpe ratios (best to worst):",
-            "",
-        ]
+        lines = ["Individual Sharpe ratios:"]
         for i in sorted_by_sr:
-            lines.append(
-                f"  {names[i]}: E[R]={mu[i]*100:.1f}%, σ={vols[i]*100:.1f}%, "
-                f"ESG={esg_scores[i]:.1f}/10 → SR = {ind_sr[i]:.3f}"
-            )
-        lines += [
-            "",
-            f"Best: {names[best_i]} with SR={ind_sr[best_i]:.3f}",
-            f"Portfolio SR = {sr:.3f} — {'higher than any individual asset due to diversification benefits.'if sr > max(ind_sr) else 'lower than the best individual asset, constrained by ESG and risk-aversion requirements.'}",
-        ]
+            lines.append(f"  {names[i]}: SR={ind_sr[i]:.3f} (E[R]={mu[i]*100:.1f}%, σ={vols[i]*100:.1f}%)")
+        lines.append(f"\nBest: {names[best_i]} with SR={ind_sr[best_i]:.3f}")
         return "\n".join(lines)
 
-    # ── Tangency portfolio ────────────────────────────────────────────────────
-    if any(k in q for k in ["tangency", "tangent", "market portfolio", "why is the tangency"]):
+    if any(k in q for k in ["remove", "without esg", "no esg", "ignore esg"]):
         lines = [
-            "The tangency portfolio is the portfolio with the highest Sharpe ratio.",
-            "It is found by maximising SR = (E[Rp] - rf) / σp subject to weights summing to 1.",
-            "It sits at the point where the Capital Market Line touches the efficient frontier.",
-            "",
-            f"Tangency portfolio (all assets, unconstrained):",
-            f"  E[R] = {ep_tan_all*100:.2f}%",
-            f"  σ    = {sp_tan_all*100:.2f}%",
-            f"  SR   = {sr_tan_all:.4f}",
-            "",
-            f"Tangency portfolio (ESG-screened assets only):",
-            f"  E[R] = {ep_tan_esg*100:.2f}%",
-            f"  σ    = {sp_tan_esg*100:.2f}%",
-            f"  SR   = {sr_tan_esg:.4f}",
-            "",
-            f"Your ESG-optimal portfolio has SR = {sr:.4f}. It differs from the ESG tangency "
-            f"because λ={lam} introduces an ESG term into the objective, shifting weights "
-            f"toward higher-ESG assets even when that reduces Sharpe.",
-            "",
-            "In classic mean-variance theory a rational investor holds a mix of the risk-free "
-            "asset and the tangency portfolio. Here, the ESG utility term means the investor "
-            "accepts a lower Sharpe in exchange for a higher ESG score.",
+            f"Without ESG (λ=0, no screen): SR gain = +{sharpe_cost:.4f}",
+            f"  Unconstrained tangency SR: {sr_tan_all:.4f} vs current {sr_tan_esg:.4f}",
+            f"  Return gain: +{ret_cost*100:.2f}%/yr",
+            f"  But portfolio ESG would fall from {esg_bar:.2f}/10",
         ]
         return "\n".join(lines)
 
-    # ── Remove ESG screen ─────────────────────────────────────────────────────
-    if any(k in q for k in ["remove", "without esg", "no esg", "ignore esg", "esg screen off"]):
-        lines = [
-            "If the ESG screen were removed (λ=0, no minimum ESG threshold):",
-            "",
-            f"  Unconstrained tangency portfolio achieves SR = {sr_tan_all:.4f}",
-            f"  vs current ESG-constrained tangency SR = {sr_tan_esg:.4f}",
-            f"  Gain from removing ESG: +{sharpe_cost:.4f} Sharpe ratio points",
-            "",
-            f"  Return: {ep_tan_all*100:.2f}% vs {ep_tan_esg*100:.2f}% (gain of {ret_cost*100:.2f}%)",
-            "",
-            "However, removing ESG would:",
-        ]
-        excluded = [names[i] for i in range(n) if not active_mask[i]]
-        if excluded:
-            lines.append(f"  • Allow excluded assets back in: {', '.join(excluded)}")
-        lines += [
-            f"  • Reduce portfolio ESG score from {esg_bar:.2f}/10",
-            f"  • Set λ contribution to zero (currently λ×ESG = {lam*esg_bar:.4f} utility units)",
-            "",
-            "The ESG-SR frontier chart shows the full Sharpe/ESG tradeoff curve — "
-            "you can read off exactly how much Sharpe is sacrificed at any ESG level.",
-        ]
-        return "\n".join(lines)
-
-    # ── Default / fallback ────────────────────────────────────────────────────
     lines = [
         f"Your portfolio summary:",
         f"  Assets: {', '.join(f'{names[i]} ({w_opt[i]*100:.1f}%)' for i in range(n) if w_opt[i]>0.001)}",
-        f"  Expected return: {ep*100:.2f}%  |  Volatility: {sp*100:.2f}%  |  Sharpe: {sr:.3f}",
-        f"  ESG score: {esg_bar:.2f}/10  |  Utility: {u_val:.4f}",
+        f"  E[R]={ep*100:.2f}%, σ={sp*100:.2f}%, Sharpe={sr:.3f}, ESG={esg_bar:.2f}/10",
         f"  Parameters: γ={gamma}, λ={lam}, rf={rf*100:.1f}%",
-        "",
-        "Try one of the suggested questions above, or ask about:",
-        "weights, Sharpe ratio, ESG scores, the utility function, the frontier,"
-        " the Capital Market Line, risk aversion, or the cost of the ESG constraint.",
     ]
     return "\n".join(lines)
 
-
 def answer_question(question: str) -> str:
-    """Route a user question to the simulated chatbot engine."""
     d = st.session_state.get("chat_data")
     if d is None:
         return "Please run the portfolio optimiser first by clicking Optimise Portfolio."
     return _portfolio_answer(question, d)
 
-
 # ══════════════════════════════════════════════════════════════════════════════
 # MARKET DATA
 # ══════════════════════════════════════════════════════════════════════════════
-
 @st.cache_data(show_spinner=False)
 def fetch_market_data(tickers, period="3y"):
     raw = yf.download(tickers, period=period, auto_adjust=True,
@@ -1210,19 +666,250 @@ def fetch_market_data(tickers, period="3y"):
         raise ValueError("Not enough return data.")
     return close, ret, ret.mean()*252, ret.std()*np.sqrt(252), ret.cov()*252, ret.corr()
 
-
-
 # ════════════════════════════════════════════════════════════════════════════
 # STATE
 # ════════════════════════════════════════════════════════════════════════════
 if "dark"         not in st.session_state: st.session_state["dark"]         = True
-if "page"         not in st.session_state: st.session_state["page"]         = "input"
+if "page"         not in st.session_state: st.session_state["page"]         = "home"
 if "chat_history" not in st.session_state: st.session_state["chat_history"] = []
 
 _dark = st.session_state["dark"]
 _page = st.session_state["page"]
 
-# ── Light-mode CSS override (injected when dark=False; :root default = dark) ──
+# ── Handle home page "Enter" button via query param ──────────────────────────
+_qp = st.query_params
+if "enter" in _qp:
+    st.session_state["page"] = "input"
+    _page = "input"
+    st.query_params.clear()
+    st.rerun()
+
+# ════════════════════════════════════════════════════════════════════════════
+# PAGE: HOME — GradientBlinds landing page
+# ════════════════════════════════════════════════════════════════════════════
+if _page == "home":
+    st.markdown("""<style>
+    .block-container {
+        padding-top: 0 !important; padding-bottom: 0 !important;
+        max-width: 100% !important;
+        padding-left: 0 !important; padding-right: 0 !important;
+    }
+    </style>""", unsafe_allow_html=True)
+
+    _HOME_HTML = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: #0a0010;
+  font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+}
+canvas {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%; display: block;
+}
+.overlay {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 20; text-align: center; padding: 2rem;
+  pointer-events: none;
+}
+.overlay > * {
+  opacity: 0; transform: translateY(18px);
+  animation: fadeUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+.logo-mark {
+  width: 52px; height: 52px; border-radius: 14px;
+  background: rgba(255,255,255,0.13);
+  border: 1px solid rgba(255,255,255,0.28);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 1.3rem; animation-delay: 0.05s;
+}
+.badge {
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.22);
+  border-radius: 100px; padding: 5px 18px;
+  font-size: 9.5px; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: rgba(255,255,255,0.78); margin-bottom: 1.5rem;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  animation-delay: 0.15s;
+}
+.title {
+  font-size: clamp(3.8rem, 12vw, 8rem);
+  font-weight: 800; letter-spacing: -0.055em; line-height: 0.9;
+  color: white; margin-bottom: 1.1rem; animation-delay: 0.25s;
+  text-shadow: 0 0 80px rgba(255,255,255,0.10);
+}
+.title .dim { opacity: 0.48; }
+.subtitle {
+  font-size: clamp(0.88rem, 1.6vw, 1.02rem);
+  color: rgba(255,255,255,0.55); max-width: 400px;
+  line-height: 1.72; margin-bottom: 2.6rem;
+  font-weight: 400; animation-delay: 0.35s;
+}
+.cta-wrap { pointer-events: auto; animation-delay: 0.45s; }
+.enter-btn {
+  background: rgba(255,255,255,0.93); color: #1a0833;
+  border: none; border-radius: 12px; padding: 15px 44px;
+  font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+  font-size: 0.93rem; font-weight: 700; letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+  box-shadow: 0 2px 28px rgba(0,0,0,0.25);
+}
+.enter-btn:hover {
+  background: white; transform: translateY(-2px);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.32);
+}
+.enter-btn:active { transform: translateY(0) scale(0.98); }
+.meta {
+  margin-top: 1.6rem; font-size: 0.58rem;
+  color: rgba(255,255,255,0.26); letter-spacing: 0.1em;
+  text-transform: uppercase; animation-delay: 0.55s;
+}
+body.leaving { opacity: 0; transition: opacity 0.35s ease; }
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div class="overlay">
+  <div class="logo-mark">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <path d="M12 2C8.13 2 5 5.58 5 10C5 14.15 7.9 17.55 11.75 18V22H12.25V18C16.1 17.55 19 14.15 19 10C19 5.58 15.87 2 12 2Z" fill="rgba(255,255,255,0.9)"/>
+    </svg>
+  </div>
+  <div class="badge">ECN316 &nbsp;&middot;&nbsp; Sustainable Finance &nbsp;&middot;&nbsp; 2026</div>
+  <h1 class="title">Green<span class="dim">Port</span></h1>
+  <p class="subtitle">ESG-integrated portfolio optimisation. Build and analyse sustainable investments with live LSEG data and mean-variance theory.</p>
+  <div class="cta-wrap">
+    <button class="enter-btn" onclick="enterApp()">Enter GreenPort &nbsp;&rarr;</button>
+  </div>
+  <p class="meta">LSEG ESG Data &nbsp;&middot;&nbsp; Mean-Variance Optimisation &nbsp;&middot;&nbsp; AI Explainer</p>
+</div>
+<script>
+var canvas = document.getElementById('canvas');
+var ctx = canvas.getContext('2d');
+var W = 0, H = 0;
+var mouse = { x: 0.5, y: 0.5 };
+var sm = { x: 0.5, y: 0.5 };
+var frame = 0;
+var BLIND_COUNT = 12;
+var SPOT_R = 0.5;
+var DAMP = 0.15;
+var COLOR_A = '#FF9FFC';
+var COLOR_B = '#5227FF';
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function resize() {
+  W = canvas.width = canvas.offsetWidth;
+  H = canvas.height = canvas.offsetHeight;
+}
+window.addEventListener('resize', resize);
+
+document.addEventListener('mousemove', function(e) {
+  var r = canvas.getBoundingClientRect();
+  mouse.x = (e.clientX - r.left) / W;
+  mouse.y = (e.clientY - r.top) / H;
+});
+
+function draw() {
+  frame++;
+  sm.x = lerp(sm.x, mouse.x, DAMP);
+  sm.y = lerp(sm.y, mouse.y, DAMP);
+  ctx.clearRect(0, 0, W, H);
+
+  // Gradient background
+  var bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, COLOR_A);
+  bg.addColorStop(1, COLOR_B);
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Blinds
+  var bw = W / BLIND_COUNT;
+  for (var i = 0; i < BLIND_COUNT; i++) {
+    var nx = (i + 0.5) / BLIND_COUNT;
+    var dist = Math.abs(nx - sm.x);
+    var spotInfluence = Math.max(0, 1 - dist / SPOT_R);
+    var wave = 0.04 * Math.sin(frame * 0.022 + i * 0.8);
+    var shadow = 0.38 * (1 - spotInfluence * 0.75) + wave;
+    shadow = Math.max(0.02, Math.min(0.55, shadow));
+
+    var g = ctx.createLinearGradient(i * bw, 0, (i + 1) * bw, 0);
+    g.addColorStop(0,    'rgba(0,0,0,' + Math.min(0.65, shadow + 0.14) + ')');
+    g.addColorStop(0.18, 'rgba(0,0,0,' + (shadow * 0.4) + ')');
+    g.addColorStop(0.5,  'rgba(0,0,0,' + Math.max(0, shadow - 0.08) + ')');
+    g.addColorStop(0.82, 'rgba(0,0,0,' + (shadow * 0.4) + ')');
+    g.addColorStop(1,    'rgba(0,0,0,' + Math.min(0.65, shadow + 0.14) + ')');
+    ctx.fillStyle = g;
+    ctx.fillRect(i * bw, 0, bw, H);
+
+    ctx.strokeStyle = 'rgba(0,0,0,0.10)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(Math.round(i * bw), 0);
+    ctx.lineTo(Math.round(i * bw), H);
+    ctx.stroke();
+  }
+
+  // Mouse spotlight
+  var sx = sm.x * W;
+  var sy = sm.y * H;
+  var sr = SPOT_R * Math.min(W, H);
+  var spot = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr);
+  spot.addColorStop(0,    'rgba(255,255,255,0.42)');
+  spot.addColorStop(0.45, 'rgba(255,255,255,0.14)');
+  spot.addColorStop(1,    'rgba(255,255,255,0)');
+  ctx.globalCompositeOperation = 'lighten';
+  ctx.fillStyle = spot;
+  ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'source-over';
+
+  // Left-side shine
+  var shine = ctx.createLinearGradient(0, 0, W * 0.35, 0);
+  shine.addColorStop(0, 'rgba(255,255,255,0.07)');
+  shine.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = shine;
+  ctx.fillRect(0, 0, W, H);
+
+  requestAnimationFrame(draw);
+}
+
+resize();
+draw();
+
+function enterApp() {
+  document.body.classList.add('leaving');
+  setTimeout(function() {
+    try {
+      var url = new URL(window.parent.location.href);
+      url.searchParams.set('enter', '1');
+      window.parent.location.href = url.toString();
+    } catch(e) {
+      window.parent.location.search = '?enter=1';
+    }
+  }, 350);
+}
+</script>
+</body>
+</html>"""
+
+    components.html(_HOME_HTML, height=750, scrolling=False)
+    st.stop()
+
+# ── Light-mode CSS override ───────────────────────────────────────────────────
 if not _dark:
     st.markdown("""<style>
 :root {
@@ -1258,7 +945,6 @@ if not _dark:
 .stApp { background: #f8f8f8 !important; }
 </style>""", unsafe_allow_html=True)
 
-# ── Input-page width constraint ──
 if _page == "input":
     st.markdown("""<style>
 .block-container { max-width: 740px !important; }
@@ -1268,7 +954,6 @@ if _page == "input":
 # NAVBAR
 # ════════════════════════════════════════════════════════════════════════════
 _n_logo, _n_spacer, _n_back, _n_theme = st.columns([5, 2.5, 2.2, 1.8])
-
 with _n_logo:
     st.markdown("""
 <div class="gp-nav">
@@ -1283,13 +968,11 @@ with _n_logo:
   </div>
 </div>
 """, unsafe_allow_html=True)
-
 with _n_back:
     if _page == "results":
         if st.button("Back to Setup", key="nav_back"):
             st.session_state["page"] = "input"
             st.rerun()
-
 with _n_theme:
     _theme_label = "Light Mode" if _dark else "Dark Mode"
     if st.button(_theme_label, key="nav_theme"):
@@ -1300,8 +983,6 @@ with _n_theme:
 # PAGE: INPUT
 # ════════════════════════════════════════════════════════════════════════════
 if _page == "input":
-
-    # ── Hero ─────────────────────────────────────────────────────────────────
     st.markdown("""
 <div class="gp-hero">
   <p class="gp-eyebrow">ECN316 · Sustainable Finance</p>
@@ -1321,13 +1002,10 @@ if _page == "input":
     else:
         st.markdown(
             f'<div class="error-box">Could not load ESG data. '
-            f'Tried GitHub: <code>{_ESG_CSV_URL}</code> and local fallback. '
-            f'Check your connection or place the CSV at <code>{_ESG_CSV_LOCAL}</code>.</div>',
+            f'Tried GitHub: <code>{_ESG_CSV_URL}</code> and local fallback.</div>',
             unsafe_allow_html=True)
 
-    # ── Asset Universe ────────────────────────────────────────────────────────
     st.markdown('<div class="gp-label">Asset Universe</div>', unsafe_allow_html=True)
-
     _im_col, _ = st.columns([2, 3])
     with _im_col:
         input_mode = st.radio("Input method", ["Manual input", "Ticker-based input"], horizontal=False)
@@ -1357,7 +1035,6 @@ if _page == "input":
                 vol  = c2.number_input("", value=default_vol[i], key=f"vol_{i}", label_visibility="collapsed", format="%.1f", min_value=0.1)
                 esg  = c3.number_input("", value=default_esg[i], key=f"esg_{i}", label_visibility="collapsed", format="%.1f", min_value=0.0, max_value=10.0)
                 asset_data.append({"name": name, "ret": ret/100, "vol": vol/100, "esg": esg})
-
         st.markdown('<div class="gp-label">Correlation Matrix</div>', unsafe_allow_html=True)
         st.markdown('<div class="info-box">Enter pairwise correlations (−1 to 1). Diagonal fixed at 1.</div>', unsafe_allow_html=True)
         n = int(n_assets)
@@ -1368,7 +1045,6 @@ if _page == "input":
             for c in range(n):
                 if r != c: ci.iloc[r,c] = 0.25
         corr_df = st.data_editor(ci, use_container_width=True, key="corr_matrix")
-
     else:
         cl, cr = st.columns([2,1])
         with cr:
@@ -1382,7 +1058,6 @@ if _page == "input":
                 ticker = c1.text_input("", value=default_tickers[i], key=f"ticker_{i}", label_visibility="collapsed").upper().strip()
                 name   = c2.text_input("", value=default_names[i],   key=f"ticker_name_{i}", label_visibility="collapsed")
                 ticker_rows.append({"ticker": ticker, "name": name or ticker, "manual_esg": None})
-
         valid_tickers = [r["ticker"] for r in ticker_rows if r["ticker"]]
         if valid_tickers:
             esg_preview  = {r["ticker"]: lookup_esg(r["ticker"]) for r in ticker_rows if r["ticker"]}
@@ -1395,9 +1070,7 @@ if _page == "input":
                     price = getattr(info, "last_price", None)
                     if price is None: bad_tickers.append(t)
                 except Exception: bad_tickers.append(t)
-
             manual_overrides = {}; manual_ret_vol = {}
-
             if bad_tickers:
                 st.markdown(
                     f'<div class="warn-box"><strong>Tickers not found on Yahoo Finance:</strong> '
@@ -1411,7 +1084,6 @@ if _page == "input":
                     m_ret = bc2.number_input(f"{t} E[R] (%)", value=default_ret[def_idx], min_value=-50.0, max_value=200.0, step=0.5, format="%.1f", key=f"manual_ret_{t}")
                     m_vol = bc3.number_input(f"{t} Vol (%)",  value=default_vol[def_idx], min_value=0.1,   max_value=200.0, step=0.5, format="%.1f", key=f"manual_vol_{t}")
                     manual_ret_vol[t] = {"ret": m_ret/100.0, "vol": m_vol/100.0}
-
             if missing_esg:
                 st.markdown(
                     f'<div class="warn-box"><strong>Not in ESG CSV:</strong> '
@@ -1424,42 +1096,32 @@ if _page == "input":
                         f"{t} ESG", value=float(default_esg[def_idx]),
                         min_value=0.0, max_value=10.0, step=0.1, format="%.1f",
                         key=f"manual_esg_{t}")
-
             if not missing_esg and not bad_tickers:
                 st.markdown('<div class="info-box">All ticker data and ESG scores resolved.</div>', unsafe_allow_html=True)
-
             for row in ticker_rows:
                 t = row["ticker"]
                 row["manual_esg"]     = manual_overrides.get(t, None)
                 row["manual_ret_vol"] = manual_ret_vol.get(t, None)
 
-    # ── Investor Preferences ──────────────────────────────────────────────────
     st.markdown('<div class="gp-label">Investor Preferences</div>', unsafe_allow_html=True)
     pref_c1, pref_c2, pref_c3 = st.columns(3)
-    with pref_c1:
-        gamma = st.slider("Risk Aversion (γ)", 0.5, 10.0, 3.0, 0.5)
-    with pref_c2:
-        lam = st.slider("ESG Preference (λ)", 0.0, 5.0, 1.0, 0.1)
-    with pref_c3:
-        rf = st.number_input("Risk-Free Rate (%)", 0.0, 20.0, 4.0, 0.1, format="%.1f") / 100
+    with pref_c1: gamma = st.slider("Risk Aversion (γ)", 0.5, 10.0, 3.0, 0.5)
+    with pref_c2: lam   = st.slider("ESG Preference (λ)", 0.0, 5.0, 1.0, 0.1)
+    with pref_c3: rf    = st.number_input("Risk-Free Rate (%)", 0.0, 20.0, 4.0, 0.1, format="%.1f") / 100
 
-    # ── ESG Screen ────────────────────────────────────────────────────────────
     st.markdown('<div class="gp-label">ESG Screen</div>', unsafe_allow_html=True)
     use_exclusion = st.checkbox("Apply minimum ESG exclusion screen", value=False)
     min_esg_filter = 0.0
     if use_exclusion:
         min_esg_filter = st.slider("Minimum ESG score (0–10)", 0.0, 10.0, 4.0, 0.5)
 
-    # ── CTA ───────────────────────────────────────────────────────────────────
     st.markdown("<div style='height:1.5rem;'></div>", unsafe_allow_html=True)
     _, cta_col, _ = st.columns([1, 2, 1])
     with cta_col:
         run = st.button("Run Optimisation", use_container_width=True)
 
     if run:
-        # ── Build mu, cov, esg arrays ─────────────────────────────────────────
         ticker_data_display = None; esg_letters = {}; corr_np = None
-
         if input_mode == "Manual input":
             names      = [d["name"] for d in asset_data]
             mu         = np.array([d["ret"] for d in asset_data], dtype=float)
@@ -1474,7 +1136,6 @@ if _page == "input":
             np.fill_diagonal(corr_np, 1.0)
             corr_np = np.clip(corr_np, -0.999, 0.999)
             cov = np.outer(vols, vols) * corr_np
-
         else:
             tickers = [r["ticker"] for r in ticker_rows if r["ticker"]]
             if len(tickers) < 2:
@@ -1484,61 +1145,47 @@ if _page == "input":
                     fetch_market_data(tickers, period=lookback_period)
             except Exception as e:
                 st.error(f"Failed to fetch ticker data: {e}"); st.stop()
-
             manual_rv_map = {r["ticker"]: r.get("manual_ret_vol") for r in ticker_rows}
             manual_rv_map = {t: v for t, v in manual_rv_map.items() if v is not None}
             available = [t for t in tickers if t in mu_series.index]
             manual_price_tickers = [r["ticker"] for r in ticker_rows
                                     if r["ticker"] not in available and r.get("manual_ret_vol")]
             all_tickers = available + manual_price_tickers
-
             if len(all_tickers) < 2:
                 st.error("Not enough valid tickers. Check symbols or provide manual inputs.")
                 st.stop()
-
             filtered_rows = [r for r in ticker_rows if r["ticker"] in all_tickers]
             esg_map = {t: lookup_esg(t) for t in all_tickers}
             resolved = []; used_manual_esg = []
-
             for row in filtered_rows:
                 t    = row["ticker"]
                 meta = esg_map[t]
                 if meta["has_esg"]:
-                    final_esg = meta["app_esg"]
-                    src_label = meta["source"]
-                    letter    = meta["letter"]
-                    year      = meta["year"]
+                    final_esg = meta["app_esg"]; src_label = meta["source"]
+                    letter = meta["letter"]; year = meta["year"]
                 elif row.get("manual_esg") is not None:
-                    final_esg = row["manual_esg"]
-                    src_label = "Manual input"
-                    letter    = "N/A"; year = 2026
-                    used_manual_esg.append(t)
+                    final_esg = row["manual_esg"]; src_label = "Manual input"
+                    letter = "N/A"; year = 2026; used_manual_esg.append(t)
                 else:
-                    final_esg = 5.0
-                    src_label = "Default (5.0)"
-                    letter    = "N/A"; year = 2026
+                    final_esg = 5.0; src_label = "Default (5.0)"
+                    letter = "N/A"; year = 2026
                 resolved.append({"ticker": t, "name": row["name"],
                                  "final_esg": final_esg, "src": src_label,
                                  "letter": letter, "year": year})
                 esg_letters[t] = letter
-
             names      = [r["name"]      for r in resolved]
             esg_scores = np.array([r["final_esg"] for r in resolved], dtype=float)
             n          = len(names)
-
             mu_list = []; vols_list = []
             for row in filtered_rows:
                 t = row["ticker"]
                 if t in available:
-                    mu_list.append(float(mu_series[t]))
-                    vols_list.append(float(vols_series[t]))
+                    mu_list.append(float(mu_series[t])); vols_list.append(float(vols_series[t]))
                 else:
                     rv = manual_rv_map.get(t, {"ret": 0.07, "vol": 0.20})
                     mu_list.append(rv["ret"]); vols_list.append(rv["vol"])
-
             mu   = np.array(mu_list,   dtype=float)
             vols = np.array(vols_list, dtype=float)
-
             cov = np.zeros((n, n))
             for i, ti in enumerate(all_tickers):
                 for j, tj in enumerate(all_tickers):
@@ -1546,7 +1193,6 @@ if _page == "input":
                         cov[i, j] = float(cov_df.loc[ti, tj])
                     elif i == j:
                         cov[i, j] = vols[i] ** 2
-
             corr_np = np.zeros((n, n))
             for i, ti in enumerate(all_tickers):
                 for j, tj in enumerate(all_tickers):
@@ -1554,7 +1200,6 @@ if _page == "input":
                         corr_np[i, j] = float(corr_df_market.loc[ti, tj])
                     elif i == j:
                         corr_np[i, j] = 1.0
-
             loaded_msg  = ", ".join(available) if available else "none"
             manual_msg  = (f" Manual inputs for: {', '.join(manual_price_tickers)}."
                            if manual_price_tickers else "")
@@ -1574,11 +1219,9 @@ if _page == "input":
                 f'<div class="info-box">Market data loaded for: {loaded_msg} over {lookback_period}.{manual_msg}</div>',
                 unsafe_allow_html=True)
 
-        # PSD fix
         if np.any(np.linalg.eigvalsh(cov) < -1e-8):
             cov = nearest_psd(cov)
 
-        # ESG threshold / frontiers
         esg_thresh  = min_esg_filter if use_exclusion else 0.0
         active_mask = esg_scores >= esg_thresh
         active_idx  = np.where(active_mask)[0]
@@ -1594,7 +1237,6 @@ if _page == "input":
         esg_a   = esg_scores[active_idx]
         bounds_green = [(0., 1.) if active_mask[i] else (0., 0.) for i in range(n)]
 
-        # Portfolios
         w_tan_all, ep_tan_all, sp_tan_all, sr_tan_all = find_tangency(mu, cov, rf)
         w_tan_esg, ep_tan_esg, sp_tan_esg, sr_tan_esg = find_tangency(mu, cov, rf, bounds=bounds_green)
         w_opt_a = find_optimal(mu_a, cov_a, esg_a, rf, gamma, lam)
@@ -1602,12 +1244,10 @@ if _page == "input":
         for idx, wi in zip(active_idx, w_opt_a): w_opt[idx] = wi
         ep, sp, sr, esg_bar = port_stats(w_opt_a, mu_a, cov_a, esg_a, rf)
 
-        # Build frontiers
         with st.spinner("Building efficient frontiers..."):
             std_blue,  ret_blue  = build_mv_frontier(mu, cov, n_points=100)
             std_green, ret_green = build_mv_frontier(mu, cov, bounds=bounds_green, n_points=100)
 
-        # Store everything and navigate to results
         st.session_state["opt_results"] = {
             "names": names, "mu": mu, "vols": vols,
             "esg_scores": esg_scores, "w_opt": w_opt,
@@ -1631,7 +1271,6 @@ if _page == "input":
 # PAGE: RESULTS
 # ════════════════════════════════════════════════════════════════════════════
 elif _page == "results":
-
     if "opt_results" not in st.session_state:
         st.markdown('<div class="warn-box">No results found. Return to setup and run the optimisation.</div>', unsafe_allow_html=True)
         if st.button("Back to Setup"):
@@ -1658,7 +1297,6 @@ elif _page == "results":
     mu_a        = mu[active_idx];   cov_a   = cov[np.ix_(active_idx, active_idx)]
     esg_a       = esg_scores[active_idx]
 
-    # Chart colour palette (theme-aware)
     _dark_now = st.session_state.get("dark", True)
     CHART_BG  = "#080808" if _dark_now else "#ffffff"
     CHART_BG2 = "#111111" if _dark_now else "#f8f8f8"
@@ -1675,7 +1313,6 @@ elif _page == "results":
 
     u_val = ep - gamma/2*sp**2 + lam*esg_bar
 
-    # ── Results hero ──────────────────────────────────────────────────────────
     st.markdown(f"""
 <div class="results-hero">
   <p class="gp-eyebrow">Optimisation Complete</p>
@@ -1688,7 +1325,6 @@ elif _page == "results":
 </div>
 """, unsafe_allow_html=True)
 
-    # ── Metric cards ──────────────────────────────────────────────────────────
     m1, m2, m3, m4 = st.columns(4)
     _metric_data = [
         (m1, "Expected Return",  f"{ep*100:.2f}",  "%",    "metric-pos", "card-ret"),
@@ -1708,10 +1344,8 @@ elif _page == "results":
         f'<div class="info-box">'
         f'Tangency Sharpe — all assets: <strong>{sr_tan_all:.3f}</strong>'
         f' &nbsp;|&nbsp; ESG-screened: <strong>{sr_tan_esg:.3f}</strong>'
-        f'</div>',
-        unsafe_allow_html=True)
+        f'</div>', unsafe_allow_html=True)
 
-    # ── Portfolio weights ─────────────────────────────────────────────────────
     st.markdown('<div class="section-header">Portfolio Weights</div>', unsafe_allow_html=True)
     st.dataframe(pd.DataFrame({
         "Asset":           names,
@@ -1730,7 +1364,6 @@ elif _page == "results":
                 st.dataframe(pd.DataFrame(corr_np, index=names, columns=names).round(3),
                              use_container_width=True)
 
-    # ── Charts ────────────────────────────────────────────────────────────────
     st.markdown('<div class="section-header">Efficient Frontier</div>', unsafe_allow_html=True)
     _c1, _c2 = st.columns(2)
 
@@ -1741,17 +1374,14 @@ elif _page == "results":
         for sp_ in ax.spines.values(): sp_.set_color(SPINE_C)
         ax.grid(True, alpha=0.3, color=GRID_C, linestyle="--", linewidth=0.6)
 
-    # Chart 1: Mean-Variance Frontier
     with _c1:
         fig, ax = plt.subplots(figsize=(6.5, 5.5))
         fig.patch.set_facecolor(CHART_BG)
-
         if len(std_blue) > 2:
             ax.plot(std_blue, ret_blue, color=BLUE, lw=2.2, zorder=4, label="MV Frontier (all assets)")
         if len(std_green) > 2:
             ax.plot(std_green, ret_green, color=GREEN, lw=2.2, zorder=4,
                     label=f"MV Frontier (ESG \u2265 {esg_thresh:.1f})")
-
         if sp_tan_all > 1e-9 and len(std_blue) > 0:
             cml_max = max(np.nanmax(std_blue), sp_tan_all*100) * 1.5
             sd_cml  = np.linspace(0, cml_max, 300)
@@ -1763,7 +1393,6 @@ elif _page == "results":
             ax.plot(sd_cml2, rf*100 + (ep_tan_esg-rf)/sp_tan_esg*sd_cml2,
                     color=GREEN, lw=1.4, linestyle="--", zorder=3,
                     label=f"CML (ESG \u2265 {esg_thresh:.1f})")
-
         ax.scatter(sp_tan_all*100, ep_tan_all*100, color=BLUE, s=140, zorder=9, edgecolors="white", lw=1.4, marker="*")
         ax.annotate("tangency (all)", (sp_tan_all*100, ep_tan_all*100),
                     textcoords="offset points", xytext=(7, 2), fontsize=7, color=BLUE, fontstyle="italic")
@@ -1778,7 +1407,6 @@ elif _page == "results":
             ax.scatter(vols[i]*100, mu[i]*100, color=col_pt, s=45, zorder=6, edgecolors="white", lw=0.7, alpha=0.8)
             ax.annotate(names[i], (vols[i]*100, mu[i]*100),
                         textcoords="offset points", xytext=(4, 3), fontsize=7, color=GREY)
-
         ax.set_xlabel("Std Dev (%)", fontsize=9, color=GREY)
         ax.set_ylabel("Expected Return (%)", fontsize=9, color=GREY)
         ax.set_xlim(left=0)
@@ -1786,14 +1414,9 @@ elif _page == "results":
         _style_ax(ax, "Mean-Variance Frontier")
         fig.tight_layout(); st.pyplot(fig); plt.close()
 
-    # Chart 2: ESG-SR Frontier — matches lecture diagram exactly
-    # X-axis = portfolio ESG score achieved at each constraint level
-    # Y-axis = highest attainable Sharpe ratio at that ESG constraint
-    # Individual assets plotted as dots at (their ESG score, their individual Sharpe)
     with _c2:
         _esg_constraints = np.linspace(0, max(esg_scores) * 0.97, 60)
         _sr_curve  = []; _esg_x_curve = []
-
         for _esg_min in _esg_constraints:
             _mask = esg_scores >= _esg_min
             if _mask.sum() < 2: break
@@ -1801,81 +1424,47 @@ elif _page == "results":
             try:
                 _w_, _ep_, _sp_, _sr_ = find_tangency(mu, cov, rf, bounds=_bnds)
                 if _sp_ > 1e-9:
-                    # x = ESG score of the resulting tangency portfolio
                     _port_esg = float(np.dot(_w_, esg_scores))
-                    _sr_curve.append(_sr_)
-                    _esg_x_curve.append(_port_esg)
-            except Exception:
-                break
-
-        # Sort curve by portfolio ESG score (x) for clean plotting
+                    _sr_curve.append(_sr_); _esg_x_curve.append(_port_esg)
+            except Exception: break
         if _esg_x_curve:
             _sorted = sorted(zip(_esg_x_curve, _sr_curve))
             _esg_x_sorted = [p[0] for p in _sorted]
             _sr_sorted     = [p[1] for p in _sorted]
         else:
             _esg_x_sorted = []; _sr_sorted = []
-
-        # Unconstrained tangency (ignoring ESG)
         _w_unc, _ep_unc, _sp_unc, _sr_unc = find_tangency(mu, cov, rf)
         _esg_unc = float(np.dot(_w_unc, esg_scores))
-
-        # ESG-aware tangency (current screen)
         _bounds_cur = [(0., 1.) if active_mask[i] else (0., 0.) for i in range(n)]
         _w_esg, _ep_esg, _sp_esg, _sr_esg = find_tangency(mu, cov, rf, bounds=_bounds_cur)
         _esg_esg_pt = float(np.dot(_w_esg, esg_scores))
-
-        # Individual asset Sharpe ratios
         _indiv_sr  = (mu - rf) / vols
-        _indiv_esg = esg_scores  # 0–10 scale
-
         fig2, ax2 = plt.subplots(figsize=(6.5, 5.5))
         fig2.patch.set_facecolor(CHART_BG)
-
-        # Frontier curve
         if _esg_x_sorted:
-            ax2.plot(_esg_x_sorted, _sr_sorted, color=GREEN, lw=2.4, zorder=4,
-                     label="ESG-SR frontier")
+            ax2.plot(_esg_x_sorted, _sr_sorted, color=GREEN, lw=2.4, zorder=4, label="ESG-SR frontier")
             ax2.fill_between(_esg_x_sorted, _sr_sorted, alpha=0.07, color=GREEN)
-
-        # Individual assets
         for _i in range(n):
             _col_i = GREEN if active_mask[_i] else BLUE
-            ax2.scatter(_indiv_esg[_i], _indiv_sr[_i], color=_col_i,
-                        s=55, zorder=6, edgecolors="white", lw=0.8, alpha=0.85)
-            ax2.annotate(names[_i], (_indiv_esg[_i], _indiv_sr[_i]),
-                         textcoords="offset points", xytext=(5, 2),
-                         fontsize=7, color=GREY)
-
-        # Unconstrained tangency (ignoring ESG)
+            ax2.scatter(esg_scores[_i], _indiv_sr[_i], color=_col_i, s=55, zorder=6, edgecolors="white", lw=0.8, alpha=0.85)
+            ax2.annotate(names[_i], (esg_scores[_i], _indiv_sr[_i]),
+                         textcoords="offset points", xytext=(5, 2), fontsize=7, color=GREY)
         if _sp_unc > 1e-9:
-            ax2.scatter(_esg_unc, _sr_unc, color=BLUE, s=130, zorder=9,
-                        edgecolors="white", lw=1.5, marker="o",
-                        label="Tangency — ignoring ESG")
+            ax2.scatter(_esg_unc, _sr_unc, color=BLUE, s=130, zorder=9, edgecolors="white", lw=1.5, marker="o", label="Tangency — ignoring ESG")
             ax2.annotate("Tangency\n(ignoring ESG)", (_esg_unc, _sr_unc),
-                         textcoords="offset points", xytext=(6, -22),
-                         fontsize=7, color=BLUE, fontstyle="italic")
-
-        # ESG-aware tangency
+                         textcoords="offset points", xytext=(6, -22), fontsize=7, color=BLUE, fontstyle="italic")
         if _sp_esg > 1e-9:
-            ax2.scatter(_esg_esg_pt, _sr_esg, color=GREEN, s=160, zorder=10,
-                        edgecolors="white", lw=2, marker="*",
-                        label="Tangency — using ESG")
+            ax2.scatter(_esg_esg_pt, _sr_esg, color=GREEN, s=160, zorder=10, edgecolors="white", lw=2, marker="*", label="Tangency — using ESG")
             ax2.annotate("Tangency\n(using ESG)", (_esg_esg_pt, _sr_esg),
-                         textcoords="offset points", xytext=(6, 4),
-                         fontsize=7, color=GREEN, fontstyle="italic")
-
+                         textcoords="offset points", xytext=(6, 4), fontsize=7, color=GREEN, fontstyle="italic")
         ax2.set_xlabel("Portfolio ESG Score (0–10)", fontsize=9, color=GREY)
         ax2.set_ylabel("Sharpe Ratio", fontsize=9, color=GREY)
-        ax2.legend(fontsize=7, framealpha=0.9, facecolor=LEG_BG,
-                   edgecolor=LEG_ED, labelcolor=LABEL_C, loc="lower left")
+        ax2.legend(fontsize=7, framealpha=0.9, facecolor=LEG_BG, edgecolor=LEG_ED, labelcolor=LABEL_C, loc="lower left")
         _style_ax(ax2, "ESG–Sharpe Frontier")
         fig2.tight_layout(); st.pyplot(fig2); plt.close()
 
-    # Chart 3 & 4: Allocation + Risk decomposition
     st.markdown('<div class="section-header">Portfolio Breakdown</div>', unsafe_allow_html=True)
     _c3, _c4 = st.columns(2)
-
     with _c3:
         nonzero = [(w_opt[i], names[i]) for i in range(n) if w_opt[i] > 1e-4]
         if nonzero:
@@ -1887,11 +1476,9 @@ elif _page == "results":
                     autopct="%1.1f%%", pctdistance=0.82,
                     textprops={"fontsize": 8, "color": LABEL_C},
                     wedgeprops={"linewidth": 1.5, "edgecolor": CHART_BG})
-            ax3.set_title("Weight Allocation", fontsize=10, fontweight="bold",
-                          color=LABEL_C, pad=10)
+            ax3.set_title("Weight Allocation", fontsize=10, fontweight="bold", color=LABEL_C, pad=10)
             fig3.patch.set_facecolor(CHART_BG)
             fig3.tight_layout(); st.pyplot(fig3); plt.close()
-
     with _c4:
         risk_contrib = np.array([w_opt[i]*np.dot(cov[i], w_opt) for i in range(n)])
         total_var    = float(np.dot(w_opt, np.dot(cov, w_opt)))
@@ -1900,38 +1487,31 @@ elif _page == "results":
             pos_mask = risk_pct > 0.01
             if pos_mask.sum() > 0:
                 fig4, ax4 = plt.subplots(figsize=(5.5, 5.5))
-                fig4.patch.set_facecolor(CHART_BG)
-                ax4.set_facecolor(CHART_BG)
+                fig4.patch.set_facecolor(CHART_BG); ax4.set_facecolor(CHART_BG)
                 r_vals  = risk_pct[pos_mask]
                 r_names = [names[i] for i in range(n) if pos_mask[i]]
-                _bc = ax4.barh(r_names, r_vals,
-                               color=[GREEN if active_mask[i] else BLUE
-                                      for i in range(n) if pos_mask[i]],
-                               edgecolor=CHART_BG, linewidth=1.2, height=0.55)
+                ax4.barh(r_names, r_vals,
+                         color=[GREEN if active_mask[i] else BLUE for i in range(n) if pos_mask[i]],
+                         edgecolor=CHART_BG, linewidth=1.2, height=0.55)
                 ax4.set_xlabel("Risk Contribution (%)", fontsize=9, color=GREY)
                 _style_ax(ax4, "Risk Contribution by Asset")
                 fig4.tight_layout(); st.pyplot(fig4); plt.close()
 
-    # Chart 5: Sensitivity
     st.markdown('<div class="section-header">Sensitivity Analysis</div>', unsafe_allow_html=True)
-    _gamma_range = np.linspace(0.5, 10, 30)
-    _lam_range   = np.linspace(0, 5, 30)
+    _gamma_range = np.linspace(0.5, 10, 30); _lam_range = np.linspace(0, 5, 30)
     sens_g = []; sens_l = []
     for g_ in _gamma_range:
         try:
             w_ = find_optimal(mu_a, cov_a, esg_a, rf, g_, lam)
             ep_, sp_, sr_, _ = port_stats(w_, mu_a, cov_a, esg_a, rf)
-            sens_g.append({"γ": round(float(g_),2), "E[R](%)": round(ep_*100,3),
-                           "σ(%)": round(sp_*100,3), "Sharpe": round(sr_,4)})
+            sens_g.append({"γ": round(float(g_),2), "E[R](%)": round(ep_*100,3), "σ(%)": round(sp_*100,3), "Sharpe": round(sr_,4)})
         except Exception: pass
     for l_ in _lam_range:
         try:
             w_ = find_optimal(mu_a, cov_a, esg_a, rf, gamma, l_)
             ep_, sp_, sr_, _ = port_stats(w_, mu_a, cov_a, esg_a, rf)
-            sens_l.append({"λ": round(float(l_),2), "E[R](%)": round(ep_*100,3),
-                           "σ(%)": round(sp_*100,3), "Sharpe": round(sr_,4)})
+            sens_l.append({"λ": round(float(l_),2), "E[R](%)": round(ep_*100,3), "σ(%)": round(sp_*100,3), "Sharpe": round(sr_,4)})
         except Exception: pass
-
     sens_g_df = pd.DataFrame(sens_g); sens_l_df = pd.DataFrame(sens_l)
     _s1, _s2 = st.columns(2)
     with _s1:
@@ -1961,21 +1541,16 @@ elif _page == "results":
 <div class="info-box">
 <strong>Methodology:</strong> Utility U = E[R<sub>p</sub>] &minus; (&gamma;/2)&sigma;&sup2;<sub>p</sub> + &lambda;s&#772;,
 maximised via SLSQP (no short-selling). Blue frontier: unconstrained MV frontier across all assets.
-Green frontier: restricted to assets passing the ESG screen — lies to the right (higher risk for same return),
-matching the lecture diagram. ESG data: LSEG ESGCombinedScore CSV, most recent year per ticker, scaled 0–10.
+Green frontier: restricted to assets passing the ESG screen. ESG data: LSEG ESGCombinedScore CSV, scaled 0–10.
 </div>
 """, unsafe_allow_html=True)
 
     # ── Chatbot ───────────────────────────────────────────────────────────────
     st.markdown('<div class="section-header">Portfolio Explainer</div>', unsafe_allow_html=True)
-
     if "chat_history" not in st.session_state:
         st.session_state["chat_history"] = []
-
     _d = st.session_state.get("dark", True)
-    _t1_c  = "#f2f2f2" if _d else "#0a0a0a"
-    _g_c   = "#22c55e" if _d else "#16a34a"
-    _b_c   = "#22c55e" if _d else "#16a34a"
+    _t1_c = "#f2f2f2" if _d else "#0a0a0a"
 
     if not st.session_state["chat_history"]:
         msgs_html = '<div class="chat-empty">Ask about weights, the Sharpe ratio, ESG scores,<br>the utility function, or any part of your portfolio.</div>'
@@ -2014,7 +1589,7 @@ matching the lecture diagram. ESG data: LSEG ESGCombinedScore CSV, most recent y
 </div>
 """, unsafe_allow_html=True)
 
-    st.markdown(f'<div class="chat-input-bar">', unsafe_allow_html=True)
+    st.markdown('<div class="chat-input-bar">', unsafe_allow_html=True)
     with st.form(key="chat_form", clear_on_submit=True):
         _fi, _fs = st.columns([8, 1])
         with _fi:
@@ -2049,7 +1624,6 @@ matching the lecture diagram. ESG data: LSEG ESGCombinedScore CSV, most recent y
                 st.session_state["chat_history"] = []
                 st.rerun()
 
-    # ── Footer ────────────────────────────────────────────────────────────────
     st.markdown("""
 <div style="margin-top:3rem; padding-top:1.5rem; border-top:1px solid var(--sep);
             text-align:center; font-size:0.65rem; color:var(--text-3);
