@@ -906,17 +906,50 @@ if _page == "home":
         max-width: 100% !important;
         padding-left: 0 !important; padding-right: 0 !important;
     }
-    /* Black background so button area blends with canvas bottom-right */
-    .stApp { background: #000000 !important; }
+    /* Entire page black */
+    .stApp, [data-testid="stAppViewContainer"],
+    [data-testid="stVerticalBlock"], section.main > div {
+        background: #000000 !important;
+    }
+    /* Remove any default white-bar Streamlit adds between elements */
+    [data-testid="stVerticalBlockBorderWrapper"] {
+        background: #000 !important; border: none !important;
+    }
+    /* Navbar first-of-type rule must NOT apply on the home page */
+    div[data-testid="stHorizontalBlock"]:first-of-type {
+        border-bottom: none !important;
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
+    }
+    /* Centre the button row using fixed-width centre column */
+    div[data-testid="stHorizontalBlock"] {
+        display: flex !important;
+        justify-content: center !important;
+        background: #000 !important;
+        padding: 0 !important; margin: 0 !important;
+    }
+    /* Zero out the two spacer columns */
+    div[data-testid="stHorizontalBlock"]
+      > div[data-testid="column"]:first-child,
+    div[data-testid="stHorizontalBlock"]
+      > div[data-testid="column"]:last-child {
+        flex: 0 0 0 !important; min-width: 0 !important;
+        max-width: 0 !important; overflow: hidden !important;
+        padding: 0 !important;
+    }
+    /* Fix the centre column to a comfortable button width */
+    div[data-testid="stHorizontalBlock"]
+      > div[data-testid="column"]:nth-child(2) {
+        flex: 0 0 240px !important;
+        min-width: 240px !important; max-width: 240px !important;
+    }
     /* Home-page enter button: white pill */
     div[data-testid="stButton"] > button {
         background: rgba(255,255,255,0.95) !important;
         color: #080808 !important;
-        border: none !important;
-        border-radius: 12px !important;
-        padding: 0.82rem 0 !important;
-        font-size: 1rem !important;
-        font-weight: 700 !important;
+        border: none !important; border-radius: 12px !important;
+        padding: 0.84rem 0 !important;
+        font-size: 1rem !important; font-weight: 700 !important;
         letter-spacing: -0.01em !important;
         box-shadow: 0 4px 32px rgba(0,0,0,0.40) !important;
         width: 100% !important;
@@ -924,16 +957,11 @@ if _page == "home":
                     box-shadow 0.18s ease !important;
     }
     div[data-testid="stButton"] > button:hover {
-        background: #ffffff !important;
-        transform: translateY(-2px) !important;
+        background: #ffffff !important; transform: translateY(-2px) !important;
         box-shadow: 0 8px 44px rgba(0,0,0,0.55) !important;
     }
     div[data-testid="stButton"] > button:active {
         transform: translateY(0) scale(0.98) !important;
-    }
-    /* Force the button row to be truly centred */
-    [data-testid="stHorizontalBlock"] {
-        justify-content: center !important;
     }
     </style>""", unsafe_allow_html=True)
 
@@ -1123,8 +1151,12 @@ draw();
 
     components.html(_HOME_HTML, height=620, scrolling=False)
 
-    # No Streamlit button on home page — navigation handled entirely by JS in HTML overlay above.
-    # The query-param handler at the top of this file catches ?enter=1 and routes to input.
+    # Native Streamlit button — CSS above zeros the spacers and fixes centre column to 240px
+    _, _btn_col, _ = st.columns([1, 1, 1])
+    with _btn_col:
+        if st.button("Enter GreenPort →", use_container_width=True, key="home_enter"):
+            st.session_state["page"] = "input"
+            st.rerun()
 
     st.stop()
 
