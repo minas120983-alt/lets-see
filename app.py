@@ -557,30 +557,26 @@ def build_portfolio_context(names, mu, vols, esg_scores, w_opt,
 SUGGESTED_QUESTIONS = [
     "Why does my portfolio have these weights?",
     "What is the cost of the ESG constraint?",
-    "Which asset has the highest Sharpe ratio?",
-    "Explain the utility function and what it means",
-    "Why is the ESG frontier to the right of the MV frontier?",
-    "How does risk aversion affect my allocation?",
-    "What is the Capital Market Line telling me?",
-    "Which assets are dragging down my ESG score?",
-    "How does lambda affect the portfolio?",
-    "Why is my Sharpe ratio lower than the tangency?",
-    "What does diversification contribute here?",
-    "How sensitive is my portfolio to the risk-free rate?",
+    "Is my Sharpe ratio good?",
+    "Explain the utility function",
+    "Why is the ESG frontier to the right?",
+    "How does my risk aversion affect the portfolio?",
+    "Which asset is dragging down my ESG score?",
+    "What does lambda actually do here?",
+    "Should I increase or decrease my ESG preference?",
+    "What would happen without the ESG screen?",
+    "Why is the tangency portfolio different from mine?",
+    "How much return am I sacrificing for ESG?",
 ]
-
-
-def _fmt(v): return f"{v:.4f}"
-def _pct(v): return f"{v*100:.2f}%"
-def _pct1(v): return f"{v*100:.1f}%"
 
 
 def _portfolio_answer(question: str, d: dict) -> str:
     """
-    Expert-level portfolio construction engine.
-    Handles free-form questions with keyword routing + numeric fallback.
-    All answers computed directly from portfolio data — precise, grounded.
+    Expert portfolio construction commentary — interprets the numbers,
+    draws conclusions, and gives professional judgement. Does not just
+    restate the data. Handles both preset and completely free-form questions.
     """
+    import numpy as np
     q = question.lower().strip()
 
     names       = d["names"]
@@ -606,562 +602,494 @@ def _portfolio_answer(question: str, d: dict) -> str:
     cov         = d["cov"]
     n           = d["n"]
 
-    # Derived quantities used across many answers
-    ind_sr     = [(mu[i] - rf) / vols[i] if vols[i] > 0 else 0.0 for i in range(n)]
-    ind_sharpe = {names[i]: ind_sr[i] for i in range(n)}
-    by_w       = sorted(range(n), key=lambda i: w_opt[i], reverse=True)
-    by_esg     = sorted(range(n), key=lambda i: esg_scores[i])
-    by_sr      = sorted(range(n), key=lambda i: ind_sr[i], reverse=True)
-    by_vol     = sorted(range(n), key=lambda i: vols[i])
-    u_val      = ep - gamma/2 * sp**2 + lam * esg_bar
-    sharpe_cost = sr_tan_all - sr_tan_esg
-    ret_cost    = ep_tan_all - ep_tan_esg
-    # Variance-covariance contribution of each asset to portfolio variance
-    w   = w_opt
-    cov_contrib = [2 * w[i] * sum(w[j] * cov[i,j] for j in range(n)) for i in range(n)]
-    pct_var_contrib = [cov_contrib[i] / max(sp**2, 1e-12) * 100 for i in range(n)]
-    # Marginal contribution to Sharpe (how much each asset improves SR)
-    port_cov_vec = [sum(w[j] * cov[i,j] for j in range(n)) for i in range(n)]
+    # Core derived quantities
+    ind_sr        = [(mu[i]-rf)/vols[i] if vols[i]>0 else 0. for i in range(n)]
+    by_w          = sorted(range(n), key=lambda i: w_opt[i], reverse=True)
+    by_sr         = sorted(range(n), key=lambda i: ind_sr[i], reverse=True)
+    by_esg        = sorted(range(n), key=lambda i: esg_scores[i])
+    by_vol_asc    = sorted(range(n), key=lambda i: vols[i])
+    u_val         = ep - gamma/2*sp**2 + lam*esg_bar
+    sharpe_cost   = sr_tan_all - sr_tan_esg
+    ret_cost_ann  = (ep_tan_all - ep_tan_esg) * 100
+    held          = [i for i in range(n) if w_opt[i] > 0.005]
+    excluded      = [i for i in range(n) if not active_mask[i]]
+    variance_pct  = [2*w_opt[i]*sum(w_opt[j]*cov[i,j] for j in range(n))/max(sp**2,1e-14)*100
+                     for i in range(n)]
 
-    # ──────────────────────────────────────────────────────────────────────────
-    # KEYWORD ROUTING — ordered from most specific to most general
-    # ──────────────────────────────────────────────────────────────────────────
+    # ── Helpers ──────────────────────────────────────────────────────────────
+    def p(v):  return f"{v*100:.2f}%"
+    def p1(v): return f"{v*100:.1f}%"
+    def sr_band(s):
+        if s > 1.2:   return "exceptional"
+        if s > 0.9:   return "strong"
+        if s > 0.6:   return "decent"
+        if s > 0.3:   return "modest"
+        return "weak"
+    def gamma_label(g):
+        if g >= 7:  return "highly risk-averse"
+        if g >= 4:  return "moderately risk-averse"
+        if g >= 2:  return "balanced"
+        return "risk-tolerant"
+    def lam_label(l):
+        if l >= 3.5: return "strongly ESG-driven"
+        if l >= 1.5: return "moderately ESG-tilted"
+        if l >= 0.5: return "lightly ESG-aware"
+        return "essentially ESG-indifferent"
+    def esg_label(s):
+        if s >= 8: return "excellent"
+        if s >= 6: return "good"
+        if s >= 4: return "average"
+        if s >= 2: return "poor"
+        return "very poor"
 
-    # ── 1. Portfolio weights ─────────────────────────────────────────────────
+    # ── 1. WEIGHTS — actual reasoning, not just a table ──────────────────────
     if any(k in q for k in ["weight", "allocat", "holding", "position",
-                              "why does my portfolio", "why is my", "why hold",
-                              "why so much", "why so little"]):
-        lines = [
-            f"PORTFOLIO WEIGHTS — {n} assets, γ={gamma}, λ={lam}",
-            "─" * 50,
-            "",
-            "The optimiser maximises U = E[Rp] - (γ/2)σ²p + λ·ESG, subject to",
-            "Σwᵢ = 1 and wᵢ ≥ 0 (long-only). Each weight reflects the",
-            "marginal contribution of that asset to utility across three dimensions:",
-            "return, risk reduction, and ESG quality.",
-            "",
-        ]
-        for i in by_w:
-            w_i = w_opt[i]
-            if w_i < 0.001:
-                # Explain why excluded
-                if not active_mask[i]:
-                    reason = f"ESG screen: score {esg_scores[i]:.2f} < threshold {esg_thresh:.1f}"
-                elif ind_sr[i] < min(ind_sr[j] for j in range(n) if w_opt[j] > 0.001):
-                    reason = "lowest risk-adjusted return — optimizer finds no utility contribution"
-                else:
-                    reason = "dominated: another asset offers superior return/risk/ESG per unit weight"
-                lines.append(f"  {names[i]:20s}  0.00%  — excluded ({reason})")
-            else:
-                # Explain why included and at this size
-                drivers = []
-                if esg_scores[i] >= max(esg_scores[j] for j in range(n) if w_opt[j]>0.001) - 0.5:
-                    drivers.append(f"top ESG {esg_scores[i]:.2f}/10")
-                if ind_sr[i] >= max(ind_sr[j] for j in range(n) if w_opt[j]>0.001) - 0.05:
-                    drivers.append(f"best risk-adjusted SR={ind_sr[i]:.3f}")
-                if vols[i] <= sorted(vols)[min(1, n-1)]:
-                    drivers.append(f"low vol {_pct1(vols[i])}")
-                # Diversification: low correlation with dominant asset?
-                if n > 1 and len(by_w) > 1:
-                    top = by_w[0] if i != by_w[0] else by_w[1] if len(by_w)>1 else -1
-                    if top >= 0:
-                        corr_ij = cov[i,top] / max(vols[i]*vols[top], 1e-12)
-                        if corr_ij < 0.3 and w_opt[top] > 0.1:
-                            drivers.append(f"diversifier (ρ={corr_ij:.2f} with {names[top]})")
-                driver_str = f"  [{', '.join(drivers)}]" if drivers else ""
-                lines.append(
-                    f"  {names[i]:20s}  {w_i*100:5.1f}%"
-                    f"  E[R]={_pct1(mu[i])} σ={_pct1(vols[i])}"
-                    f" ESG={esg_scores[i]:.2f} SR={ind_sr[i]:.3f}{driver_str}"
-                )
-        lines += [
-            "",
-            f"Portfolio summary:  E[R]={_pct(ep)}  σ={_pct(sp)}  SR={sr:.3f}  ESG={esg_bar:.2f}/10",
-            f"Utility achieved:   U = {_pct(ep)} - {gamma/2:.2f}×{sp**2:.5f} + {lam}×{esg_bar:.3f} = {u_val:.5f}",
-        ]
-        return "\n".join(lines)
+                              "why does my portfolio", "why hold", "why so much",
+                              "why is my", "why is there", "what drives"]):
+        top = by_w[0]
+        second = by_w[1] if len(by_w) > 1 else top
+        bottom_held = by_w[-1] if held else top
 
-    # ── 2. ESG constraint cost ────────────────────────────────────────────────
-    if any(k in q for k in ["cost", "sacrifice", "price", "penalty", "esg constraint",
-                              "esg screen", "tradeoff", "trade-off", "give up", "lose"]):
-        excluded = [names[i] for i in range(n) if not active_mask[i]]
-        lines = [
-            "ESG CONSTRAINT COST ANALYSIS",
-            "─" * 50,
-            "",
-            "Imposing ESG screens restricts the feasible investment set.",
-            "The cost is measured as the reduction in maximum attainable Sharpe ratio:",
-            "",
-            f"  Unconstrained tangency SR:    {sr_tan_all:.4f}",
-            f"  ESG-constrained tangency SR:  {sr_tan_esg:.4f}",
-            f"  Sharpe ratio cost:            -{sharpe_cost:.4f}  ({sharpe_cost/max(sr_tan_all,0.001)*100:.1f}% reduction)",
-            "",
-            f"  Unconstrained tangency E[R]:  {_pct(ep_tan_all)}",
-            f"  ESG-constrained tangency E[R]:{_pct(ep_tan_esg)}",
-            f"  Expected return cost:         -{_pct(ret_cost)} per year",
-            "",
-        ]
-        if esg_thresh > 0 and excluded:
-            lines += [
-                f"  Assets excluded by ESG screen (min score {esg_thresh:.1f}/10):",
-            ]
-            for nm in excluded:
-                i = names.index(nm)
-                lines.append(f"    {nm}: ESG={esg_scores[i]:.2f}, E[R]={_pct1(mu[i])}, σ={_pct1(vols[i])}, SR={ind_sr[i]:.3f}")
-            lines.append("")
-        lines += [
-            f"  ESG benefit received:",
-            f"    Portfolio ESG score: {esg_bar:.3f}/10",
-            f"    ESG utility contribution: λ×ESG = {lam}×{esg_bar:.3f} = {lam*esg_bar:.4f}",
-            "",
-            "The ESG-SR frontier chart shows this tradeoff continuously:",
-            "read off any ESG level and see the maximum Sharpe achievable.",
-            f"With λ={lam}, the optimizer deems this cost {'acceptable' if lam > 1.5 else 'marginal — consider raising λ if ESG matters more'}.",
-        ]
-        return "\n".join(lines)
+        # What's actually dominating?
+        top_drivers = []
+        if ind_sr[top] == max(ind_sr): top_drivers.append("the best risk-adjusted return")
+        if esg_scores[top] == max(esg_scores): top_drivers.append("the highest ESG score")
+        if vols[top] == min(vols): top_drivers.append("the lowest volatility")
+        driver_str = " and ".join(top_drivers) if top_drivers else "a strong combination of return, risk, and ESG"
 
-    # ── 3. Sharpe / risk-adjusted returns ────────────────────────────────────
-    if any(k in q for k in ["sharpe", "risk-adjust", "risk adjusted", "best sharpe",
-                              "highest sharpe", "individual sharpe", "mine good"]):
-        best_i = by_sr[0]
-        lines = [
-            "SHARPE RATIO ANALYSIS",
-            "─" * 50,
-            "",
-            "Sharpe ratio = (E[Rp] - rf) / σp — reward per unit of total risk.",
-            f"Risk-free rate: {_pct(rf)}",
-            "",
-            "Individual asset Sharpe ratios (ranked):",
-        ]
-        for i in by_sr:
-            active_flag = "" if active_mask[i] else " [ESG screened out]"
-            lines.append(
-                f"  {names[i]:20s}  SR={ind_sr[i]:.4f}"
-                f"  ({_pct1(mu[i])} - {_pct1(rf)}) / {_pct1(vols[i])}{active_flag}"
+        # Diversification check
+        if len(held) >= 2:
+            top2 = held[:2]
+            rho = cov[top2[0],top2[1]] / max(vols[top2[0]]*vols[top2[1]], 1e-12)
+            div_note = (
+                f"{names[top2[1]]} ({p1(w_opt[top2[1]])}) complements it well "
+                f"with a correlation of only {rho:.2f} — that low correlation is doing real "
+                f"diversification work, pulling portfolio volatility down to {p(sp)} "
+                f"versus a naively blended {p1(sum(w_opt[i]*vols[i] for i in range(n)))}."
+                if abs(rho) < 0.5 else
+                f"{names[top2[1]]} ({p1(w_opt[top2[1]])}) has a correlation of {rho:.2f} "
+                f"with {names[top]} — moderately correlated, so the diversification benefit is limited."
             )
-        lines += [
-            "",
-            "Portfolio-level:",
-            f"  Your ESG-optimal portfolio:         SR = {sr:.4f}",
-            f"  Tangency (unconstrained):           SR = {sr_tan_all:.4f}",
-            f"  Tangency (ESG-screened):            SR = {sr_tan_esg:.4f}",
-            "",
-        ]
-        if sr >= sr_tan_all * 0.95:
-            lines.append(f"Your portfolio SR is close to the unconstrained tangency — the ESG and risk-aversion constraints impose minimal Sharpe cost.")
-        elif sr >= sr_tan_esg * 0.95:
-            lines.append(f"Your portfolio SR is close to the ESG-constrained tangency — the ESG preference λ={lam} shifts weights slightly but the Sharpe cost is modest.")
         else:
-            lines.append(
-                f"Your portfolio SR ({sr:.4f}) is {(sr_tan_esg - sr):.4f} below the ESG tangency ({sr_tan_esg:.4f})."
-                f" The gap is driven by λ={lam} pulling weight toward higher-ESG assets at the expense of pure Sharpe maximisation."
-            )
-        return "\n".join(lines)
+            div_note = "With only one asset held at meaningful weight, there is no diversification benefit."
 
-    # ── 4. Utility function ───────────────────────────────────────────────────
-    if any(k in q for k in ["utility", "objective", "formula", "model", "maximis",
-                              "optimi", "u =", "what is the function", "how does it work"]):
-        lines = [
-            "UTILITY FUNCTION — HOW THE MODEL WORKS",
-            "─" * 50,
-            "",
-            "The optimizer maximises:",
-            "",
-            "  U = E[Rp]  -  (γ/2) × σ²p  +  λ × ESG_bar",
-            "",
-            "Each term, with your current values:",
-            "",
-            f"  E[Rp]          = {_pct(ep)}     ← reward: expected portfolio return",
-            f"  -(γ/2)×σ²p    = -{gamma/2:.3f}×{sp**2:.5f} = {-gamma/2*sp**2:.5f}  ← penalty: scaled variance",
-            f"  λ×ESG_bar      = {lam}×{esg_bar:.4f}    = {lam*esg_bar:.5f}  ← ESG premium",
-            f"  ─────────────────────────────────────────",
-            f"  U              = {u_val:.6f}",
-            "",
-            "Parameter interpretation:",
-            f"  γ = {gamma}  → risk aversion. The variance penalty is γ/2 times σ².",
-            f"         A 1% rise in σ costs {gamma/2 * 2 * sp * 0.01:.4f} utility units.",
-            f"         {'Very risk-averse' if gamma > 6 else 'Moderately risk-averse' if gamma > 3 else 'Relatively risk-tolerant'} investor profile.",
-            f"  λ = {lam}  → ESG preference weight. Each 1-point increase in portfolio ESG",
-            f"         (0–10 scale) adds {lam:.3f} to utility,",
-            f"         equivalent to ≈{lam/10*100:.1f}bp of additional expected return.",
-            "",
-            "The three terms trade off continuously:",
-            "higher return → more risk → variance penalty increases.",
-            "ESG preference → constraints reduce feasible set → Sharpe falls.",
-            "The weights are the exact solution that balances all three.",
-        ]
-        return "\n".join(lines)
+        # Zero-weight explanation
+        zero_held = [i for i in range(n) if w_opt[i] <= 0.005]
+        zero_parts = []
+        for i in zero_held[:2]:
+            if not active_mask[i]:
+                zero_parts.append(f"{names[i]} is excluded entirely by the ESG screen "
+                                  f"(score {esg_scores[i]:.1f}/10 < threshold {esg_thresh:.1f})")
+            else:
+                # Find what dominates it
+                better = [j for j in held if ind_sr[j] > ind_sr[i] and esg_scores[j] >= esg_scores[i]]
+                if better:
+                    zero_parts.append(f"{names[i]} receives zero weight because {names[better[0]]} "
+                                      f"offers superior risk-adjusted return ({ind_sr[better[0]]:.2f} vs "
+                                      f"{ind_sr[i]:.2f}) with {'equal or better' if esg_scores[better[0]]>=esg_scores[i] else 'similar'} ESG quality — "
+                                      f"it is dominated and the optimizer correctly ignores it")
+                else:
+                    zero_parts.append(f"{names[i]} is zeroed out because its Sharpe of {ind_sr[i]:.2f} "
+                                      f"and ESG of {esg_scores[i]:.1f}/10 add insufficient marginal utility "
+                                      f"once the other assets are already in the mix")
 
-    # ── 5. Frontier / ESG frontier to the right ───────────────────────────────
-    if any(k in q for k in ["frontier", "right of", "constrained", "feasible",
-                              "why is the esg", "two curve", "blue curve", "white curve",
-                              "efficient frontier"]):
-        excluded = [names[i] for i in range(n) if not active_mask[i]]
         lines = [
-            "THE TWO FRONTIERS — WHY THE ESG FRONTIER LIES TO THE RIGHT",
-            "─" * 50,
+            f"The portfolio is dominated by {names[top]} at {p1(w_opt[top])} "
+            f"because it offers {driver_str}.",
             "",
-            "The mean-variance frontier traces the minimum-risk portfolio for",
-            "each level of expected return. Two versions are shown:",
-            "",
-            "  Frontier 1 (lighter): all assets, no ESG restriction",
-            "    → maximum feasible set → global minimum variance for each E[R]",
-            "",
-            f"  Frontier 2 (darker):  ESG-screened assets only (ESG ≥ {esg_thresh:.1f}/10)",
-            "    → restricted feasible set → higher minimum variance for same E[R]",
-            "",
-            "This is a fundamental result: adding constraints cannot improve",
-            "and generally reduces portfolio efficiency. The rightward shift is",
-            "the geometric representation of the ESG cost.",
-            "",
-            "Tangency portfolios (CML touch-points):",
-            f"  All assets:   E[R]={_pct(ep_tan_all)}  σ={_pct(sp_tan_all)}  SR={sr_tan_all:.4f}",
-            f"  ESG-screened: E[R]={_pct(ep_tan_esg)}  σ={_pct(sp_tan_esg)}  SR={sr_tan_esg:.4f}",
-            f"  Sharpe cost:  -{sharpe_cost:.4f}",
+            f"{div_note}",
             "",
         ]
-        if excluded:
-            lines += [
-                "Assets removed by the ESG screen:",
-                *[f"  {nm}: ESG={esg_scores[names.index(nm)]:.2f}/10  (contributes high return but fails screen)"
-                  for nm in excluded],
-                "",
-            ]
-        lines += [
-            "The CML (dashed line) from rf through each tangency shows all",
-            "achievable return/risk combinations with leverage.",
-            "The slope of each CML equals its tangency Sharpe ratio.",
-        ]
-        return "\n".join(lines)
-
-    # ── 6. Risk aversion ─────────────────────────────────────────────────────
-    if any(k in q for k in ["risk aversion", "gamma", "γ", "aversion",
-                              "risk toleran", "how does risk", "risk appetite"]):
-        sorted_vol_asc = sorted(range(n), key=lambda i: vols[i])
-        lines = [
-            f"RISK AVERSION  γ = {gamma}",
-            "─" * 50,
-            "",
-            "γ scales the variance penalty in the utility function:",
-            "  U = E[Rp] - (γ/2)σ²p + λ·ESG",
-            "",
-            f"Current variance penalty: (γ/2)σ²p = {gamma/2:.2f} × {sp**2*100:.4f}% = {gamma/2*sp**2*100:.4f}%",
-            f"This represents {abs(gamma/2*sp**2/ep)*100:.1f}% of expected return, surrendered to risk management.",
-            "",
-            "Effect on weights:",
-            f"  γ > {gamma}: more averse → shifts weight toward low-σ assets",
-            f"  γ < {gamma}: less averse → accepts more volatility for higher return",
-            "",
-            "Lowest-volatility assets in your universe (most favoured by high γ):",
-        ]
-        for i in sorted_vol_asc[:min(3,n)]:
-            lines.append(f"  {names[i]:20s}  σ={_pct1(vols[i])}  weight={_pct1(w_opt[i])}  E[R]={_pct1(mu[i])}")
-        lines += [
-            "",
-            "Highest-volatility assets (penalised most by high γ):",
-        ]
-        for i in sorted(range(n), key=lambda i: vols[i], reverse=True)[:min(3,n)]:
-            lines.append(f"  {names[i]:20s}  σ={_pct1(vols[i])}  weight={_pct1(w_opt[i])}  E[R]={_pct1(mu[i])}")
-        lines += [
-            "",
-            f"At γ={gamma}, the optimal portfolio has σ={_pct(sp)}.",
-            f"The tangency portfolio (max Sharpe, γ-independent) has σ={_pct(sp_tan_esg)}.",
-            f"The gap reflects {'risk aversion pulling the portfolio toward lower-vol assets' if sp < sp_tan_esg else 'ESG constraints forcing higher-vol assets into the mix'}.",
-        ]
-        return "\n".join(lines)
-
-    # ── 7. Capital Market Line ────────────────────────────────────────────────
-    if any(k in q for k in ["capital market", "cml", "market line", "leverage",
-                              "risk free", "risk-free", "borrowing"]):
-        lines = [
-            "CAPITAL MARKET LINE",
-            "─" * 50,
-            "",
-            "The CML is the set of all portfolios formed by combining the",
-            "risk-free asset with the tangency (maximum Sharpe) portfolio.",
-            "",
-            "  E[R]_CML(σ) = rf + SR_tangency × σ",
-            "",
-            "Two CMLs are drawn in your chart:",
-            "",
-            f"  CML 1 (lighter) — unconstrained tangency:",
-            f"    rf={_pct(rf)}  E[Rt]={_pct(ep_tan_all)}  σt={_pct(sp_tan_all)}",
-            f"    Slope = SR = {sr_tan_all:.4f}",
-            f"    At σ=10%:  implied E[R] = {rf*100 + sr_tan_all*10:.2f}%",
-            "",
-            f"  CML 2 (darker) — ESG-screened tangency:",
-            f"    rf={_pct(rf)}  E[Rt]={_pct(ep_tan_esg)}  σt={_pct(sp_tan_esg)}",
-            f"    Slope = SR = {sr_tan_esg:.4f}",
-            f"    At σ=10%:  implied E[R] = {rf*100 + sr_tan_esg*10:.2f}%",
-            "",
-            f"Your optimal portfolio: E[R]={_pct(ep)}, σ={_pct(sp)}, SR={sr:.4f}",
-            f"  It lies {'on' if abs(sr-sr_tan_esg)<0.005 else 'below'} CML 2 because",
-            f"  λ={lam} introduces ESG into the objective, moving weights away from",
-            "  pure Sharpe maximisation toward higher-ESG assets.",
-            "",
-            "Any point above a CML is unachievable (requires superior information).",
-            "Any point below it is suboptimal relative to a CML + rf combination.",
-        ]
-        return "\n".join(lines)
-
-    # ── 8. ESG drag / worst ESG assets ───────────────────────────────────────
-    if any(k in q for k in ["drag", "worst esg", "bad esg", "lowest esg",
-                              "esg score", "which asset", "esg contribution"]):
-        weighted_contrib = sorted(
-            [(i, esg_scores[i], w_opt[i], esg_scores[i]*w_opt[i]) for i in range(n) if w_opt[i]>0.001],
-            key=lambda x: x[3]
-        )
-        lines = [
-            "ESG SCORE ANALYSIS",
-            "─" * 50,
-            "",
-            f"Portfolio weighted ESG: {esg_bar:.4f}/10",
-            "",
-            "Asset ESG scores and weighted contributions to portfolio ESG:",
-            "",
-        ]
-        for i in by_esg:
-            flag = "  [screened out]" if not active_mask[i] else ""
-            in_port = w_opt[i] > 0.001
-            contrib = esg_scores[i] * w_opt[i]
-            lines.append(
-                f"  {names[i]:20s}  ESG={esg_scores[i]:.3f}/10"
-                f"  weight={_pct1(w_opt[i])}"
-                f"  contribution={contrib:.4f}{flag}"
-            )
-        lines += [
-            "",
-            "Assets dragging portfolio ESG lowest (by weighted contribution):",
-        ]
-        for i, esg, w_i, contrib in weighted_contrib[:3]:
-            share = contrib / max(esg_bar, 0.001) * 100
-            lines.append(f"  {names[i]}: {_pct1(w_i)} weight × {esg:.3f}/10 = {contrib:.4f} ({share:.1f}% of portfolio ESG)")
-        best_esg_i = by_esg[-1]
-        worst_held = next((i for i,_,w_i,_ in weighted_contrib if w_i > 0.001), None)
-        if worst_held is not None:
-            esg_improvement = (esg_scores[best_esg_i] - esg_scores[worst_held]) * w_opt[worst_held]
-            lines += [
-                "",
-                f"Replacing {names[worst_held]} (ESG={esg_scores[worst_held]:.3f})",
-                f"with {names[best_esg_i]} (ESG={esg_scores[best_esg_i]:.3f}) at the same weight",
-                f"would improve portfolio ESG by ≈{esg_improvement:.4f} points.",
-                f"This would add λ×Δesg = {lam}×{esg_improvement:.4f} = {lam*esg_improvement:.5f} utility.",
-            ]
-        return "\n".join(lines)
-
-    # ── 9. Lambda / ESG preference ────────────────────────────────────────────
-    if any(k in q for k in ["lambda", "λ", "esg preference", "esg weight",
-                              "esg parameter", "esg tilting", "how does lambda"]):
-        lines = [
-            f"ESG PREFERENCE  λ = {lam}",
-            "─" * 50,
-            "",
-            "λ scales the ESG premium in utility:",
-            "  U = E[Rp] - (γ/2)σ²p + λ × ESG_bar",
-            "",
-            f"ESG contribution to utility: {lam} × {esg_bar:.4f} = {lam*esg_bar:.5f}",
-            f"Financial contribution:      E[Rp] - (γ/2)σ² = {ep - gamma/2*sp**2:.5f}",
-            f"Total utility:               {u_val:.6f}",
-            "",
-            "Calibration — what λ means in return-equivalent terms:",
-            f"  A 1-point rise in ESG (0–10 scale) adds λ/10 = {lam/10:.4f} to utility.",
-            f"  This is equivalent to {lam/10 * 100:.2f}bp of additional expected return.",
-            f"  At your portfolio size, ESG accounts for {lam*esg_bar/(u_val if u_val!=0 else 1)*100:.1f}% of utility.",
-            "",
-            "Sensitivity to λ changes:",
-            f"  λ = 0:   pure Markowitz, ESG irrelevant. Tangency SR = {sr_tan_all:.4f}.",
-            f"  λ = {lam}: current. Portfolio SR = {sr:.4f}. ESG = {esg_bar:.3f}/10.",
-            f"  λ = 5:   maximum ESG weight. Portfolio would tilt heavily to ESG={max(esg_scores):.1f}/10 assets.",
-            "",
-            "The sensitivity analysis section below the chart shows exactly how",
-            "E[R], σ, Sharpe, and ESG score change as λ moves from 0 to 5.",
-        ]
-        return "\n".join(lines)
-
-    # ── 10. Tangency portfolio ────────────────────────────────────────────────
-    if any(k in q for k in ["tangency", "tangent", "market portfolio",
-                              "maximum sharpe", "max sharpe"]):
-        lines = [
-            "TANGENCY PORTFOLIO",
-            "─" * 50,
-            "",
-            "The tangency portfolio is the unique risky portfolio that maximises",
-            "the Sharpe ratio: max (E[Rp] - rf) / σp over all feasible portfolios.",
-            "In the chart it sits where the CML is tangent to the efficient frontier.",
-            "",
-            "Two tangency portfolios:",
-            "",
-            f"  Unconstrained (all assets):",
-            f"    E[R] = {_pct(ep_tan_all)}   σ = {_pct(sp_tan_all)}   SR = {sr_tan_all:.4f}",
-            "",
-            f"  ESG-constrained (screened assets, ESG ≥ {esg_thresh:.1f}):",
-            f"    E[R] = {_pct(ep_tan_esg)}   σ = {_pct(sp_tan_esg)}   SR = {sr_tan_esg:.4f}",
-            "",
-            f"  Sharpe ratio cost of ESG constraint: -{sharpe_cost:.4f}",
-            "",
-            f"Your ESG-optimal portfolio:  SR = {sr:.4f}",
-            f"  Gap vs ESG tangency: -{sr_tan_esg - sr:.4f}",
-            "",
-            f"This gap exists because λ={lam} introduces an ESG objective that",
-            "conflicts with pure Sharpe maximisation. As λ→0, your portfolio",
-            "converges to the ESG tangency. As λ increases, it tilts further",
-            "toward high-ESG assets even at the cost of Sharpe ratio.",
-            "",
-            "Classic mean-variance theory: every investor holds the risk-free asset",
-            "plus the tangency portfolio in proportions determined by risk aversion.",
-            "Here, the ESG utility term breaks this two-fund separation.",
-        ]
-        return "\n".join(lines)
-
-    # ── 11. Diversification ───────────────────────────────────────────────────
-    if any(k in q for k in ["diversif", "correlation", "covariance", "benefit",
-                              "risk reduction", "contribute"]):
-        lines = [
-            "DIVERSIFICATION ANALYSIS",
-            "─" * 50,
-            "",
-            f"Portfolio σ = {_pct(sp)}",
-            "Variance contribution by asset (% of portfolio variance):",
-            "",
-        ]
-        for i in sorted(range(n), key=lambda i: pct_var_contrib[i], reverse=True):
-            if w_opt[i] > 0.001:
-                lines.append(
-                    f"  {names[i]:20s}  w={_pct1(w_opt[i])}  var contrib={pct_var_contrib[i]:.1f}%"
-                    f"  (σ={_pct1(vols[i])})"
-                )
-        weighted_avg_vol = sum(w_opt[i]*vols[i] for i in range(n))
-        div_ratio = sp / weighted_avg_vol if weighted_avg_vol > 0 else 1
-        lines += [
-            "",
-            f"Weighted-average individual σ:   {_pct(weighted_avg_vol)}",
-            f"Portfolio σ:                      {_pct(sp)}",
-            f"Diversification ratio:            {div_ratio:.4f}",
-            f"Volatility saved by mixing:       {_pct(weighted_avg_vol - sp)}",
-            "",
-            f"A diversification ratio < 1 ({div_ratio:.4f}) confirms that combining these",
-            "assets reduces risk below the weighted sum of individual volatilities.",
-            "The benefit is driven by imperfect correlations between assets.",
-        ]
-        return "\n".join(lines)
-
-    # ── 12. Risk-free rate sensitivity ───────────────────────────────────────
-    if any(k in q for k in ["risk-free rate", "risk free rate", "rf", "interest rate",
-                              "sensitive", "sensitivity"]):
-        # approximate: dSR/drf = -1/σ for each asset
-        lines = [
-            f"RISK-FREE RATE SENSITIVITY  rf = {_pct(rf)}",
-            "─" * 50,
-            "",
-            "The risk-free rate enters through the Sharpe ratio and utility.",
-            "A higher rf reduces excess returns (E[R]-rf) for all assets equally,",
-            "but its effect on optimal weights depends on relative risk-adjusted returns.",
-            "",
-            "Current Sharpe ratios at rf={:.1f}%:".format(rf*100),
-        ]
-        for i in by_sr:
-            lines.append(f"  {names[i]:20s}  SR={ind_sr[i]:.4f}")
-        # Recompute SRs at rf + 1%
-        rf_high = rf + 0.01
-        ind_sr_high = [(mu[i] - rf_high) / vols[i] for i in range(n)]
-        by_sr_high  = sorted(range(n), key=lambda i: ind_sr_high[i], reverse=True)
-        lines += [
-            "",
-            "If rf rises by 1% (to {:.1f}%):".format(rf_high*100),
-        ]
-        for i in by_sr_high:
-            delta = ind_sr_high[i] - ind_sr[i]
-            lines.append(f"  {names[i]:20s}  new SR={ind_sr_high[i]:.4f}  (change={delta:+.4f})")
-        lines += [
-            "",
-            "Higher rf tends to favour lower-volatility assets because their",
-            "Sharpe ratios shrink proportionally less.",
-        ]
-        return "\n".join(lines)
-
-    # ── 13. Remove ESG / what-if ──────────────────────────────────────────────
-    if any(k in q for k in ["remove", "without esg", "no esg", "ignore esg",
-                              "what if", "what would", "screen off", "hypothetical",
-                              "if i didn", "if there was no"]):
-        lines = [
-            "WHAT-IF: NO ESG CONSTRAINT",
-            "─" * 50,
-            "",
-            f"If λ=0 and no minimum ESG threshold:",
-            "",
-            f"  Achievable tangency SR:   {sr_tan_all:.4f}  (vs {sr_tan_esg:.4f} currently)",
-            f"  Sharpe gain:              +{sharpe_cost:.4f}  (+{sharpe_cost/max(sr_tan_esg,0.001)*100:.1f}%)",
-            f"  Expected return gain:     +{_pct(ret_cost)} per year",
-            "",
-        ]
-        excluded = [names[i] for i in range(n) if not active_mask[i]]
-        if excluded:
-            lines += [
-                "Assets that would become available:",
-            ]
-            for nm in excluded:
-                i = names.index(nm)
-                lines.append(f"  {nm}: ESG={esg_scores[i]:.2f}/10  E[R]={_pct1(mu[i])}  SR={ind_sr[i]:.3f}")
+        if zero_parts:
+            lines += [z + "." for z in zero_parts]
             lines.append("")
         lines += [
-            f"ESG score that would be lost: {esg_bar:.3f}/10 → lower (unconstrained portfolio)",
-            f"Utility impact: +{sharpe_cost*sp:.4f} financial, -{lam*esg_bar:.4f} ESG premium",
-            "",
-            "This is the core tradeoff the ESG-SR frontier chart visualises.",
-            "The choice of λ represents how much the investor values ESG",
-            "relative to financial performance.",
+            f"Your risk aversion (γ={gamma}, {gamma_label(gamma)}) "
+            f"{'is heavily penalising high-volatility assets' if gamma > 5 else 'is allowing a moderate spread across assets' if gamma > 2 else 'is tolerating more volatility in pursuit of return'}. "
+            f"Your ESG preference (λ={lam}, {lam_label(lam)}) "
+            f"{'is materially tilting allocation toward high-ESG names' if lam > 2 else 'is adding a modest ESG tilt without drastically changing the financial allocation' if lam > 0.5 else 'is having minimal impact on where the weight lands'}.",
         ]
         return "\n".join(lines)
 
-    # ── 14. General portfolio question — free-form fallback ──────────────────
-    # Parse the question for any asset name mentioned
-    mentioned = [i for i in range(n) if names[i].lower() in q or
-                 (len(names[i]) <= 5 and names[i].lower() in q.split())]
-    if mentioned:
-        lines = [f"ANALYSIS FOR: {', '.join(names[i] for i in mentioned)}", "─"*50, ""]
-        for i in mentioned:
-            corr_with_others = []
-            for j in range(n):
-                if j != i and vols[i]>0 and vols[j]>0:
-                    rho = cov[i,j] / (vols[i]*vols[j])
-                    corr_with_others.append((names[j], rho))
-            corr_with_others.sort(key=lambda x: abs(x[1]), reverse=True)
-            lines += [
-                f"{names[i]}:",
-                f"  Expected return:     {_pct(mu[i])}",
-                f"  Volatility:          {_pct(vols[i])}",
-                f"  ESG score:           {esg_scores[i]:.3f}/10",
-                f"  Individual Sharpe:   {ind_sr[i]:.4f}",
-                f"  Portfolio weight:    {_pct(w_opt[i])}",
-                f"  Variance contribution: {pct_var_contrib[i]:.1f}% of portfolio variance",
-                f"  In ESG frontier:     {'Yes' if active_mask[i] else 'No — ESG score below threshold'}",
-                "",
-                "  Correlations with other assets:",
-                *[f"    {nm}: ρ = {rho:.3f}" for nm, rho in corr_with_others[:min(5,n-1)]],
-                "",
-            ]
-        return "\n".join(lines)
+    # ── 2. ESG CONSTRAINT COST — interpret the actual magnitude ──────────────
+    if any(k in q for k in ["cost", "sacrifice", "give up", "lose", "penalty",
+                              "esg constraint", "esg screen", "tradeoff",
+                              "trade-off", "return am i sacrific", "how much return",
+                              "price of esg"]):
+        # Interpret the magnitude
+        if sharpe_cost < 0.02:
+            cost_verdict = (
+                f"Honestly, the ESG constraint here is almost free. "
+                f"You are giving up just {sharpe_cost:.4f} Sharpe ratio points — "
+                f"that is statistically indistinguishable from noise and well within "
+                f"any reasonable estimation error. This is the ideal ESG portfolio situation: "
+                f"good ESG and essentially no financial cost."
+            )
+        elif sharpe_cost < 0.08:
+            cost_verdict = (
+                f"The ESG constraint costs {sharpe_cost:.3f} Sharpe ratio points, "
+                f"which translates to roughly {ret_cost_ann:.1f}% in expected annual return "
+                f"at the tangency level. That is a real but manageable cost — "
+                f"broadly in line with what academic research finds for typical ESG screens. "
+                f"Whether it is worth it depends entirely on how much you value "
+                f"the ESG improvement of {esg_bar:.1f}/10 in portfolio score."
+            )
+        elif sharpe_cost < 0.20:
+            cost_verdict = (
+                f"The ESG constraint is inflicting genuine financial pain: "
+                f"{sharpe_cost:.3f} Sharpe ratio points lost, {ret_cost_ann:.1f}% "
+                f"in expected annual return foregone. This is a meaningful cost. "
+                f"It usually means one or more high-Sharpe assets are being excluded by the screen. "
+                f"You should ask whether the ESG quality gained genuinely justifies this — "
+                f"or whether relaxing the minimum threshold from {esg_thresh:.1f} to something lower "
+                f"would recover most of the return at little ESG cost."
+            )
+        else:
+            cost_verdict = (
+                f"This ESG constraint is extremely expensive: {sharpe_cost:.3f} Sharpe points lost "
+                f"and {ret_cost_ann:.1f}% in annual expected return. "
+                f"At this level you are likely excluding your best-performing assets. "
+                f"Practically speaking, this portfolio construction is not financially sound "
+                f"unless the ESG mandate is non-negotiable. Strongly consider relaxing the threshold."
+            )
 
-    # ── 15. Absolute fallback ─────────────────────────────────────────────────
+        excl_str = ""
+        if excluded:
+            excl_names = [f"{names[i]} (SR={ind_sr[i]:.2f}, ESG={esg_scores[i]:.1f}/10)"
+                          for i in excluded]
+            excl_str = (
+                f"\n\nThe assets being excluded are: {', '.join(excl_names)}. "
+                f"{'The excluded assets have strong Sharpe ratios — their absence is the direct cause of the cost.' if any(ind_sr[i] > sr_tan_esg*0.8 for i in excluded) else 'Their Sharpe ratios are modest, so excluding them is not the main driver of the cost — the screen is simply restricting the feasible set.'}"
+            )
+
+        return cost_verdict + excl_str
+
+    # ── 3. SHARPE RATIO — interpret, compare, give verdict ───────────────────
+    if any(k in q for k in ["sharpe", "risk-adjust", "risk adjusted", "is mine good",
+                              "how good", "how is my", "rate my", "assess"]):
+        best_ind = by_sr[0]
+        gap_to_tan = sr_tan_esg - sr
+        gap_pct    = gap_to_tan / sr_tan_esg * 100 if sr_tan_esg > 0 else 0
+
+        # Is the portfolio SR good?
+        verdict = sr_band(sr)
+        if gap_pct < 3:
+            position = (f"Your Sharpe of {sr:.3f} is essentially at the ESG-efficient frontier — "
+                        f"you are within {gap_pct:.1f}% of the maximum achievable Sharpe "
+                        f"given your ESG constraints. This is excellent portfolio construction.")
+        elif gap_pct < 12:
+            position = (f"Your Sharpe of {sr:.3f} sits {gap_pct:.1f}% below the ESG tangency ({sr_tan_esg:.3f}). "
+                        f"This gap is driven by your ESG preference λ={lam} tilting weight "
+                        f"toward higher-ESG assets beyond what pure Sharpe maximisation would dictate. "
+                        f"That is a deliberate, rational tradeoff — not a portfolio construction mistake.")
+        else:
+            position = (f"Your Sharpe of {sr:.3f} is {gap_pct:.1f}% below the ESG tangency ({sr_tan_esg:.3f}). "
+                        f"This is a significant gap. With λ={lam}, your ESG preference is "
+                        f"materially overriding financial efficiency. Consider whether this "
+                        f"reflects your actual preferences or whether λ should be reduced.")
+
+        # Compare to individual assets
+        dominated = [i for i in range(n) if ind_sr[i] > sr and active_mask[i]]
+        if dominated:
+            dom_str = (f"\n\nInterestingly, {names[dominated[0]]} has a higher individual Sharpe "
+                       f"({ind_sr[dominated[0]]:.3f}) than your portfolio ({sr:.3f}). "
+                       f"This happens when ESG or risk-aversion constraints force weight "
+                       f"away from the single best risk-adjusted asset. In a fully unconstrained "
+                       f"mean-variance world, no individual asset should beat the portfolio Sharpe — "
+                       f"but your constraints make this possible.")
+        else:
+            dom_str = (f"\n\nYour portfolio Sharpe ({sr:.3f}) exceeds all individual asset Sharpe ratios "
+                       f"(best individual: {names[best_ind]} at {ind_sr[best_ind]:.3f}). "
+                       f"This is the correct outcome — diversification is working as intended.")
+
+        return f"Your Sharpe ratio of {sr:.3f} is {verdict} by typical standards. {position}{dom_str}"
+
+    # ── 4. UTILITY FUNCTION — explain what it actually means ─────────────────
+    if any(k in q for k in ["utility", "objective", "formula", "model",
+                              "how does it work", "how does the model", "what is the model",
+                              "explain the", "u ="]):
+        fin_part = ep - gamma/2*sp**2
+        esg_part = lam * esg_bar
+        fin_pct  = fin_part / u_val * 100 if u_val != 0 else 100
+        esg_pct  = esg_part / u_val * 100 if u_val != 0 else 0
+
+        return (
+            f"The model picks portfolio weights by maximising:\n\n"
+            f"  U = E[Rp]  −  (γ/2)·σ²  +  λ·ESG\n\n"
+            f"Think of it as three competing forces. The first term rewards return — "
+            f"the model wants {ep*100:.2f}% expected annual return. "
+            f"The second term punishes variance — with γ={gamma} you are {gamma_label(gamma)}, "
+            f"so the model subtracts {gamma/2:.1f}×σ² = {gamma/2*sp**2*100:.3f}% for bearing "
+            f"volatility of {sp*100:.2f}%. The third term rewards ESG quality — "
+            f"with λ={lam} you are {lam_label(lam)}, adding {lam*esg_bar:.4f} to utility "
+            f"for your portfolio ESG score of {esg_bar:.2f}/10.\n\n"
+            f"Right now the financial component (return minus risk penalty) accounts for "
+            f"{fin_pct:.0f}% of your total utility, and the ESG component accounts for "
+            f"{esg_pct:.0f}%. "
+            f"{'The ESG term is dominant — your portfolio construction is being driven more by sustainability preferences than by financial metrics.' if esg_pct > 40 else 'The financial terms dominate — ESG is a tilt, not the primary driver.' if esg_pct < 20 else 'Return, risk, and ESG are roughly balanced in driving your allocation.'}\n\n"
+            f"The key insight is that γ and λ are not just sliders — they determine "
+            f"the exchange rate between return, risk, and ESG. Every basis point of return "
+            f"you could theoretically earn but do not is a deliberate choice made by these parameters."
+        )
+
+    # ── 5. FRONTIER INTERPRETATION ────────────────────────────────────────────
+    if any(k in q for k in ["frontier", "right of", "why is the esg",
+                              "two curve", "efficient frontier", "why does the"]):
+        if sharpe_cost < 0.02:
+            interp = (f"In this case the two frontiers are nearly coincident — the ESG screen "
+                      f"is barely restricting your investment set. Either your excluded assets "
+                      f"had poor Sharpe ratios anyway, or the screen threshold of {esg_thresh:.1f} "
+                      f"is low enough that it is not biting. This is actually a good outcome: "
+                      f"you get ESG alignment essentially for free.")
+        elif sharpe_cost < 0.10:
+            interp = (f"The gap between the two frontiers is modest — {sharpe_cost:.3f} Sharpe points "
+                      f"at the tangency. This means the ESG screen is removing some useful assets "
+                      f"but not the core of your opportunity set. The green frontier is visibly "
+                      f"to the right but not dramatically so.")
+        else:
+            interp = (f"The two frontiers are noticeably separated — {sharpe_cost:.3f} Sharpe points "
+                      f"at the tangency, {ret_cost_ann:.1f}% in expected return. "
+                      f"This means the ESG screen is excluding assets that materially "
+                      f"contribute to portfolio efficiency. The rightward shift of the green "
+                      f"frontier is large and represents a real financial constraint.")
+
+        return (
+            f"The ESG frontier (brighter curve) sits to the right of the unconstrained frontier "
+            f"(dimmer curve). This is not a coincidence or a chart quirk — it is a mathematical "
+            f"certainty. Adding any constraint to an optimisation problem can only reduce or maintain "
+            f"efficiency, never improve it.\n\n"
+            f"What you are seeing is the geometric cost of sustainable investing: to achieve the "
+            f"same expected return as the unconstrained portfolio, the ESG-screened portfolio must "
+            f"accept higher volatility — because it cannot hold the same assets.\n\n"
+            f"{interp}"
+        )
+
+    # ── 6. RISK AVERSION ─────────────────────────────────────────────────────
+    if any(k in q for k in ["risk aversion", "gamma", "aversion", "risk toleran",
+                              "how does risk", "risk appetite", "risk prefer"]):
+        low_vol_weight = sum(w_opt[i] for i in by_vol_asc[:max(1,n//3)])
+        vol_penalty    = gamma/2 * sp**2 * 100
+
+        if gamma >= 6:
+            aversion_comment = (
+                f"At γ={gamma} you are highly risk-averse. The model is subtracting "
+                f"{vol_penalty:.2f}% from utility purely as a variance penalty — "
+                f"this is pulling weight heavily toward the lowest-volatility assets "
+                f"({'%s at %s' % (names[by_vol_asc[0]], p1(vols[by_vol_asc[0]]))}) "
+                f"even at the expense of return and ESG quality. "
+                f"The top {round(low_vol_weight*100)}% of your portfolio "
+                f"sits in the lowest-volatility third of your asset universe."
+            )
+        elif gamma >= 3:
+            aversion_comment = (
+                f"At γ={gamma} you are moderately risk-averse — roughly consistent "
+                f"with a long-term institutional investor. The variance penalty of "
+                f"{vol_penalty:.2f}% is meaningful but not dominant; "
+                f"the allocation balances return-seeking with risk management. "
+                f"If you increased γ to 8, the portfolio would shift toward "
+                f"{names[by_vol_asc[0]]} and away from {names[by_sr[0]]}. "
+                f"If you decreased γ to 1, it would concentrate in the highest-return assets."
+            )
+        else:
+            aversion_comment = (
+                f"At γ={gamma} you are relatively risk-tolerant. The model is barely "
+                f"penalising variance, which means the weights are being driven almost "
+                f"entirely by expected return and ESG score. This can lead to "
+                f"concentrated positions in high-return/high-volatility assets — "
+                f"check whether the resulting volatility of {p(sp)} feels right for "
+                f"your actual investment horizon."
+            )
+        return aversion_comment
+
+    # ── 7. LAMBDA / ESG PREFERENCE ───────────────────────────────────────────
+    if any(k in q for k in ["lambda", "λ", "esg preference", "esg weight",
+                              "esg parameter", "what does lambda", "how does lambda",
+                              "should i increase", "should i decrease", "should i raise",
+                              "should i lower"]):
+        esg_contribution_pct = lam*esg_bar / abs(u_val) * 100 if u_val != 0 else 0
+        bp_equiv = lam / 10 * 100  # basis points per ESG point
+
+        assessment = ""
+        if "should i" in q or "increase" in q or "decrease" in q or "raise" in q or "lower" in q:
+            if sr < sr_tan_esg * 0.8 and lam > 2:
+                assessment = (
+                    f"\n\nGiven that your portfolio Sharpe ({sr:.3f}) is significantly below "
+                    f"the ESG tangency ({sr_tan_esg:.3f}), λ={lam} appears too high for "
+                    f"financially balanced construction. Reducing it toward 1.0–1.5 would "
+                    f"recover Sharpe without abandoning your ESG tilt."
+                )
+            elif esg_bar < 5 and lam < 1:
+                assessment = (
+                    f"\n\nYour portfolio ESG score of {esg_bar:.2f}/10 is below average. "
+                    f"If ESG quality matters to you, increasing λ toward 2.0 would meaningfully "
+                    f"improve it — the sensitivity analysis shows exactly how much at each level."
+                )
+            else:
+                assessment = (
+                    f"\n\nYour current λ={lam} appears broadly appropriate given your Sharpe "
+                    f"({sr:.3f} vs tangency {sr_tan_esg:.3f}) and ESG score ({esg_bar:.2f}/10). "
+                    f"The sensitivity analysis expander below the charts shows the full tradeoff curve."
+                )
+
+        return (
+            f"λ={lam} means that each 1-point improvement in portfolio ESG score (on the 0–10 scale) "
+            f"is worth {bp_equiv:.0f} basis points of expected return to you. Put differently, "
+            f"you are willing to accept {bp_equiv:.0f}bp less annual return in exchange for "
+            f"one ESG point of improvement.\n\n"
+            f"Right now the ESG term contributes {esg_contribution_pct:.0f}% of your total utility. "
+            f"{'This is a substantial fraction — your portfolio construction is genuinely ESG-driven, not just ESG-aware.' if esg_contribution_pct > 35 else 'This is a moderate contribution — ESG is influencing but not dominating your allocation.' if esg_contribution_pct > 15 else 'This is a small fraction — at λ=' + str(lam) + ' the ESG term is a mild tilt. Raising λ would give it more influence.'}"
+            + assessment
+        )
+
+    # ── 8. ESG SCORE DRAG ────────────────────────────────────────────────────
+    if any(k in q for k in ["drag", "esg score", "worst esg", "bad esg",
+                              "lowest esg", "which asset", "esg contribution",
+                              "pulling down", "hurting"]):
+        # Find what's actually dragging
+        held_by_esg = sorted([i for i in held], key=lambda i: esg_scores[i])
+        worst_held  = held_by_esg[0] if held_by_esg else by_esg[0]
+        best_held   = held_by_esg[-1] if held_by_esg else by_esg[-1]
+        drag_mag    = esg_scores[worst_held] * w_opt[worst_held]
+
+        # What would swapping do?
+        if len(held_by_esg) >= 2:
+            esg_if_removed = (esg_bar - esg_scores[worst_held]*w_opt[worst_held]) / max(1 - w_opt[worst_held], 0.01)
+            swap_gain      = esg_if_removed - esg_bar
+        else:
+            swap_gain = 0
+
+        verdict = (
+            f"{names[worst_held]} is the biggest ESG drag on this portfolio. "
+            f"It carries an ESG score of {esg_scores[worst_held]:.2f}/10 — "
+            f"{esg_label(esg_scores[worst_held])} — and its {p1(w_opt[worst_held])} weight "
+            f"contributes {drag_mag:.4f} to your portfolio ESG score.\n\n"
+        )
+        if swap_gain > 0.3:
+            verdict += (
+                f"If you removed {names[worst_held]} entirely, your portfolio ESG "
+                f"would improve by roughly {swap_gain:.2f} points — a meaningful gain. "
+                f"The question is whether its financial contribution justifies keeping it: "
+                f"it has a Sharpe ratio of {ind_sr[worst_held]:.3f}"
+                f"{' which is above the portfolio Sharpe — removing it would hurt your risk-adjusted return' if ind_sr[worst_held] > sr else ' which is below the portfolio Sharpe — from a purely financial standpoint it is already a marginal holding'}."
+            )
+        elif esg_thresh > 0 and esg_scores[worst_held] < esg_thresh + 1:
+            verdict += (
+                f"{names[worst_held]} is close to the ESG screen threshold of {esg_thresh:.1f}. "
+                f"It is currently just above the cutoff. Raising the threshold slightly "
+                f"would exclude it and improve portfolio ESG, but at the Sharpe cost already quantified."
+            )
+        else:
+            verdict += (
+                f"Replacing it with {names[best_held]} (ESG={esg_scores[best_held]:.2f}/10) "
+                f"would improve portfolio ESG, but you would need to re-optimise to see "
+                f"the impact on Sharpe — the optimizer may already be constraining "
+                f"{names[best_held]}'s weight for financial reasons."
+            )
+        return verdict
+
+    # ── 9. TANGENCY DIFFERENCE ────────────────────────────────────────────────
+    if any(k in q for k in ["tangency", "tangent", "why is the tangency",
+                              "different from mine", "tangency different"]):
+        gap_sr  = sr_tan_esg - sr
+        gap_pct = gap_sr / sr_tan_esg * 100 if sr_tan_esg > 0 else 0
+
+        if gap_pct < 2:
+            return (
+                f"Your portfolio is essentially at the tangency — within {gap_pct:.1f}% "
+                f"of the maximum Sharpe achievable under your ESG screen. "
+                f"With λ={lam} close to zero the utility function reduces to near-pure "
+                f"Sharpe maximisation, which is why they nearly coincide. "
+                f"If you raise λ, the two will diverge."
+            )
+        else:
+            return (
+                f"The tangency portfolio maximises Sharpe with no preference for ESG — "
+                f"it is purely financially optimal. Your portfolio sits {gap_pct:.1f}% "
+                f"below it in Sharpe terms ({sr:.3f} vs {sr_tan_esg:.3f}).\n\n"
+                f"This gap is not a mistake — it is the direct, intended consequence "
+                f"of λ={lam}. At that ESG preference level, the optimizer deliberately "
+                f"moves weight toward {names[by_esg[-1]]} (ESG={esg_scores[by_esg[-1]]:.1f}/10) "
+                f"and away from {names[by_sr[0]]} (SR={ind_sr[by_sr[0]]:.3f}) "
+                f"even though that reduces Sharpe. Whether the {gap_sr:.3f} Sharpe sacrifice "
+                f"is worth the ESG gain of moving from the tangency's implicit ESG level "
+                f"to your portfolio's {esg_bar:.2f}/10 is a question only you can answer."
+            )
+
+    # ── 10. NO ESG / WHAT-IF ─────────────────────────────────────────────────
+    if any(k in q for k in ["without esg", "no esg", "remove esg", "ignore esg",
+                              "what if", "what would", "esg screen off",
+                              "hypothetical", "if there was no", "without any"]):
+        if sharpe_cost < 0.03:
+            verdict = (
+                f"Practically nothing. Removing the ESG screen would gain you {sharpe_cost:.4f} "
+                f"Sharpe ratio points — {ret_cost_ann:.2f}% in annual expected return. "
+                f"That is well within estimation error and not economically meaningful. "
+                f"Your ESG constraints are essentially free in this portfolio."
+            )
+        else:
+            verdict = (
+                f"Removing all ESG constraints (λ=0, no screen) would deliver a tangency "
+                f"Sharpe of {sr_tan_all:.3f} versus your current {sr:.3f} — "
+                f"a gain of {sr_tan_all-sr:.3f} Sharpe points, equivalent to roughly "
+                f"{ret_cost_ann:.1f}% more expected return per year at the tangency level.\n\n"
+                f"Whether that is worth it depends on your perspective. "
+                f"{'At ' + str(round(ret_cost_ann,1)) + '% annual return sacrifice, this is a substantial cost that most institutional mandates would struggle to justify.' if ret_cost_ann > 1.5 else 'At ' + str(round(ret_cost_ann,2)) + '% annual return sacrifice, this is the kind of cost that is typically considered acceptable for a genuine ESG mandate.'}"
+            )
+        if excluded:
+            excl_names = [names[i] for i in excluded]
+            verdict += (
+                f"\n\nThe assets currently excluded that would re-enter are: "
+                f"{', '.join(excl_names)}. "
+                f"{'Their individual Sharpe ratios suggest they are contributing meaningfully to the unconstrained frontier.' if any(ind_sr[i] > sr for i in excluded) else 'Their Sharpe ratios are modest, so their absence is not the primary driver of the constraint cost.'}"
+            )
+        return verdict
+
+    # ── 11. Asset-specific question ───────────────────────────────────────────
+    mentioned = [i for i in range(n) if names[i].lower() in q
+                 or any(w.lower() == names[i].lower() for w in q.split())]
+    if mentioned:
+        i = mentioned[0]
+        w_i = w_opt[i]
+        corrs = sorted(
+            [(j, cov[i,j]/(vols[i]*vols[j]) if vols[i]*vols[j]>0 else 0)
+             for j in range(n) if j != i],
+            key=lambda x: abs(x[1]), reverse=True
+        )
+        corr_str = ", ".join(f"{names[j]} (ρ={r:.2f})" for j,r in corrs[:3])
+
+        held_str = (
+            f"It holds {p1(w_i)} of your portfolio. "
+            if w_i > 0.005 else
+            f"It holds zero weight — "
+            + ("excluded by the ESG screen." if not active_mask[i]
+               else "dominated by better risk/return/ESG combinations.")
+        )
+
+        assessment = (
+            f"With a Sharpe of {ind_sr[i]:.3f} ({sr_band(ind_sr[i])}) and ESG score of "
+            f"{esg_scores[i]:.2f}/10 ({esg_label(esg_scores[i])}), "
+        )
+        if ind_sr[i] > sr and esg_scores[i] > esg_bar:
+            assessment += f"this asset is above average on both financial and ESG dimensions — it is earning its place."
+        elif ind_sr[i] > sr and esg_scores[i] < esg_bar:
+            assessment += f"it has strong financial merit (SR above portfolio) but below-average ESG. Your λ={lam} is reducing its weight relative to a purely financial portfolio."
+        elif ind_sr[i] < sr and esg_scores[i] > esg_bar:
+            assessment += f"it has above-average ESG quality but weak financial performance. It is in the portfolio primarily because of your ESG preference (λ={lam})."
+        else:
+            assessment += f"it is below average on both dimensions — its presence (or absence) reflects the holistic optimisation across all assets simultaneously."
+
+        return f"{names[i]}: {held_str}\n\n{assessment}\n\nIts highest correlations are with {corr_str} — relevant for understanding the diversification contribution."
+
+    # ── 12. Free-form fallback — extract key numbers and give a genuine read ──
     lines = [
-        "PORTFOLIO OVERVIEW",
-        "─" * 50,
-        "",
-        f"Assets ({n}):  " + ", ".join(f"{names[i]} ({_pct1(w_opt[i])})" for i in by_w if w_opt[i]>0.001),
-        f"Expected return:  {_pct(ep)}",
-        f"Volatility:       {_pct(sp)}",
-        f"Sharpe ratio:     {sr:.4f}",
-        f"ESG score:        {esg_bar:.3f}/10",
-        f"Utility:          {u_val:.5f}",
-        f"Parameters:       γ={gamma}, λ={lam}, rf={_pct(rf)}",
-        "",
-        "I can answer questions about:",
-        "  weights & allocation · Sharpe ratios · ESG scores & costs",
-        "  utility function · efficient frontiers · Capital Market Line",
-        "  risk aversion · diversification · specific assets",
-        "",
-        "Try asking about a specific asset by name, or use one of the",
-        "suggested questions above.",
+        f"This portfolio holds {len(held)} assets: "
+        f"{', '.join(names[i] + ' (' + p1(w_opt[i]) + ')' for i in by_w if w_opt[i]>0.005)}.\n",
+        f"The headline numbers are E[R]={p(ep)}, σ={p(sp)}, Sharpe={sr:.3f}, ESG={esg_bar:.2f}/10 — "
+        f"a {sr_band(sr)} risk-adjusted profile with {esg_label(esg_bar)} ESG quality.\n",
+        f"The ESG constraint costs {sharpe_cost:.3f} Sharpe points versus the unconstrained frontier. "
+        f"{'That is essentially free.' if sharpe_cost < 0.02 else 'That is a real but acceptable cost.' if sharpe_cost < 0.08 else 'That is a meaningful cost worth scrutinising.'}\n",
+        f"You can ask me about specific assets by name, or about weights, costs, Sharpe, "
+        f"the utility function, the frontier, risk aversion, or lambda.",
     ]
     return "\n".join(lines)
 
