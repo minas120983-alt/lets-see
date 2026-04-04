@@ -978,6 +978,24 @@ canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display
   font-size: clamp(0.88rem, 1.6vw, 1.02rem); color: rgba(255,255,255,0.50);
   max-width: 400px; line-height: 1.72; font-weight: 400; animation-delay: 0.35s;
 }
+.enter-btn {
+  display: inline-block; pointer-events: all;
+  margin-top: 2.2rem; animation-delay: 0.50s;
+  background: rgba(255,255,255,0.94); color: #080808 !important;
+  text-decoration: none; font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+  font-size: 1rem; font-weight: 700; letter-spacing: -0.01em;
+  padding: 0.88rem 2.8rem; border-radius: 12px;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.42);
+  transition: transform 0.18s cubic-bezier(0.16,1,0.3,1),
+              background 0.15s ease, box-shadow 0.18s ease;
+  cursor: pointer;
+}
+.enter-btn:hover {
+  background: #ffffff !important; color: #000 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 44px rgba(0,0,0,0.56);
+}
+.enter-btn:active { transform: translateY(0) scale(0.98); }
 </style>
 </head>
 <body>
@@ -991,6 +1009,10 @@ canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display
   <div class="badge">ECN316 &nbsp;&middot;&nbsp; Sustainable Finance &nbsp;&middot;&nbsp; 2026</div>
   <h1 class="title">Green<span class="dim">Port</span></h1>
   <p class="subtitle">ESG-integrated portfolio optimisation. Build and analyse sustainable investments with live LSEG data and mean-variance theory.</p>
+  <a class="enter-btn" href="?enter=1" target="_parent"
+     onclick="try{window.parent.location.href=window.parent.location.href.split('?')[0]+'?enter=1';}catch(e){} return true;">
+    Enter GreenPort &rarr;
+  </a>
 </div>
 <script>
 var canvas = document.getElementById('canvas');
@@ -1101,14 +1123,13 @@ draw();
 
     components.html(_HOME_HTML, height=620, scrolling=False)
 
-    # ── Native Streamlit button — guaranteed navigation ─────────────────────
-    st.markdown("<div style='height:0.15rem;background:#000;'></div>",
+    # ── Fallback Streamlit button (hidden — primary button lives in HTML overlay)
+    st.markdown("<div style='position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;'>",
                 unsafe_allow_html=True)
-    _, _btn_col, _ = st.columns([3, 2, 3])
-    with _btn_col:
-        if st.button("Enter GreenPort →", use_container_width=True, key="home_enter"):
-            st.session_state["page"] = "input"
-            st.rerun()
+    if st.button("Enter GreenPort →", use_container_width=True, key="home_enter"):
+        st.session_state["page"] = "input"
+        st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("""
 <p style="text-align:center;margin-top:1.1rem;font-size:0.58rem;
@@ -1720,97 +1741,130 @@ elif _page == "results":
         fig.tight_layout(); st.pyplot(fig); plt.close()
 
     with _c2:
-        # Build ESG-SR frontier: sweep min-ESG threshold from 0 to near-max
-        # Use 'continue' (not 'break') so isolated solver failures don't truncate the curve
-        _esg_constraints = np.linspace(0, float(np.max(esg_scores)) * 0.96, 80)
+        # ── Build ESG-SR frontier by sweeping the ESG exclusion threshold ──
+        _esg_constraints = np.linspace(0, float(np.max(esg_scores)) * 0.97, 100)
         _sr_curve = []; _esg_x_curve = []
         for _esg_min in _esg_constraints:
             _mask = esg_scores >= _esg_min
             if _mask.sum() < 2:
-                continue          # ← was 'break'; keep sweeping
+                continue
             _bnds = [(0., 1.) if _mask[i] else (0., 0.) for i in range(n)]
             try:
                 _w_, _ep_, _sp_, _sr_ = find_tangency(mu, cov, rf, bounds=_bnds)
                 if _sp_ > 1e-9:
-                    _port_esg = float(np.dot(_w_, esg_scores))
                     _sr_curve.append(_sr_)
-                    _esg_x_curve.append(_port_esg)
+                    _esg_x_curve.append(float(np.dot(_w_, esg_scores)))
             except Exception:
-                continue          # ← was 'break'
-        # Sort by ESG so the line draws left → right cleanly
+                continue
+        # Deduplicate near-identical points (happens when many thresholds
+        # exclude the same assets) and sort left→right
         if _esg_x_curve:
-            _pts = sorted(zip(_esg_x_curve, _sr_curve))
+            _pts = sorted(set(zip(
+                [round(x, 4) for x in _esg_x_curve],
+                [round(s, 4) for s in _sr_curve]
+            )))
             _esg_x_sorted = [p[0] for p in _pts]
             _sr_sorted     = [p[1] for p in _pts]
         else:
             _esg_x_sorted = []; _sr_sorted = []
 
+        # ── Key portfolio points ───────────────────────────────────────────
         _w_unc, _ep_unc, _sp_unc, _sr_unc = find_tangency(mu, cov, rf)
         _esg_unc = float(np.dot(_w_unc, esg_scores))
+
         _bounds_cur = [(0., 1.) if active_mask[i] else (0., 0.) for i in range(n)]
         _w_esg_t, _ep_esg_t, _sp_esg_t, _sr_esg_t = find_tangency(mu, cov, rf, bounds=_bounds_cur)
         _esg_esg_pt = float(np.dot(_w_esg_t, esg_scores))
-        _indiv_sr  = (mu - rf) / np.maximum(vols, 1e-9)
+
+        # Only show a separate ESG-screened marker when the screen meaningfully
+        # changes the portfolio (avoids duplicate overlapping markers)
+        _screen_differs = (abs(_esg_esg_pt - _esg_unc) > 0.05 or
+                           abs(_sr_esg_t - _sr_unc) > 0.005)
+
+        _indiv_sr   = (mu - rf) / np.maximum(vols, 1e-9)
+        _esg_opt_pt = float(np.dot(w_opt, esg_scores))
 
         fig2, ax2 = plt.subplots(figsize=(6.5, 5.5))
         fig2.patch.set_facecolor(CHART_BG)
         ax2.set_facecolor(CHART_BG)
 
-        # ── ESG-SR frontier curve ──────────────────────────────────────────
+        # ── Frontier curve ─────────────────────────────────────────────────
         if len(_esg_x_sorted) > 2:
-            ax2.plot(_esg_x_sorted, _sr_sorted, color=GREEN, lw=2.4, zorder=4,
-                     label="ESG–SR frontier")
-            # shade below the frontier to match lecture-slide style
-            ax2.fill_between(_esg_x_sorted, ax2.get_ylim()[0] if ax2.get_ylim()[0] < min(_sr_sorted) else min(_sr_sorted)*0.92,
-                             _sr_sorted, alpha=0.06, color=GREEN)
+            ax2.plot(_esg_x_sorted, _sr_sorted, color=GREEN, lw=2.4,
+                     zorder=4, label="ESG–SR frontier")
+            _y_fill = max(min(_sr_sorted) * 0.88, 0)
+            ax2.fill_between(_esg_x_sorted, _y_fill, _sr_sorted,
+                             alpha=0.07, color=GREEN, zorder=2)
 
-        # ── individual assets ──────────────────────────────────────────────
+        # ── Individual assets ──────────────────────────────────────────────
+        # Alternate annotation offsets to avoid overlaps
+        _ann_offsets = [(6, 6), (6, -16), (-60, 6), (-60, -16),
+                        (6, 16), (-60, 16), (14, -4)]
         for _i in range(n):
             _col_i = GREEN if active_mask[_i] else GREY
-            ax2.scatter(esg_scores[_i], _indiv_sr[_i], color=_col_i, s=60,
-                        zorder=6, edgecolors="white", lw=0.8, alpha=0.9)
-            _ofs = (6, 4) if _i % 2 == 0 else (6, -14)
+            ax2.scatter(esg_scores[_i], _indiv_sr[_i],
+                        color=_col_i, s=55, zorder=6,
+                        edgecolors="white", lw=0.8, alpha=0.9)
+            _ofs = _ann_offsets[_i % len(_ann_offsets)]
             ax2.annotate(names[_i], (esg_scores[_i], _indiv_sr[_i]),
                          textcoords="offset points", xytext=_ofs,
                          fontsize=7, color=GREY)
 
-        # ── unconstrained tangency ─────────────────────────────────────────
+        # ── Unconstrained tangency (blue diamond) ─────────────────────────
         if _sp_unc > 1e-9:
             ax2.scatter(_esg_unc, _sr_unc, color=BLUE, s=140, zorder=9,
                         edgecolors="white", lw=1.5, marker="D",
-                        label=f"Tangency — no ESG  (SR={_sr_unc:.3f})")
-            ax2.annotate(f"Tangency\n(no ESG)\nSR={_sr_unc:.3f}",
+                        label=f"Tangency — no ESG screen  (SR={_sr_unc:.3f})")
+            ax2.annotate(f"Tangency (unconstrained)\nSR = {_sr_unc:.3f}",
                          (_esg_unc, _sr_unc),
-                         textcoords="offset points", xytext=(8, -28),
+                         textcoords="offset points", xytext=(8, 10),
                          fontsize=7, color=BLUE, fontstyle="italic",
-                         bbox=dict(boxstyle="round,pad=0.2", fc=CHART_BG, ec="none", alpha=0.7))
+                         bbox=dict(boxstyle="round,pad=0.25",
+                                   fc=CHART_BG, ec=BLUE, alpha=0.85, lw=0.6))
 
-        # ── ESG-screened tangency ──────────────────────────────────────────
-        if _sp_esg_t > 1e-9:
+        # ── ESG-screened tangency (green star) — only when it truly differs ──
+        if _sp_esg_t > 1e-9 and _screen_differs:
             ax2.scatter(_esg_esg_pt, _sr_esg_t, color=GREEN, s=170, zorder=10,
                         edgecolors="white", lw=2, marker="*",
-                        label=f"Tangency — ESG screen  (SR={_sr_esg_t:.3f})")
-            ax2.annotate(f"Tangency\n(ESG screen)\nSR={_sr_esg_t:.3f}",
+                        label=f"Tangency — ESG screened  (SR={_sr_esg_t:.3f})")
+            ax2.annotate(f"Tangency (ESG screen)\nSR = {_sr_esg_t:.3f}",
                          (_esg_esg_pt, _sr_esg_t),
-                         textcoords="offset points", xytext=(8, 6),
+                         textcoords="offset points", xytext=(8, -30),
                          fontsize=7, color=GREEN, fontstyle="italic",
-                         bbox=dict(boxstyle="round,pad=0.2", fc=CHART_BG, ec="none", alpha=0.7))
+                         bbox=dict(boxstyle="round,pad=0.25",
+                                   fc=CHART_BG, ec=GREEN, alpha=0.85, lw=0.6))
 
-        # ── ESG-optimal portfolio (user's portfolio) ───────────────────────
-        _esg_opt_pt = float(np.dot(w_opt, esg_scores))
-        ax2.scatter(_esg_opt_pt, sr, color=ORANGE, s=160, zorder=11,
+        # ── User's ESG-optimal portfolio (orange star) ─────────────────────
+        ax2.scatter(_esg_opt_pt, sr, color=ORANGE, s=180, zorder=11,
                     edgecolors="white", lw=2, marker="*",
                     label=f"Your portfolio  (SR={sr:.3f})")
-        ax2.annotate(f"Your portfolio\nSR={sr:.3f}",
+        # Smart annotation: place label to whichever side has more room
+        _x_mid  = (min(_esg_x_sorted) + max(_esg_x_sorted)) / 2 if _esg_x_sorted else 5
+        _ann_x  = 10 if _esg_opt_pt < _x_mid else -90
+        ax2.annotate(f"Your portfolio\nSR = {sr:.3f}",
                      (_esg_opt_pt, sr),
-                     textcoords="offset points", xytext=(-60, 6),
+                     textcoords="offset points", xytext=(_ann_x, -24),
                      fontsize=7, color=ORANGE, fontstyle="italic",
-                     bbox=dict(boxstyle="round,pad=0.2", fc=CHART_BG, ec="none", alpha=0.7))
+                     bbox=dict(boxstyle="round,pad=0.25",
+                               fc=CHART_BG, ec=ORANGE, alpha=0.85, lw=0.6))
+
+        # ── Axis limits: add padding so annotations aren't clipped ────────
+        if _esg_x_sorted:
+            _xpad = (max(_esg_x_sorted) - min(_esg_x_sorted)) * 0.18
+            ax2.set_xlim(max(0, min(_esg_x_sorted) - _xpad * 2),
+                         max(_esg_x_sorted) + _xpad)
+        _all_sr = ([sr, _sr_unc] + (_sr_sorted or []) +
+                   list(_indiv_sr) +
+                   ([_sr_esg_t] if _screen_differs else []))
+        _sr_range = max(_all_sr) - min(_all_sr) if len(_all_sr) > 1 else 0.1
+        ax2.set_ylim(min(_all_sr) - _sr_range * 0.25,
+                     max(_all_sr) + _sr_range * 0.30)
 
         ax2.set_xlabel("Portfolio ESG Score (0–10)", fontsize=9, color=GREY)
         ax2.set_ylabel("Sharpe Ratio", fontsize=9, color=GREY)
         ax2.legend(fontsize=7, framealpha=0.92, facecolor=LEG_BG,
-                   edgecolor=LEG_ED, labelcolor=LABEL_C, loc="upper right")
+                   edgecolor=LEG_ED, labelcolor=LABEL_C,
+                   loc="upper right" if not _screen_differs else "lower left")
         _style_ax(ax2, "ESG–Sharpe Frontier")
         fig2.tight_layout(); st.pyplot(fig2); plt.close()
 
