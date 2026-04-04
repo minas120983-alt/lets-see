@@ -348,12 +348,33 @@ def build_portfolio_context(names, mu, vols, esg_scores, w_opt,
 
 
 def call_claude(system_prompt, messages):
-    """Call the Anthropic claude-sonnet-4-20250514 messages API."""
+    """Call the Anthropic claude-sonnet-4-20250514 messages API.
+    API key is read from st.secrets['ANTHROPIC_API_KEY'].
+    On Streamlit Community Cloud add this in Settings > Secrets:
+        ANTHROPIC_API_KEY = "sk-ant-..."
+    """
+    # Resolve API key — secrets first, then environment variable fallback
+    api_key = None
+    try:
+        api_key = st.secrets["ANTHROPIC_API_KEY"]
+    except Exception:
+        pass
+    if not api_key:
+        import os
+        api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return (
+            "No API key found. Please add your Anthropic API key to Streamlit secrets: "
+            "open the app in Streamlit Cloud → Settings → Secrets, and add: "
+            "ANTHROPIC_API_KEY = \"sk-ant-...\""
+        )
+
     try:
         resp = requests.post(
             "https://api.anthropic.com/v1/messages",
             headers={
                 "Content-Type": "application/json",
+                "x-api-key": api_key,
                 "anthropic-version": "2023-06-01",
             },
             json={
