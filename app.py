@@ -17,390 +17,529 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── Custom CSS — Native macOS / iOS Dark Mode ────────────────────────────────
+# ── CSS: Apple Support aesthetic + day/night mode ────────────────────────────
 st.markdown("""
 <style>
-/* ── Apple System Design Tokens ── */
+/* ══════════════════════════════════════════════════════════
+   DESIGN TOKENS  —  light (day) is default; dark overrides
+   ══════════════════════════════════════════════════════════ */
 :root {
-  /* System backgrounds (macOS dark mode) */
-  --sys-bg:         #000000;
-  --sys-bg-2:       #1C1C1E;
-  --sys-bg-3:       #2C2C2E;
-  --sys-bg-4:       #3A3A3C;
+  /* Light / Day (Apple Support palette) */
+  --bg:           #f5f5f7;
+  --bg-card:      #ffffff;
+  --bg-elevated:  #ffffff;
+  --bg-3:         #e8e8ed;
+  --bg-input:     rgba(118,118,128,0.12);
 
-  /* System labels */
-  --label-1:        rgba(255,255,255,1.00);
-  --label-2:        rgba(235,235,245,0.60);
-  --label-3:        rgba(235,235,245,0.30);
-  --label-4:        rgba(235,235,245,0.18);
+  --text-1:       #1d1d1f;
+  --text-2:       #6e6e73;
+  --text-3:       #86868b;
+  --text-inv:     #ffffff;
 
-  /* System colors */
-  --sys-blue:       #0A84FF;
-  --sys-green:      #30D158;
-  --sys-orange:     #FF9F0A;
-  --sys-red:        #FF453A;
-  --sys-indigo:     #5E5CE6;
+  --accent:       #0071e3;
+  --accent-hover: #0077ed;
+  --accent-light: rgba(0,113,227,0.10);
 
-  /* Separator */
-  --sep:            rgba(84,84,88,0.65);
-  --sep-opaque:     #38383A;
+  --sys-green:    #1d8348;
+  --sys-orange:   #c84b00;
+  --sys-red:      #c0392b;
+  --sys-indigo:   #5e5ce6;
 
-  /* Typography — SF Pro stack */
-  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text",
-             "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  --border:       rgba(0,0,0,0.08);
+  --sep:          rgba(0,0,0,0.12);
+  --sep-strong:   rgba(0,0,0,0.18);
+
+  --sb-bg:        #f5f5f7;
+  --sb-border:    rgba(0,0,0,0.10);
+
+  --chat-bg:          #ffffff;
+  --chat-header-bg:   #f5f5f7;
+  --chat-chip-bg:     #e8e8ed;
+  --chat-chip-color:  #0071e3;
+  --chat-msg-bg:      #f0f0f5;
+  --bubble-user-bg:   #0071e3;
+  --bubble-user-text: #ffffff;
+  --bubble-bot-bg:    #e8e8ed;
+  --bubble-bot-text:  #1d1d1f;
+  --input-bar-bg:     #f5f5f7;
+
+  --chart-bg:    #ffffff;
+  --chart-bg2:   #f5f5f7;
+
+  /* Typography */
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+          "Helvetica Neue", Arial, sans-serif;
   --font-mono: "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  /* Radius */
-  --r-sm:   8px;
-  --r-md:  12px;
-  --r-lg:  16px;
-  --r-xl:  20px;
-
-  /* Easing */
+  /* Motion */
   --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  /* Radii */
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 20px;
+}
+
+/* ── Dark / Night overrides ── */
+[data-theme="dark"] {
+  --bg:           #000000;
+  --bg-card:      #1c1c1e;
+  --bg-elevated:  #2c2c2e;
+  --bg-3:         #3a3a3c;
+  --bg-input:     rgba(118,118,128,0.24);
+
+  --text-1:       rgba(255,255,255,1.00);
+  --text-2:       rgba(235,235,245,0.60);
+  --text-3:       rgba(235,235,245,0.30);
+  --text-inv:     #000000;
+
+  --accent:       #0a84ff;
+  --accent-hover: #409cff;
+  --accent-light: rgba(10,132,255,0.18);
+
+  --sys-green:    #30d158;
+  --sys-orange:   #ff9f0a;
+  --sys-red:      #ff453a;
+  --sys-indigo:   #5e5ce6;
+
+  --border:       rgba(255,255,255,0.08);
+  --sep:          rgba(84,84,88,0.65);
+  --sep-strong:   rgba(84,84,88,0.90);
+
+  --sb-bg:        #1c1c1e;
+  --sb-border:    rgba(255,255,255,0.08);
+
+  --chat-bg:          #000000;
+  --chat-header-bg:   #1c1c1e;
+  --chat-chip-bg:     #2c2c2e;
+  --chat-chip-color:  #0a84ff;
+  --chat-msg-bg:      #1c1c1e;
+  --bubble-user-bg:   #0a84ff;
+  --bubble-user-text: #ffffff;
+  --bubble-bot-bg:    #2c2c2e;
+  --bubble-bot-text:  rgba(255,255,255,0.88);
+  --input-bar-bg:     #1c1c1e;
+
+  --chart-bg:    #000000;
+  --chart-bg2:   #1c1c1e;
 }
 
 /* ── Base ── */
 html, body, [class*="css"] {
-  font-family: var(--font-ui);
+  font-family: var(--font);
   -webkit-font-smoothing: antialiased;
   font-feature-settings: "kern" 1;
 }
-.stApp {
-  background: var(--sys-bg);
-  color: var(--label-1);
-}
+.stApp { background: var(--bg) !important; transition: background 0.3s var(--ease); }
 .block-container {
-  padding-top: 2rem;
-  max-width: 1320px;
+  padding-top: 2.5rem !important;
+  padding-bottom: 3rem !important;
+  max-width: 1200px !important;
 }
 
 /* ── Sidebar ── */
 [data-testid="stSidebar"] {
-  background: var(--sys-bg-2) !important;
-  border-right: 0.5px solid var(--sep-opaque) !important;
+  background: var(--sb-bg) !important;
+  border-right: 0.5px solid var(--sb-border) !important;
 }
-[data-testid="stSidebar"] * { color: var(--label-2) !important; }
+[data-testid="stSidebar"] * { color: var(--text-2) !important; }
 [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 {
-  color: var(--label-1) !important;
-  font-size: 0.8rem !important;
+  color: var(--text-1) !important;
+  font-size: 0.72rem !important;
   font-weight: 600 !important;
-  letter-spacing: 0.04em !important;
+  letter-spacing: 0.05em !important;
   text-transform: uppercase !important;
 }
 [data-testid="stSidebar"] hr {
-  border-color: var(--sep-opaque) !important;
+  border: none !important;
+  border-top: 0.5px solid var(--sep) !important;
   margin: 0.85rem 0 !important;
 }
 [data-testid="stSidebar"] label {
-  font-size: 0.72rem !important;
-  font-weight: 500 !important;
+  font-size: 0.7rem !important;
+  font-weight: 600 !important;
   letter-spacing: 0.06em !important;
   text-transform: uppercase !important;
-  color: var(--label-3) !important;
+  color: var(--text-3) !important;
 }
 [data-testid="stSidebar"] .stSlider [role="slider"] {
-  background: var(--sys-blue) !important;
+  background: var(--accent) !important;
   border: none !important;
-  box-shadow: 0 2px 6px rgba(10,132,255,0.4) !important;
+  box-shadow: 0 0 0 3px var(--accent-light) !important;
 }
-[data-testid="stSidebar"] .stSlider div[data-baseweb="slider"] div[data-testid="stTickBar"] { display: none; }
+[data-testid="stSidebar"] .stSlider div[data-testid="stTickBar"] { display: none; }
 [data-testid="stSidebar"] .stNumberInput input {
-  background: var(--sys-bg-3) !important;
-  color: var(--label-1) !important;
-  border: 0.5px solid var(--sep-opaque) !important;
+  background: var(--bg-input) !important;
+  color: var(--text-1) !important;
+  border: 0.5px solid var(--sep) !important;
   border-radius: var(--r-sm) !important;
-  font-size: 0.9rem !important;
 }
 [data-testid="stSidebar"] .stCheckbox label {
   font-size: 0.85rem !important;
-  color: var(--label-2) !important;
   text-transform: none !important;
   letter-spacing: 0 !important;
+  color: var(--text-2) !important;
 }
 
 /* ── Typography ── */
-h1, h2, h3, h4, h5, h6 { color: var(--label-1) !important; }
-p, div, label, span { color: var(--label-2); }
-code, pre {
+h1, h2, h3, h4, h5, h6 { color: var(--text-1) !important; }
+p, div, span { color: var(--text-2); }
+code {
   font-family: var(--font-mono);
-  background: var(--sys-bg-3);
-  color: var(--sys-green);
-  border-radius: 5px;
+  background: var(--bg-input);
+  color: var(--accent);
+  border-radius: 4px;
   padding: 1px 6px;
   font-size: 0.84em;
 }
 
 /* ── Hero ── */
 .hero-title {
-  font-size: 2.6rem;
+  font-size: 2.5rem;
   font-weight: 700;
-  letter-spacing: -0.03em;
-  color: var(--label-1);
-  line-height: 1.05;
-  margin-bottom: 0.2rem;
+  letter-spacing: -0.025em;
+  color: var(--text-1);
+  line-height: 1.06;
+  margin-bottom: 0.25rem;
 }
 .hero-sub {
-  font-size: 0.9rem;
+  font-size: 0.92rem;
+  color: var(--text-3);
   font-weight: 400;
-  color: var(--label-3);
-  margin-bottom: 1.6rem;
-  letter-spacing: 0.005em;
+  letter-spacing: -0.01em;
+  margin-bottom: 0;
 }
 
 /* ── Section headers ── */
 .section-header {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--label-3) !important;
+  color: var(--text-3) !important;
   border-bottom: 0.5px solid var(--sep);
-  padding-bottom: 0.45rem;
-  margin: 1.5rem 0 0.85rem;
+  padding-bottom: 0.5rem;
+  margin: 2rem 0 1.25rem;
 }
 
 /* ── Metric cards ── */
 .metric-card {
-  background: var(--sys-bg-2);
-  border: 0.5px solid var(--sep-opaque);
+  background: var(--bg-card);
+  border: 0.5px solid var(--border);
   border-radius: var(--r-lg);
-  padding: 1rem 1.2rem 0.9rem;
-  margin-bottom: 0.6rem;
+  padding: 1.2rem 1.4rem 1.1rem;
+  margin-bottom: 0.75rem;
   position: relative;
   overflow: hidden;
-  transition: background 0.18s var(--ease);
+  transition: box-shadow 0.2s var(--ease), transform 0.2s var(--ease);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
 }
-.metric-card::after {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 0.5px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+.metric-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+  transform: translateY(-2px);
 }
 .metric-card.card-ret  { border-top: 2px solid var(--sys-green); }
 .metric-card.card-vol  { border-top: 2px solid var(--sys-orange); }
-.metric-card.card-sr   { border-top: 2px solid var(--sys-blue); }
+.metric-card.card-sr   { border-top: 2px solid var(--accent); }
 .metric-card.card-esg  { border-top: 2px solid var(--sys-indigo); }
-.metric-card:hover { background: var(--sys-bg-3); }
-
 .metric-label {
   font-size: 0.66rem;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--label-3) !important;
-  margin-bottom: 0.3rem;
+  color: var(--text-3) !important;
+  margin-bottom: 0.4rem;
 }
 .metric-value {
   font-size: 2rem;
   font-weight: 600;
   letter-spacing: -0.03em;
-  color: var(--label-1) !important;
+  color: var(--text-1) !important;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
-.metric-unit {
-  font-size: 0.78rem;
-  color: var(--label-3) !important;
-  margin-left: 2px;
-  font-weight: 400;
-}
-.metric-pos { color: var(--sys-green) !important; }
-.metric-neg { color: var(--sys-red) !important; }
+.metric-unit { font-size: 0.76rem; color: var(--text-3) !important; margin-left: 2px; font-weight: 400; }
+.metric-pos  { color: var(--sys-green) !important; }
+.metric-neg  { color: var(--sys-red) !important; }
 
-/* ── Info / warn / error boxes ── */
+/* ── Status boxes ── */
 .info-box {
-  background: rgba(48,209,88,0.08);
-  border: 0.5px solid rgba(48,209,88,0.25);
+  background: var(--accent-light);
+  border: 0.5px solid rgba(0,113,227,0.22);
   border-radius: var(--r-sm);
-  padding: 0.7rem 1rem;
-  margin: 0.45rem 0;
+  padding: 0.8rem 1.1rem;
+  margin: 0.6rem 0;
   font-size: 0.83rem;
-  color: var(--sys-green) !important;
-  line-height: 1.5;
+  color: var(--accent) !important;
+  line-height: 1.55;
 }
 .warn-box {
   background: rgba(255,159,10,0.08);
-  border: 0.5px solid rgba(255,159,10,0.25);
+  border: 0.5px solid rgba(255,159,10,0.22);
   border-radius: var(--r-sm);
-  padding: 0.7rem 1rem;
-  margin: 0.45rem 0;
+  padding: 0.8rem 1.1rem;
+  margin: 0.6rem 0;
   font-size: 0.83rem;
   color: var(--sys-orange) !important;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 .error-box {
   background: rgba(255,69,58,0.08);
-  border: 0.5px solid rgba(255,69,58,0.25);
+  border: 0.5px solid rgba(255,69,58,0.22);
   border-radius: var(--r-sm);
-  padding: 0.7rem 1rem;
-  margin: 0.45rem 0;
+  padding: 0.8rem 1.1rem;
+  margin: 0.6rem 0;
   font-size: 0.83rem;
   color: var(--sys-red) !important;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 /* ── Primary button ── */
 div.stButton > button {
-  background: var(--sys-blue) !important;
+  background: var(--accent) !important;
   color: #ffffff !important;
   border: none !important;
-  border-radius: var(--r-sm) !important;
-  padding: 0.6rem 1.5rem !important;
-  font-family: var(--font-ui) !important;
-  font-weight: 600 !important;
+  border-radius: 980px !important;
+  padding: 0.55rem 1.6rem !important;
+  font-family: var(--font) !important;
+  font-weight: 500 !important;
   font-size: 0.92rem !important;
   letter-spacing: -0.01em !important;
   width: 100% !important;
-  transition: filter 0.15s var(--ease), transform 0.12s var(--ease);
+  transition: background 0.15s var(--ease), transform 0.1s var(--ease) !important;
 }
 div.stButton > button:hover {
-  filter: brightness(1.12) !important;
-  transform: scale(1.01);
+  background: var(--accent-hover) !important;
+  transform: scale(1.02) !important;
 }
-div.stButton > button:active {
-  filter: brightness(0.92) !important;
-  transform: scale(0.99);
+div.stButton > button:active { transform: scale(0.98) !important; }
+
+/* ── Theme toggle button (ghost/outline style) ── */
+div[data-testid="stSidebar"] div.stButton > button {
+  background: transparent !important;
+  color: var(--text-2) !important;
+  border: 0.5px solid var(--sep) !important;
+  border-radius: var(--r-sm) !important;
+  font-size: 0.82rem !important;
+  font-weight: 500 !important;
+  padding: 0.4rem 1rem !important;
+  margin-bottom: 1rem !important;
+  opacity: 0.85;
+}
+div[data-testid="stSidebar"] div.stButton > button:hover {
+  background: var(--bg-3) !important;
+  opacity: 1;
+  transform: none !important;
 }
 
 /* ── Inputs ── */
 .stNumberInput input, .stTextInput input, .stTextArea textarea {
-  background: var(--sys-bg-3) !important;
-  color: var(--label-1) !important;
-  border: 0.5px solid var(--sep-opaque) !important;
+  background: var(--bg-input) !important;
+  color: var(--text-1) !important;
+  border: 0.5px solid var(--sep) !important;
   border-radius: var(--r-sm) !important;
-  font-family: var(--font-ui) !important;
+  font-family: var(--font) !important;
   font-size: 0.9rem !important;
+  transition: border-color 0.15s !important;
 }
 .stNumberInput input:focus, .stTextInput input:focus {
-  border-color: var(--sys-blue) !important;
-  box-shadow: 0 0 0 3px rgba(10,132,255,0.18) !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-light) !important;
 }
 .stSelectbox div[data-baseweb="select"] > div {
-  background: var(--sys-bg-3) !important;
-  color: var(--label-1) !important;
-  border: 0.5px solid var(--sep-opaque) !important;
+  background: var(--bg-input) !important;
+  color: var(--text-1) !important;
+  border: 0.5px solid var(--sep) !important;
 }
-.stRadio label { color: var(--label-2) !important; }
+.stRadio label { color: var(--text-2) !important; }
 .stRadio div[role="radiogroup"] label { font-size: 0.88rem !important; }
-.stCheckbox div[data-testid="stMarkdownContainer"] p { color: var(--label-2) !important; }
+.stCheckbox div[data-testid="stMarkdownContainer"] p { color: var(--text-2) !important; }
 
-/* ── Tables & DataFrames ── */
+/* ── Tables ── */
 .stDataFrame, [data-testid="stDataEditor"] {
   border-radius: var(--r-md);
   overflow: hidden;
-  border: 0.5px solid var(--sep-opaque) !important;
+  border: 0.5px solid var(--sep) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
-[data-testid="stDataEditor"] * {
-  color: var(--label-1) !important;
-  background: var(--sys-bg-2) !important;
-}
-[data-testid="stTable"] * { color: var(--label-1) !important; }
+[data-testid="stDataEditor"] * { color: var(--text-1) !important; background: var(--bg-card) !important; }
 .stDataFrame thead th {
-  background: var(--sys-bg-3) !important;
-  color: var(--label-3) !important;
-  font-size: 0.68rem !important;
-  letter-spacing: 0.08em !important;
-  text-transform: uppercase !important;
-  font-weight: 600 !important;
+  background: var(--bg-3) !important; color: var(--text-3) !important;
+  font-size: 0.68rem !important; letter-spacing: 0.07em !important;
+  text-transform: uppercase !important; font-weight: 600 !important;
 }
 .stDataFrame tbody tr { border-bottom: 0.5px solid var(--sep) !important; }
-.stDataFrame tbody tr:hover { background: var(--sys-bg-3) !important; }
+.stDataFrame tbody tr:hover { background: var(--bg-3) !important; }
 
 /* ── Expander ── */
 [data-testid="stExpander"] {
-  border: 0.5px solid var(--sep-opaque) !important;
+  border: 0.5px solid var(--sep) !important;
   border-radius: var(--r-md) !important;
-  background: var(--sys-bg-2) !important;
+  background: var(--bg-card) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  margin-bottom: 0.75rem !important;
 }
-[data-testid="stExpander"] summary {
-  color: var(--label-2) !important;
-  font-size: 0.88rem !important;
-  font-weight: 500 !important;
-}
-[data-testid="stExpander"] summary * { color: var(--label-2) !important; }
-[data-testid="stExpander"] p { color: var(--label-2) !important; }
+[data-testid="stExpander"] summary { color: var(--text-2) !important; font-size: 0.9rem !important; font-weight: 500 !important; }
+[data-testid="stExpander"] summary * { color: var(--text-2) !important; }
+[data-testid="stExpander"] p { color: var(--text-2) !important; }
 
 /* ── Markdown tables ── */
-table { color: var(--label-1) !important; border-collapse: collapse; width: 100%; }
-thead tr th {
-  color: var(--label-3) !important;
-  font-size: 0.68rem !important;
-  letter-spacing: 0.08em !important;
-  text-transform: uppercase !important;
-  border-bottom: 0.5px solid var(--sep) !important;
-  padding: 0.5rem 0.75rem !important;
-}
-tbody tr td {
-  color: var(--label-2) !important;
-  border-bottom: 0.5px solid rgba(84,84,88,0.30) !important;
-  padding: 0.5rem 0.75rem !important;
-}
-tbody tr:hover td { background: var(--sys-bg-3) !important; }
+table { color: var(--text-1) !important; border-collapse: collapse; width: 100%; }
+thead tr th { color: var(--text-3) !important; font-size: 0.68rem !important; letter-spacing: 0.07em !important; text-transform: uppercase !important; border-bottom: 0.5px solid var(--sep) !important; padding: 0.55rem 0.8rem !important; font-weight: 600 !important; }
+tbody tr td { color: var(--text-2) !important; border-bottom: 0.5px solid var(--sep) !important; padding: 0.5rem 0.8rem !important; }
+tbody tr:hover td { background: var(--bg-3) !important; }
 
 /* ── Divider ── */
-hr { border-color: var(--sep-opaque) !important; margin: 1.25rem 0 !important; }
+hr { border: none !important; border-top: 0.5px solid var(--sep) !important; margin: 2rem 0 !important; }
 
-/* ── Chatbot — iMessage style ── */
-.chat-wrap {
-  background: var(--sys-bg-2);
-  border: 0.5px solid var(--sep-opaque);
+/* ── Tabs (segmented control) ── */
+.stTabs [data-baseweb="tab-list"] {
+  gap: 0;
+  background: var(--bg-input);
+  border-radius: 10px;
+  padding: 3px;
+  width: fit-content;
+  margin-bottom: 2rem;
+}
+.stTabs [data-baseweb="tab"] {
+  border-radius: 8px;
+  padding: 0.35rem 1.1rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-3) !important;
+  background: transparent !important;
+  border: none !important;
+  letter-spacing: -0.01em;
+  transition: color 0.15s, background 0.15s;
+}
+.stTabs [aria-selected="true"] {
+  background: var(--bg-card) !important;
+  color: var(--text-1) !important;
+  font-weight: 600 !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08) !important;
+}
+.stTabs [data-baseweb="tab-highlight"] { display: none !important; }
+.stTabs [data-baseweb="tab-border"]    { display: none !important; }
+
+/* ── iMessage chat ── */
+.chat-page {
+  background: var(--chat-bg);
+  border: 0.5px solid var(--sep);
   border-radius: var(--r-xl);
   overflow: hidden;
-  margin-top: 0.75rem;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.06);
 }
 .chat-header {
-  background: var(--sys-bg-3);
-  border-bottom: 0.5px solid var(--sep-opaque);
-  padding: 0.9rem 1.4rem;
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
+  background: var(--chat-header-bg);
+  border-bottom: 0.5px solid var(--sep);
+  padding: 1rem 1.5rem;
+  display: flex; align-items: center; gap: 0.9rem;
+  backdrop-filter: blur(20px);
 }
 .chat-avatar {
-  width: 36px; height: 36px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--sys-green), var(--sys-blue));
+  width: 40px; height: 40px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--sys-green) 0%, var(--accent) 100%);
   display: flex; align-items: center; justify-content: center;
+  font-size: 0.88rem; font-weight: 700; color: #fff;
   flex-shrink: 0;
-  font-size: 0.9rem; color: white; font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0,113,227,0.28);
 }
-.chat-header-title {
-  color: var(--label-1) !important;
-  font-size: 0.9rem !important;
-  font-weight: 600 !important;
-  margin: 0 0 0.05rem !important;
-  letter-spacing: -0.01em !important;
+.chat-name {
+  font-size: 0.95rem; font-weight: 600;
+  color: var(--text-1); letter-spacing: -0.01em;
+  margin: 0; line-height: 1.2;
 }
-.chat-header-sub {
-  color: var(--label-3) !important;
-  font-size: 0.72rem !important;
-  margin: 0 !important;
-  line-height: 1.35;
+.chat-status {
+  font-size: 0.7rem; color: var(--sys-green);
+  margin: 0; display: flex; align-items: center; gap: 4px;
 }
-.chat-body { padding: 1rem 1.25rem 0.75rem; }
-.chat-msg-user {
-  background: var(--sys-blue);
-  color: #ffffff !important;
-  border-radius: 18px 18px 4px 18px;
-  padding: 0.6rem 0.9rem;
-  margin: 0.3rem 0 0.3rem 20%;
-  font-size: 0.84rem;
-  font-weight: 400;
-  display: block;
-  line-height: 1.45;
+.chat-status::before {
+  content: ""; display: inline-block;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--sys-green);
 }
-.chat-msg-assistant {
-  background: var(--sys-bg-3);
-  color: var(--label-1) !important;
-  border-radius: 18px 18px 18px 4px;
-  padding: 0.65rem 0.9rem;
-  margin: 0.3rem 20% 0.3rem 0;
-  font-size: 0.84rem;
-  display: block;
-  line-height: 1.65;
-  white-space: pre-wrap;
+
+/* Suggestion chips */
+.chips-row {
+  display: flex; gap: 7px; flex-wrap: nowrap; overflow-x: auto;
+  padding: 0.75rem 1.25rem 0.65rem;
+  border-bottom: 0.5px solid var(--sep);
+  scrollbar-width: none; background: var(--chat-bg);
+}
+.chips-row::-webkit-scrollbar { display: none; }
+.chip {
+  background: var(--chat-chip-bg); color: var(--chat-chip-color);
+  border: 0.5px solid var(--sep);
+  border-radius: 100px;
+  padding: 0.28rem 0.8rem;
+  font-size: 0.75rem; font-weight: 500;
+  white-space: nowrap; flex-shrink: 0;
+}
+
+/* Scrollable message area — column-reverse so newest message is always visible */
+.messages-scroll {
+  height: 460px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column-reverse;
+  padding: 1.1rem 1.25rem;
+  background: var(--chat-bg);
+  scrollbar-width: thin;
+  scrollbar-color: var(--sep) transparent;
+}
+.messages-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+/* Bubble rows */
+.bubble-row { display: flex; margin-bottom: 0.25rem; }
+.user-row  { justify-content: flex-end; }
+.bot-row   { justify-content: flex-start; align-items: flex-end; gap: 0.45rem; }
+.bot-mini-avatar {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--sys-green), var(--accent));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.52rem; font-weight: 700; color: #fff;
+  flex-shrink: 0; margin-bottom: 2px;
+}
+.bubble {
+  max-width: 70%;
+  padding: 0.58rem 0.9rem;
+  font-size: 0.85rem; line-height: 1.55;
+  white-space: pre-wrap; word-break: break-word;
+}
+.bubble-u {
+  background: var(--bubble-user-bg);
+  color: var(--bubble-user-text) !important;
+  border-radius: 18px 18px 5px 18px;
+}
+.bubble-b {
+  background: var(--bubble-bot-bg);
+  color: var(--bubble-bot-text) !important;
+  border-radius: 18px 18px 18px 5px;
+}
+.chat-empty {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; height: 100%; gap: 0.6rem; text-align: center;
+  color: var(--text-3); font-size: 0.8rem; line-height: 1.65;
+  padding: 2rem 1rem;
+}
+
+/* Input bar */
+.chat-input-bar {
+  background: var(--input-bar-bg);
+  border-top: 0.5px solid var(--sep);
+  padding: 0.65rem 1.1rem 0.75rem;
+}
+.chat-input-bar .stTextInput input {
+  border-radius: 20px !important;
+  padding: 0.5rem 1rem !important;
+  font-size: 0.88rem !important;
+  background: var(--bg-card) !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -1065,20 +1204,33 @@ def fetch_market_data(tickers, period="3y"):
 # SIDEBAR
 # ══════════════════════════════════════════════════════════════════════════════
 
+# Initialise theme state early so toggle works on first render
+if "dark" not in st.session_state:
+    st.session_state["dark"] = True
+
 with st.sidebar:
-    st.markdown("""
-<div style="padding:0.4rem 0 1rem; border-bottom:0.5px solid #38383A; margin-bottom:0.6rem;">
+    _is_dark = st.session_state["dark"]
+    _sep_col  = "#38383A" if _is_dark else "rgba(0,0,0,0.10)"
+    _t1_col   = "rgba(255,255,255,1)" if _is_dark else "#1d1d1f"
+    _t3_col   = "rgba(235,235,245,0.30)" if _is_dark else "#86868b"
+    st.markdown(f"""
+<div style="padding:0.4rem 0 1rem; border-bottom:0.5px solid {_sep_col}; margin-bottom:0.6rem;">
   <div style="display:flex; align-items:center; gap:0.6rem;">
     <div style="width:34px; height:34px; border-radius:8px; background:linear-gradient(135deg,#30D158 0%,#0A84FF 100%); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2C6.2 2 4 4.5 4 7.5C4 10.3 5.9 12.6 8.5 13V16H9.5V13C12.1 12.6 14 10.3 14 7.5C14 4.5 11.8 2 9 2Z" fill="white"/></svg>
     </div>
     <div>
-      <div style="font-size:1.0rem; font-weight:700; color:rgba(255,255,255,1); letter-spacing:-0.02em; line-height:1.1;">GreenPort</div>
-      <div style="font-size:0.64rem; color:rgba(235,235,245,0.30); letter-spacing:0.05em; text-transform:uppercase; font-weight:500;">ESG Portfolio Optimiser</div>
+      <div style="font-size:1.0rem; font-weight:700; color:{_t1_col}; letter-spacing:-0.02em; line-height:1.1;">GreenPort</div>
+      <div style="font-size:0.64rem; color:{_t3_col}; letter-spacing:0.05em; text-transform:uppercase; font-weight:500;">ESG Portfolio Optimiser</div>
     </div>
   </div>
 </div>
 """, unsafe_allow_html=True)
+    # ── Theme toggle ──────────────────────────────────────────────────────────
+    _toggle_label = "☀️  Day mode" if _is_dark else "🌙  Night mode"
+    if st.button(_toggle_label, key="theme_toggle", use_container_width=True):
+        st.session_state["dark"] = not st.session_state["dark"]
+        st.rerun()
     st.markdown("### Investor Preferences")
     gamma = st.slider("Risk Aversion (γ)", 0.5, 10.0, 3.0, 0.5)
     lam   = st.slider("ESG Preference (λ)", 0.0, 5.0, 1.0, 0.1)
@@ -1089,167 +1241,61 @@ with st.sidebar:
     min_esg_filter = 0.0
     if use_exclusion:
         min_esg_filter = st.slider("Min ESG score (0–10)", 0.0, 10.0, 4.0, 0.5)
-    st.markdown("""
-<div style="margin-top:1.5rem; padding-top:0.85rem; border-top:0.5px solid #38383A;">
-  <div style="font-size:0.65rem; color:rgba(235,235,245,0.22); line-height:1.8; letter-spacing:0.03em;">
+    st.markdown(f"""
+<div style="margin-top:1.5rem; padding-top:0.85rem; border-top:0.5px solid {_sep_col};">
+  <div style="font-size:0.65rem; color:{_t3_col}; line-height:1.8; letter-spacing:0.03em;">
     ECN316 · Sustainable Finance · 2026
   </div>
 </div>
 """, unsafe_allow_html=True)
 
 
-# ── Extra CSS for tabs + iMessage chat page ───────────────────────────────────
-st.markdown("""
+
+
+# Inject the [data-theme] attribute so CSS variables switch correctly
+_theme_attr = "dark" if st.session_state["dark"] else "light"
+st.markdown(f"""
+<script>
+  (function() {{
+    var root = window.parent.document.querySelector('.stApp');
+    if (root) root.setAttribute('data-theme', '{_theme_attr}');
+    var all = window.parent.document.querySelectorAll('*[data-theme]');
+    all.forEach(function(el) {{ el.setAttribute('data-theme', '{_theme_attr}'); }});
+    document.documentElement.setAttribute('data-theme', '{_theme_attr}');
+  }})();
+</script>
+""", unsafe_allow_html=True)
+
+# Inline override CSS — simpler & more reliable than JS attribute in Streamlit
+if not st.session_state["dark"]:
+    st.markdown("""
 <style>
-/* ── Tabs ── */
-.stTabs [data-baseweb="tab-list"] {
-  gap: 0;
-  background: #1C1C1E;
-  border-radius: 10px;
-  padding: 3px;
-  border: 0.5px solid #3A3A3C;
-  margin-bottom: 1.5rem;
-  width: fit-content;
+:root {
+  --bg: #f5f5f7 !important; --bg-card: #ffffff !important;
+  --bg-elevated: #ffffff !important; --bg-3: #e8e8ed !important;
+  --bg-input: rgba(118,118,128,0.12) !important;
+  --text-1: #1d1d1f !important; --text-2: #6e6e73 !important;
+  --text-3: #86868b !important; --text-inv: #ffffff !important;
+  --accent: #0071e3 !important; --accent-hover: #0077ed !important;
+  --accent-light: rgba(0,113,227,0.10) !important;
+  --sys-green: #1d8348 !important; --sys-orange: #c84b00 !important;
+  --sys-red: #c0392b !important;
+  --border: rgba(0,0,0,0.08) !important; --sep: rgba(0,0,0,0.12) !important;
+  --sep-strong: rgba(0,0,0,0.18) !important;
+  --sb-bg: #f5f5f7 !important; --sb-border: rgba(0,0,0,0.10) !important;
+  --chat-bg: #ffffff !important; --chat-header-bg: #f5f5f7 !important;
+  --chat-chip-bg: #e8e8ed !important; --chat-chip-color: #0071e3 !important;
+  --bubble-user-bg: #0071e3 !important; --bubble-user-text: #ffffff !important;
+  --bubble-bot-bg: #e8e8ed !important; --bubble-bot-text: #1d1d1f !important;
+  --input-bar-bg: #f5f5f7 !important;
+  --chart-bg: #ffffff !important; --chart-bg2: #f5f5f7 !important;
 }
-.stTabs [data-baseweb="tab"] {
-  border-radius: 8px;
-  padding: 0.35rem 1.1rem;
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: rgba(235,235,245,0.50) !important;
-  background: transparent !important;
-  border: none !important;
-  letter-spacing: -0.01em;
-  transition: color 0.15s, background 0.15s;
-}
-.stTabs [aria-selected="true"] {
-  background: #3A3A3C !important;
-  color: rgba(255,255,255,1) !important;
-  font-weight: 600 !important;
-}
-.stTabs [data-baseweb="tab-highlight"] { display: none !important; }
-.stTabs [data-baseweb="tab-border"]    { display: none !important; }
-
-/* ── Chat page full-height container ── */
-.imessage-page {
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 160px);
-  min-height: 500px;
-  background: #000000;
-  border: 0.5px solid #3A3A3C;
-  border-radius: 20px;
-  overflow: hidden;
-}
-
-/* ── Chat page header (contact card style) ── */
-.imessage-header {
-  background: rgba(28,28,30,0.95);
-  border-bottom: 0.5px solid #3A3A3C;
-  padding: 0.85rem 1.25rem;
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  flex-shrink: 0;
-  backdrop-filter: blur(20px);
-}
-.imessage-avatar {
-  width: 42px; height: 42px; border-radius: 50%;
-  background: linear-gradient(135deg, #30D158 0%, #0A84FF 100%);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 0.95rem; font-weight: 700; color: white;
-  flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(48,209,88,0.3);
-}
-.imessage-contact { flex: 1; }
-.imessage-name {
-  font-size: 0.95rem; font-weight: 600;
-  color: rgba(255,255,255,1); letter-spacing: -0.01em;
-  margin: 0; line-height: 1.2;
-}
-.imessage-status {
-  font-size: 0.72rem; color: #30D158;
-  margin: 0; display: flex; align-items: center; gap: 4px;
-}
-.imessage-status::before {
-  content: ""; display: inline-block;
-  width: 6px; height: 6px; border-radius: 50%;
-  background: #30D158;
-}
-
-/* ── Suggestion chips ── */
-.chips-row {
-  display: flex; gap: 7px; flex-wrap: nowrap;
-  overflow-x: auto; padding: 0.7rem 1.25rem 0.5rem;
-  border-bottom: 0.5px solid rgba(58,58,60,0.6);
-  flex-shrink: 0;
-  scrollbar-width: none;
-}
-.chips-row::-webkit-scrollbar { display: none; }
-.chip {
-  background: #2C2C2E; color: #0A84FF;
-  border: 0.5px solid #3A3A3C;
-  border-radius: 100px;
-  padding: 0.3rem 0.75rem;
-  font-size: 0.76rem; font-weight: 500;
-  white-space: nowrap; cursor: pointer;
-  flex-shrink: 0;
-  transition: background 0.15s;
-}
-.chip:hover { background: #3A3A3C; }
-
-/* ── Messages scroll area ── */
-.messages-area {
-  flex: 1; overflow-y: auto;
-  padding: 1rem 1.25rem 0.5rem;
-  display: flex; flex-direction: column; gap: 0.15rem;
-  scrollbar-width: thin;
-  scrollbar-color: #3A3A3C transparent;
-}
-
-/* ── Bubble styles ── */
-.bubble-row { display: flex; margin-bottom: 0.2rem; }
-.bubble-row.user-row  { justify-content: flex-end; }
-.bubble-row.bot-row   { justify-content: flex-start; align-items: flex-end; gap: 0.45rem; }
-
-.bot-mini-avatar {
-  width: 26px; height: 26px; border-radius: 50%;
-  background: linear-gradient(135deg, #30D158, #0A84FF);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 0.58rem; font-weight: 700; color: white;
-  flex-shrink: 0; margin-bottom: 2px;
-}
-
-.bubble {
-  max-width: 72%;
-  padding: 0.6rem 0.9rem;
-  line-height: 1.55;
-  font-size: 0.85rem;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-.bubble-u {
-  background: #0A84FF; color: #ffffff;
-  border-radius: 18px 18px 5px 18px;
-  font-weight: 400;
-}
-.bubble-b {
-  background: #2C2C2E; color: rgba(255,255,255,0.88);
-  border-radius: 18px 18px 18px 5px;
-}
-
-/* ── Input bar ── */
-.imessage-input-bar {
-  background: rgba(28,28,30,0.98);
-  border-top: 0.5px solid #3A3A3C;
-  padding: 0.6rem 1rem 0.75rem;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
+.stApp { background: #f5f5f7 !important; }
+[data-testid="stSidebar"] { background: #f5f5f7 !important; }
 </style>
 """, unsafe_allow_html=True)
+
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TABS  — Portfolio Optimiser | Portfolio Explainer
@@ -1258,6 +1304,7 @@ st.markdown("""
 _tab1, _tab2 = st.tabs(["Portfolio Optimiser", "Portfolio Explainer"])
 
 with _tab1:
+
 
     # ══════════════════════════════════════════════════════════════════════════════
     # HEADER
@@ -1930,26 +1977,32 @@ with _tab1:
     """)
 
 
+
 with _tab2:
+    _dark = st.session_state.get("dark", True)
+    _bg_val = "#000" if _dark else "#fff"
+    _sep_val = "#3A3A3C" if _dark else "rgba(0,0,0,0.12)"
+
     if "chat_data" not in st.session_state:
-        st.markdown("""
-<div style="display:flex; flex-direction:column; align-items:center; justify-content:center;
-            min-height:400px; text-align:center; gap:1rem;">
-  <div style="width:64px; height:64px; border-radius:16px;
-              background:linear-gradient(135deg,#30D158,#0A84FF);
-              display:flex; align-items:center; justify-content:center;
-              box-shadow:0 4px 20px rgba(10,132,255,0.35);">
-    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-      <path d="M10 8C10 8 8 10 8 14C8 18 11 21 16 21.5V25H17V21.5C22 21 25 18 25 14C25 10 23 8 23 8"
-            stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/>
+        st.markdown(f"""
+<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+            min-height:460px;text-align:center;gap:1.2rem;
+            background:{'#000' if _dark else '#fff'};border-radius:20px;
+            border:0.5px solid {'#3A3A3C' if _dark else 'rgba(0,0,0,0.10)'};">
+  <div style="width:64px;height:64px;border-radius:16px;
+              background:linear-gradient(135deg,{'#30D158' if _dark else '#1d8348'},{'#0A84FF' if _dark else '#0071e3'});
+              display:flex;align-items:center;justify-content:center;
+              box-shadow:0 4px 20px rgba(0,113,227,0.30);">
+    <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+      <path d="M15 3C10 3 6 7.5 6 13C6 18.2 9.7 22.4 14.5 22.9V27H15.5V22.9C20.3 22.4 24 18.2 24 13C24 7.5 20 3 15 3Z" fill="white"/>
     </svg>
   </div>
   <div>
-    <div style="font-size:1.1rem; font-weight:600; color:rgba(255,255,255,1); margin-bottom:0.35rem;">
+    <div style="font-size:1.1rem;font-weight:600;color:{'rgba(255,255,255,1)' if _dark else '#1d1d1f'};margin-bottom:0.4rem;">
       Portfolio Explainer
     </div>
-    <div style="font-size:0.84rem; color:rgba(235,235,245,0.45); max-width:320px; line-height:1.55;">
-      Run the optimiser first, then come back here to ask questions about your portfolio.
+    <div style="font-size:0.84rem;color:{'rgba(235,235,245,0.40)' if _dark else '#86868b'};max-width:300px;line-height:1.6;">
+      Run the optimiser first, then return here to ask questions about your results.
     </div>
   </div>
 </div>
@@ -1958,89 +2011,85 @@ with _tab2:
         if "chat_history" not in st.session_state:
             st.session_state["chat_history"] = []
 
-        # ── iMessage page container header ────────────────────────────────
-        st.markdown("""
-<div class="imessage-header" style="border-radius:20px 20px 0 0; border:0.5px solid #3A3A3C; border-bottom:0.5px solid #3A3A3C; margin-bottom:0;">
-  <div class="imessage-avatar">GP</div>
-  <div class="imessage-contact">
-    <p class="imessage-name">Portfolio Explainer</p>
-    <p class="imessage-status">Active now</p>
-  </div>
-  <div style="font-size:0.72rem; color:rgba(235,235,245,0.30); text-align:right; line-height:1.6;">
-    Powered by GreenPort<br>No API key needed
-  </div>
-</div>
-""", unsafe_allow_html=True)
+        _dark  = st.session_state.get("dark", True)
+        _bg    = "#000000" if _dark else "#ffffff"
+        _hbg   = "#1C1C1E" if _dark else "#f5f5f7"
+        _sep   = "#3A3A3C" if _dark else "rgba(0,0,0,0.10)"
+        _t1    = "rgba(255,255,255,1)" if _dark else "#1d1d1f"
+        _t3    = "rgba(235,235,245,0.30)" if _dark else "#86868b"
+        _green = "#30D158" if _dark else "#1d8348"
+        _blue  = "#0A84FF" if _dark else "#0071e3"
 
-        # ── Suggestion chips (horizontal scroll) ─────────────────────────
-        chips_html = '<div class="chips-row" style="background:#000; border-left:0.5px solid #3A3A3C; border-right:0.5px solid #3A3A3C;">'
-        for q in SUGGESTED_QUESTIONS:
-            chips_html += f'<span class="chip">{q}</span>'
-        chips_html += '</div>'
-        st.markdown(chips_html, unsafe_allow_html=True)
-
-        # ── Message history ───────────────────────────────────────────────
-        st.markdown('<div class="messages-area" style="background:#000; border-left:0.5px solid #3A3A3C; border-right:0.5px solid #3A3A3C; min-height:380px; max-height:480px;">', unsafe_allow_html=True)
+        # ── Build ALL messages as single HTML block ───────────────────────
         if not st.session_state["chat_history"]:
-            st.markdown("""
-<div style="display:flex; flex-direction:column; align-items:center; justify-content:center;
-            min-height:320px; gap:0.6rem; text-align:center;">
-  <div style="font-size:0.78rem; color:rgba(235,235,245,0.25); line-height:1.7;">
-    Ask about weights, the Sharpe ratio, ESG scores,<br>
-    the utility function, or any part of your portfolio.
+            msgs_html = f"""
+<div class="chat-empty">
+  Ask about weights, the Sharpe ratio, ESG scores,<br>
+  the utility function, or any part of your portfolio.
+</div>"""
+        else:
+            msgs_html = '<div class="messages-inner">'
+            for msg in st.session_state["chat_history"]:
+                safe = (msg["content"]
+                        .replace("&","&amp;").replace("<","&lt;").replace(">","&gt;"))
+                if msg["role"] == "user":
+                    msgs_html += (f'<div class="bubble-row user-row">'
+                                  f'<div class="bubble bubble-u">{safe}</div></div>')
+                else:
+                    msgs_html += (f'<div class="bubble-row bot-row">'
+                                  f'<div class="bot-mini-avatar">GP</div>'
+                                  f'<div class="bubble bubble-b">{safe}</div></div>')
+            msgs_html += '</div>'
+
+        # ── Render the whole chat page as one block ───────────────────────
+        st.markdown(f"""
+<div class="chat-page">
+  <div class="chat-header">
+    <div class="chat-avatar" style="background:linear-gradient(135deg,{_green},{_blue});">GP</div>
+    <div style="flex:1;">
+      <p class="chat-name" style="color:{_t1};">Portfolio Explainer</p>
+      <p class="chat-status" style="color:{_green};">Active now</p>
+    </div>
+    <div style="font-size:0.7rem;color:{_t3};text-align:right;line-height:1.65;">
+      Powered by GreenPort<br>No API key needed
+    </div>
+  </div>
+  <div class="chips-row" id="chips-row" style="background:{_bg};">
+    {"".join(f'<span class="chip">{q}</span>' for q in SUGGESTED_QUESTIONS)}
+  </div>
+  <div class="messages-scroll" id="gp-msgs" style="background:{_bg};">
+    {msgs_html}
   </div>
 </div>
 """, unsafe_allow_html=True)
-        else:
-            for msg in st.session_state["chat_history"]:
-                safe = msg["content"].replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-                safe_br = safe
-                if msg["role"] == "user":
-                    st.markdown(
-                        f'<div class="bubble-row user-row"><div class="bubble bubble-u">{safe_br}</div></div>',
-                        unsafe_allow_html=True)
-                else:
-                    st.markdown(
-                        f'<div class="bubble-row bot-row">'
-                        f'<div class="bot-mini-avatar">GP</div>'
-                        f'<div class="bubble bubble-b">{safe_br}</div>'
-                        f'</div>',
-                        unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
 
-        # ── Input bar ─────────────────────────────────────────────────────
-        st.markdown('<div style="background:#1C1C1E; border:0.5px solid #3A3A3C; border-top:0.5px solid #3A3A3C; border-radius:0 0 20px 20px; padding:0.7rem 1rem 0.8rem;">', unsafe_allow_html=True)
+        # ── Input bar outside the static HTML so Streamlit form works ─────
+        st.markdown(f'<div class="chat-input-bar" style="background:{_hbg};border:0.5px solid {_sep};border-top:none;border-radius:0 0 20px 20px;">', unsafe_allow_html=True)
         with st.form(key="imessage_form", clear_on_submit=True):
-            col_input, col_send = st.columns([8, 1])
-            with col_input:
-                user_input = st.text_input(
-                    "Message",
-                    placeholder="Message GreenPort...",
-                    label_visibility="collapsed",
-                )
-            with col_send:
-                submitted = st.form_submit_button(
-                    "↑",
-                    use_container_width=True,
-                    type="primary",
-                )
+            _ci, _cs = st.columns([8, 1])
+            with _ci:
+                user_input = st.text_input("msg", placeholder="Message GreenPort...",
+                                           label_visibility="collapsed")
+            with _cs:
+                submitted = st.form_submit_button("↑", use_container_width=True, type="primary")
         st.markdown('</div>', unsafe_allow_html=True)
 
         if submitted and user_input.strip():
             reply = answer_question(user_input.strip())
-            st.session_state["chat_history"].append({"role": "user", "content": user_input.strip()})
-            st.session_state["chat_history"].append({"role": "assistant", "content": reply})
+            st.session_state["chat_history"].append({"role":"user","content":user_input.strip()})
+            st.session_state["chat_history"].append({"role":"assistant","content":reply})
             st.rerun()
 
-        # ── Chip button triggers (one per suggested question) ─────────────
-        st.markdown("<div style='margin-top:0.6rem;'>", unsafe_allow_html=True)
-        pill_cols = st.columns(3)
-        for idx, q in enumerate(SUGGESTED_QUESTIONS[:9]):
-            with pill_cols[idx % 3]:
-                if st.button(q, key=f"chip_{idx}", use_container_width=True):
-                    reply = answer_question(q)
-                    st.session_state["chat_history"].append({"role": "user", "content": q})
-                    st.session_state["chat_history"].append({"role": "assistant", "content": reply})
+        # ── Suggestion quick-buttons (actual Streamlit buttons) ───────────
+        st.markdown("<div style='margin-top:1rem;'>", unsafe_allow_html=True)
+        st.caption("Suggested questions — click to send:")
+        _pc = st.columns(3)
+        for _i, _q in enumerate(SUGGESTED_QUESTIONS[:9]):
+            with _pc[_i % 3]:
+                if st.button(_q, key=f"chip_{_i}", use_container_width=True):
+                    _r = answer_question(_q)
+                    st.session_state["chat_history"].append({"role":"user","content":_q})
+                    st.session_state["chat_history"].append({"role":"assistant","content":_r})
                     st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
