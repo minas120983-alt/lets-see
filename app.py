@@ -153,9 +153,16 @@ table, thead tr th, tbody tr td { color: #1a2e1a !important; }
 # We take the most recent year per ticker and scale to 0–10 for display.
 # ══════════════════════════════════════════════════════════════════════════════
 
-@st.cache_data(show_spinner=False)
-def load_esg_csv(path: str) -> dict:
-    df = pd.read_csv(path)
+# Raw GitHub URL for the ESG CSV (filename has a space — encoded as %20)
+_ESG_CSV_URL = (
+    "https://raw.githubusercontent.com/minas120983-alt/lets-see/main/ESG%20data%202026.csv"
+)
+# Local fallback path (works when running locally or on Streamlit Community Cloud)
+_ESG_CSV_LOCAL = "/mnt/user-data/uploads/ESG data 2026.csv"
+
+
+def _parse_esg_df(df: pd.DataFrame) -> dict:
+    """Convert a raw ESG DataFrame into the app's ticker→dict lookup."""
     df = df[df["fieldname"] == "ESGCombinedScore"].copy()
     df["valuescore"] = pd.to_numeric(df["valuescore"], errors="coerce")
     df = df.dropna(subset=["valuescore", "ticker"])
@@ -173,12 +180,39 @@ def load_esg_csv(path: str) -> dict:
     }
 
 
-_ESG_CSV_PATH = "/mnt/user-data/uploads/ESG_data_2026.csv"
-_ESG_DB: dict = {}
-try:
-    _ESG_DB = load_esg_csv(_ESG_CSV_PATH)
-except Exception:
-    pass
+@st.cache_data(show_spinner=False)
+def load_esg_db() -> dict:
+    """
+    Load ESG data with two-source fallback:
+      1. Raw GitHub URL (primary — works on any deployment)
+      2. Local upload path (fallback for Streamlit Cloud / local runs)
+    Returns a ticker→dict lookup or empty dict on complete failure.
+    """
+    # Source 1: GitHub raw URL
+    try:
+        resp = requests.get(_ESG_CSV_URL, timeout=15)
+        resp.raise_for_status()
+        import io
+        df = pd.read_csv(io.StringIO(resp.text))
+        result = _parse_esg_df(df)
+        if result:
+            return result
+    except Exception:
+        pass
+
+    # Source 2: local file
+    try:
+        df = pd.read_csv(_ESG_CSV_LOCAL)
+        result = _parse_esg_df(df)
+        if result:
+            return result
+    except Exception:
+        pass
+
+    return {}
+
+
+_ESG_DB: dict = load_esg_db()
 
 
 def lookup_esg(ticker: str) -> dict:
@@ -412,8 +446,10 @@ if _ESG_DB:
         unsafe_allow_html=True)
 else:
     st.markdown(
-        f'<div class="error-box">⚠️ ESG CSV not found at <code>{_ESG_CSV_PATH}</code>. '
-        f'Please update the path in the script.</div>', unsafe_allow_html=True)
+        f'<div class="error-box">⚠️ Could not load ESG data. '
+        f'Tried GitHub: <code>{_ESG_CSV_URL}</code> and local fallback. '
+        f'Check your internet connection or place the CSV at <code>{_ESG_CSV_LOCAL}</code>.</div>',
+        unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # INPUT MODE
