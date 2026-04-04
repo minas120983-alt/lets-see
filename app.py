@@ -17,333 +17,358 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── Custom CSS — iOS SaaS · monochrome · frosted glass ──────────────────────
+# ── CSS — Apple macOS Sonoma / iOS 17 design language ────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-/* ── Variables ── */
 :root {
-  --bg:          #111114;
-  --surface-1:   rgba(255,255,255,0.04);
-  --surface-2:   rgba(255,255,255,0.07);
-  --surface-3:   rgba(255,255,255,0.10);
-  --border:      rgba(255,255,255,0.08);
-  --border-hi:   rgba(255,255,255,0.16);
-  --text-hi:     rgba(255,255,255,0.92);
-  --text-mid:    rgba(255,255,255,0.55);
-  --text-lo:     rgba(255,255,255,0.28);
-  --accent:      rgba(255,255,255,0.88);
-  --radius-sm:   10px;
-  --radius-md:   14px;
-  --radius-lg:   20px;
-  --radius-xl:   26px;
-  --blur:        saturate(180%) blur(20px);
+  --bg:        #0a0a0c;
+  --nav-bg:    rgba(16,16,20,0.94);
+  --card:      rgba(255,255,255,0.04);
+  --card-hi:   rgba(255,255,255,0.07);
+  --input:     rgba(255,255,255,0.06);
+  --border:    rgba(255,255,255,0.09);
+  --border-hi: rgba(255,255,255,0.20);
+  --t1: rgba(255,255,255,0.94);
+  --t2: rgba(255,255,255,0.58);
+  --t3: rgba(255,255,255,0.30);
+  --green:  #30d158;
+  --orange: #ff9f0a;
+  --red:    #ff453a;
+  --blur:   saturate(180%) blur(24px);
+  --r-xs:4px; --r-sm:10px; --r-md:14px;
+  --r-lg:18px; --r-xl:22px; --r-pill:100px;
 }
 
-/* ── Base ── */
-*, *::before, *::after { box-sizing: border-box; }
-html, body, [class*="css"] {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  font-size: 14px;
+*,*::before,*::after{box-sizing:border-box;}
+html,body,[class*="css"]{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
+  -webkit-font-smoothing:antialiased; font-size:14px; line-height:1.5;
 }
+
+/* ── App shell ── */
 .stApp {
   background: var(--bg);
-  background-image:
-    radial-gradient(ellipse 100% 60% at 50% -10%, rgba(255,255,255,0.04) 0%, transparent 70%);
-  color: var(--text-hi);
+  background-image: radial-gradient(ellipse 80% 40% at 50% 0%,
+    rgba(255,255,255,0.03) 0%, transparent 60%);
+  color: var(--t1);
 }
 .block-container {
-  padding: 2.5rem 2.5rem 4rem !important;
-  max-width: 1380px !important;
+  padding: 0 2.8rem 6rem !important;
+  max-width: 1360px !important;
 }
 
-/* ── Sidebar ── */
+/* ── Sidebar / Nav ── */
 [data-testid="stSidebar"] {
-  background: rgba(17,17,20,0.85) !important;
+  background: var(--nav-bg) !important;
   backdrop-filter: var(--blur) !important;
   -webkit-backdrop-filter: var(--blur) !important;
   border-right: 1px solid var(--border) !important;
 }
-[data-testid="stSidebar"] * { color: var(--text-mid) !important; }
-[data-testid="stSidebar"] h2,
-[data-testid="stSidebar"] h3 {
-  color: var(--text-hi) !important;
-  font-size: 11px !important; font-weight: 600 !important;
-  letter-spacing: 0.08em !important; text-transform: uppercase !important;
-}
+[data-testid="stSidebar"] * { color: var(--t2) !important; }
 [data-testid="stSidebar"] hr {
   border: none !important;
   border-top: 1px solid var(--border) !important;
-  margin: 1.2rem 0 !important;
+  margin: 12px 0 !important;
 }
 [data-testid="stSidebar"] label {
-  font-size: 11px !important; font-weight: 500 !important;
-  letter-spacing: 0.06em !important; text-transform: uppercase !important;
-  color: var(--text-lo) !important;
+  font-size:11px !important; font-weight:500 !important;
+  letter-spacing:0.05em !important; text-transform:uppercase !important;
+  color: var(--t3) !important;
 }
 [data-testid="stSidebar"] .stSlider [role="slider"] {
-  background: var(--text-hi) !important;
-  border: none !important;
-  width: 18px !important; height: 18px !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.5) !important;
+  background:#fff !important; border:none !important;
+  width:18px !important; height:18px !important;
+  box-shadow:0 1px 8px rgba(0,0,0,0.7) !important;
+}
+[data-testid="stSidebar"] .stSlider p {
+  font-size:13px !important; font-weight:500 !important;
+  color: var(--t1) !important;
 }
 [data-testid="stSidebar"] .stNumberInput input {
-  background: var(--surface-1) !important;
-  color: var(--text-hi) !important;
+  background: var(--input) !important; color: var(--t1) !important;
   border: 1px solid var(--border) !important;
-  border-radius: var(--radius-sm) !important;
-  font-size: 13px !important;
+  border-radius: var(--r-sm) !important; font-size:13px !important;
 }
 [data-testid="stSidebar"] .stCheckbox label {
-  font-size: 12px !important; color: var(--text-mid) !important;
-  letter-spacing: 0.01em !important;
+  font-size:13px !important; color: var(--t2) !important;
+  text-transform:none !important; letter-spacing:-0.01em !important;
 }
-[data-testid="stSidebar"] small { color: var(--text-lo) !important; }
+[data-testid="stSidebar"] small { color: var(--t3) !important; font-size:11px !important; }
+[data-testid="stSidebar"] p    { color: var(--t3) !important; }
 
-/* ── Global text ── */
-h1,h2,h3,h4,h5,h6 { color: var(--text-hi) !important; }
-p, div, label, span { color: var(--text-mid); }
-strong, b { color: var(--text-hi) !important; }
+/* ── Text ── */
+h1,h2,h3,h4,h5,h6 { color: var(--t1) !important; }
+p,div,label,span  { color: var(--t2); }
+strong,b          { color: var(--t1) !important; }
 
-/* ── Wordmark ── */
-.gp-wordmark {
-  font-family: 'Inter', sans-serif;
-  font-size: 22px; font-weight: 700; letter-spacing: -0.03em;
-  color: var(--text-hi) !important; margin-bottom: 4px;
-}
-.gp-subtitle {
-  font-size: 11px; font-weight: 500; letter-spacing: 0.12em;
-  text-transform: uppercase; color: var(--text-lo) !important;
-  margin-bottom: 28px;
-}
-
-/* ── Section labels ── */
-.section-header {
-  font-size: 11px; font-weight: 600; letter-spacing: 0.12em;
-  text-transform: uppercase; color: var(--text-lo) !important;
+/* ── Page header ── */
+.gp-header {
+  padding: 44px 0 28px;
   border-bottom: 1px solid var(--border);
-  padding-bottom: 8px; margin: 2rem 0 1.1rem;
+  margin-bottom: 36px;
+}
+.gp-top-row { display:flex; align-items:center; gap:14px; margin-bottom:6px; }
+.gp-logo {
+  width:42px; height:42px;
+  background: var(--t1);
+  border-radius:12px;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:17px; font-weight:800; color:#0a0a0c !important;
+  letter-spacing:-0.05em; flex-shrink:0;
+  box-shadow: 0 2px 16px rgba(255,255,255,0.12);
+}
+.gp-name {
+  font-size:28px; font-weight:700; letter-spacing:-0.04em;
+  color: var(--t1) !important; line-height:1;
+}
+.gp-tag {
+  font-size:10px; font-weight:600; letter-spacing:0.1em;
+  text-transform:uppercase; color: var(--t3) !important;
+  background: var(--card); border:1px solid var(--border);
+  border-radius: var(--r-pill); padding:3px 10px;
+  margin-bottom:2px;
+}
+.gp-sub {
+  font-size:13px; color: var(--t3) !important;
+  letter-spacing:-0.01em;
 }
 
-/* ── Frosted metric cards ── */
+/* ── Section label ── */
+.section-header {
+  font-size:11px; font-weight:600; letter-spacing:0.09em;
+  text-transform:uppercase; color: var(--t3) !important;
+  padding-bottom:10px; border-bottom:1px solid var(--border);
+  margin: 2.5rem 0 1.4rem;
+}
+
+/* ── Metric cards ── */
 .metric-card {
-  background: var(--surface-1);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
+  background: var(--card);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 18px 20px 16px;
-  margin-bottom: 10px;
+  border-radius: var(--r-xl);
+  padding: 22px 24px 18px;
+  margin-bottom: 12px;
   transition: background 0.2s, border-color 0.2s;
 }
 .metric-card:hover {
-  background: var(--surface-2);
-  border-color: var(--border-hi);
+  background: var(--card-hi);
+  border-color: rgba(255,255,255,0.15);
 }
 .metric-label {
-  font-size: 10px; font-weight: 600; letter-spacing: 0.1em;
-  text-transform: uppercase; color: var(--text-lo) !important;
-  margin-bottom: 6px;
+  font-size:11px; font-weight:500; letter-spacing:0.06em;
+  text-transform:uppercase; color: var(--t3) !important;
+  margin-bottom:8px;
 }
 .metric-value {
-  font-size: 28px; font-weight: 300; letter-spacing: -0.04em;
-  color: var(--text-hi) !important; line-height: 1;
+  font-size:32px; font-weight:300; letter-spacing:-0.05em;
+  color: var(--t1) !important; line-height:1;
   font-variant-numeric: tabular-nums;
 }
 .metric-unit {
-  font-size: 13px; font-weight: 400;
-  color: var(--text-lo) !important;
-  margin-left: 2px; letter-spacing: 0;
+  font-size:14px; font-weight:400;
+  color: var(--t3) !important; margin-left:2px;
 }
 
 /* ── Status boxes ── */
 .info-box {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.07);
-  border-radius: var(--radius-md);
-  padding: 12px 16px; margin: 8px 0;
-  font-size: 12.5px; color: var(--text-mid) !important;
-  line-height: 1.6;
+  background: rgba(48,209,88,0.05);
+  border: 1px solid rgba(48,209,88,0.18);
+  border-radius: var(--r-md); padding:12px 16px; margin:10px 0;
+  font-size:13px; color:rgba(48,209,88,0.9) !important; line-height:1.55;
 }
 .warn-box {
-  background: rgba(255,214,0,0.04);
-  border: 1px solid rgba(255,214,0,0.12);
-  border-radius: var(--radius-md);
-  padding: 12px 16px; margin: 8px 0;
-  font-size: 12.5px; color: rgba(255,220,80,0.75) !important;
-  line-height: 1.6;
+  background: rgba(255,159,10,0.05);
+  border: 1px solid rgba(255,159,10,0.18);
+  border-radius: var(--r-md); padding:12px 16px; margin:10px 0;
+  font-size:13px; color:rgba(255,159,10,0.92) !important; line-height:1.55;
 }
 .error-box {
-  background: rgba(255,69,58,0.04);
-  border: 1px solid rgba(255,69,58,0.12);
-  border-radius: var(--radius-md);
-  padding: 12px 16px; margin: 8px 0;
-  font-size: 12.5px; color: rgba(255,120,110,0.8) !important;
-  line-height: 1.6;
+  background: rgba(255,69,58,0.05);
+  border: 1px solid rgba(255,69,58,0.18);
+  border-radius: var(--r-md); padding:12px 16px; margin:10px 0;
+  font-size:13px; color:rgba(255,100,90,0.92) !important; line-height:1.55;
 }
 
-/* ── iOS-style pill buttons ── */
+/* ── Buttons — glass pill ── */
 div.stButton > button {
-  background: var(--surface-2) !important;
-  color: var(--text-hi) !important;
-  border: 1px solid var(--border-hi) !important;
-  border-radius: var(--radius-xl) !important;
+  background: var(--card) !important;
+  color: var(--t1) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--r-pill) !important;
   padding: 10px 22px !important;
   font-family: 'Inter', sans-serif !important;
-  font-weight: 500 !important; font-size: 13px !important;
-  letter-spacing: 0.01em !important;
-  width: 100% !important;
-  transition: all 0.15s ease !important;
-  backdrop-filter: blur(10px) !important;
+  font-size: 13px !important; font-weight: 500 !important;
+  letter-spacing: -0.01em !important; width: 100% !important;
+  transition: background 0.14s, border-color 0.14s, transform 0.1s !important;
+  backdrop-filter: blur(12px) !important;
 }
 div.stButton > button:hover {
-  background: var(--surface-3) !important;
-  border-color: rgba(255,255,255,0.28) !important;
+  background: var(--card-hi) !important;
+  border-color: rgba(255,255,255,0.18) !important;
   transform: translateY(-1px) !important;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
 }
 div.stButton > button:active {
-  transform: scale(0.97) !important;
-  opacity: 0.7 !important;
+  transform: scale(0.97) !important; opacity: 0.7 !important;
 }
-
-/* Optimise button — primary pill ── */
-[data-testid="column"] div.stButton > button,
-.run-btn div.stButton > button {
-  background: rgba(255,255,255,0.9) !important;
-  color: #111114 !important;
-  border: none !important;
+/* Primary CTA */
+div[data-testid="stHorizontalBlock"] div.stButton > button {
+  background: rgba(255,255,255,0.92) !important;
+  color: #0a0a0c !important; border: none !important;
   font-weight: 600 !important;
-  letter-spacing: 0.02em !important;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.4) !important;
+}
+div[data-testid="stHorizontalBlock"] div.stButton > button:hover {
+  background: rgba(255,255,255,1) !important;
 }
 
 /* ── Inputs ── */
 .stNumberInput input, .stTextInput input, .stTextArea textarea {
-  background: var(--surface-1) !important;
-  color: var(--text-hi) !important;
+  background: var(--input) !important; color: var(--t1) !important;
   border: 1px solid var(--border) !important;
-  border-radius: var(--radius-sm) !important;
-  font-size: 13px !important;
-  padding: 8px 12px !important;
-  transition: border-color 0.15s !important;
+  border-radius: var(--r-sm) !important;
+  font-size: 13px !important; padding: 9px 13px !important;
+  transition: border-color 0.15s, box-shadow 0.15s !important;
 }
 .stNumberInput input:focus, .stTextInput input:focus {
   border-color: var(--border-hi) !important;
-  box-shadow: 0 0 0 3px rgba(255,255,255,0.06) !important;
-  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.07) !important; outline: none !important;
 }
 .stSelectbox div[data-baseweb="select"] > div {
-  background: var(--surface-1) !important;
-  color: var(--text-hi) !important;
+  background: var(--input) !important; color: var(--t1) !important;
   border: 1px solid var(--border) !important;
-  border-radius: var(--radius-sm) !important;
+  border-radius: var(--r-sm) !important;
 }
-.stRadio label { color: var(--text-mid) !important; }
+.stRadio label { color: var(--t2) !important; }
 .stRadio div[role="radiogroup"] label {
-  font-size: 13px !important; font-weight: 500 !important;
+  font-size:13px !important; font-weight:400 !important;
+  letter-spacing:-0.01em !important;
 }
 .stCheckbox div[data-testid="stMarkdownContainer"] p {
-  color: var(--text-mid) !important;
-}
-
-/* ── DataFrames ── */
-.stDataFrame, [data-testid="stDataEditor"] {
-  border-radius: var(--radius-md) !important;
-  overflow: hidden !important;
-  border: 1px solid var(--border) !important;
-}
-[data-testid="stDataEditor"] * {
-  color: var(--text-hi) !important;
-  background: var(--surface-1) !important;
-}
-
-/* ── Expander ── */
-[data-testid="stExpander"] {
-  border: 1px solid var(--border) !important;
-  border-radius: var(--radius-md) !important;
-  background: var(--surface-1) !important;
-  backdrop-filter: var(--blur) !important;
-}
-[data-testid="stExpander"] summary {
-  color: var(--text-mid) !important;
-  font-size: 13px !important; font-weight: 500 !important;
-}
-[data-testid="stExpander"] p {
-  color: var(--text-mid) !important; line-height: 1.65 !important;
-  font-size: 13px !important;
+  font-size:13px !important; color: var(--t2) !important;
 }
 
 /* ── Tables ── */
-table { color: var(--text-hi) !important; border-collapse: collapse; width: 100%; }
+.stDataFrame, [data-testid="stDataEditor"] {
+  border-radius: var(--r-lg) !important; overflow:hidden !important;
+  border: 1px solid var(--border) !important;
+}
+[data-testid="stDataEditor"] * {
+  color: var(--t1) !important; background: rgba(255,255,255,0.02) !important;
+}
+table { color: var(--t1) !important; border-collapse:collapse; width:100%; }
 thead tr th {
-  color: var(--text-lo) !important;
-  font-size: 10px !important; letter-spacing: 0.1em !important;
-  text-transform: uppercase !important; font-weight: 600 !important;
-  border-bottom: 1px solid var(--border) !important;
-  padding: 8px 12px !important;
+  color: var(--t3) !important; font-size:10px !important;
+  font-weight:600 !important; letter-spacing:0.08em !important;
+  text-transform:uppercase !important;
+  border-bottom:1px solid var(--border) !important;
+  padding:10px 14px !important; background:transparent !important;
 }
 tbody tr td {
-  color: var(--text-mid) !important;
-  border-bottom: 1px solid rgba(255,255,255,0.04) !important;
-  padding: 8px 12px !important; font-size: 12.5px !important;
+  color: var(--t2) !important;
+  border-bottom:1px solid rgba(255,255,255,0.035) !important;
+  padding:10px 14px !important; font-size:13px !important;
 }
-tbody tr:hover td { background: var(--surface-1) !important; }
+tbody tr:hover td { background:rgba(255,255,255,0.025) !important; }
+
+/* ── Expander ── */
+[data-testid="stExpander"] {
+  border:1px solid var(--border) !important;
+  border-radius: var(--r-lg) !important;
+  background: var(--card) !important;
+}
+[data-testid="stExpander"] summary {
+  color: var(--t2) !important; font-size:13px !important;
+  font-weight:500 !important; padding:14px 18px !important;
+}
+[data-testid="stExpander"] p {
+  color: var(--t2) !important; line-height:1.65 !important; font-size:13px !important;
+}
 
 /* ── Divider ── */
 hr {
-  border: none !important;
-  border-top: 1px solid var(--border) !important;
-  margin: 2rem 0 !important;
+  border:none !important;
+  border-top:1px solid var(--border) !important;
+  margin:2.5rem 0 !important;
 }
 
-/* ── Chatbot ── */
-.chat-wrap {
-  background: var(--surface-1);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  overflow: hidden;
-  margin-top: 10px;
+/* ── Chat — Apple Messages look ── */
+.chat-outer {
+  border:1px solid var(--border);
+  border-radius: var(--r-xl);
+  background: var(--card);
+  overflow:hidden; margin-top:14px;
 }
-.chat-header {
-  background: rgba(255,255,255,0.03);
-  border-bottom: 1px solid var(--border);
-  padding: 16px 20px;
+.chat-bar {
+  display:flex; align-items:center; gap:11px;
+  padding:14px 18px;
+  background:rgba(255,255,255,0.03);
+  border-bottom:1px solid var(--border);
 }
-.chat-header-title {
-  color: var(--text-hi) !important;
-  font-size: 14px !important; font-weight: 600 !important;
-  letter-spacing: -0.01em !important; margin: 0 0 2px !important;
+.chat-avatar {
+  width:32px; height:32px; border-radius:50%;
+  background: var(--t1);
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; font-weight:700; color:#0a0a0c !important;
+  flex-shrink:0;
 }
-.chat-header-sub {
-  color: var(--text-lo) !important;
-  font-size: 11px !important; margin: 0 !important;
-  letter-spacing: 0.01em !important;
+.chat-bar-title { font-size:14px; font-weight:600; color: var(--t1) !important; }
+.chat-bar-sub   { font-size:11px; color: var(--t3) !important; margin-top:1px; }
+.chat-msgs {
+  max-height:440px; overflow-y:auto;
+  padding:16px 18px 10px;
+  scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.08) transparent;
 }
-.chat-body { padding: 16px 20px 12px; }
-.chat-msg-user {
-  background: rgba(255,255,255,0.88);
-  color: #111114 !important;
-  border-radius: 18px 18px 4px 18px;
-  padding: 10px 14px; margin: 6px 0 6px 25%;
-  font-size: 13px; font-weight: 500; display: block;
-  text-align: right; line-height: 1.5;
+.chat-msgs::-webkit-scrollbar { width:4px; }
+.chat-msgs::-webkit-scrollbar-thumb {
+  background:rgba(255,255,255,0.08); border-radius:4px;
 }
-.chat-msg-assistant {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  color: var(--text-mid) !important;
-  border-radius: 18px 18px 18px 4px;
-  padding: 12px 14px; margin: 6px 25% 6px 0;
-  font-size: 12.5px; display: block; line-height: 1.75;
-  font-family: 'SF Mono', 'Fira Mono', monospace;
+.msg-user {
+  display:flex; justify-content:flex-end; margin:6px 0;
 }
+.msg-bot {
+  display:flex; justify-content:flex-start; margin:6px 0;
+}
+.bubble-user {
+  background:rgba(255,255,255,0.90);
+  color:#0a0a0c !important;
+  border-radius:18px 18px 4px 18px;
+  padding:10px 15px; max-width:70%;
+  font-size:13px; font-weight:500; line-height:1.5;
+}
+.bubble-bot {
+  background:rgba(255,255,255,0.06);
+  border:1px solid var(--border);
+  color: var(--t2) !important;
+  border-radius:18px 18px 18px 4px;
+  padding:12px 15px; max-width:85%;
+  font-size:12.5px; line-height:1.75;
+  font-family:'SF Mono','Fira Mono','Courier New',monospace;
+}
+.chat-footer {
+  padding:10px 16px 14px;
+  border-top:1px solid var(--border);
+  background:rgba(255,255,255,0.015);
+}
+.chat-footer .stTextInput input {
+  border-radius: var(--r-pill) !important;
+  padding:10px 18px !important;
+  background:rgba(255,255,255,0.07) !important;
+  border:1px solid rgba(255,255,255,0.12) !important;
+}
+
+/* ── Footer ── */
+.gp-footer {
+  margin-top:64px; padding:24px 0;
+  border-top:1px solid var(--border);
+  display:flex; justify-content:space-between;
+  flex-wrap:wrap; gap:8px;
+}
+.gp-footer span { font-size:12px; color: var(--t3) !important; }
 </style>
 """, unsafe_allow_html=True)
+
 
 
 
@@ -1135,41 +1160,56 @@ def fetch_market_data(tickers, period="3y"):
 # ══════════════════════════════════════════════════════════════════════════════
 
 with st.sidebar:
-    st.markdown("## GreenPort")
+    st.markdown("""<div style="padding:22px 20px 16px;background:rgba(255,255,255,0.03);
+border-bottom:1px solid rgba(255,255,255,0.09);margin-bottom:8px;">
+<div style="display:flex;align-items:center;gap:10px;">
+<div style="width:32px;height:32px;background:rgba(255,255,255,0.94);border-radius:8px;
+display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;
+color:#0a0a0c;letter-spacing:-0.04em;flex-shrink:0;">GP</div>
+<div><div style="font-size:15px;font-weight:700;letter-spacing:-0.03em;
+color:rgba(255,255,255,0.94);">GreenPort</div>
+<div style="font-size:10px;color:rgba(255,255,255,0.3);letter-spacing:0.05em;
+text-transform:uppercase;">Portfolio Optimiser</div></div></div></div>""",
+    unsafe_allow_html=True)
+
     st.markdown("---")
-    st.markdown("### Investor Preferences")
-    gamma = st.slider("Risk Aversion (γ)", 0.5, 10.0, 3.0, 0.5)
-    lam   = st.slider("ESG Preference (λ)", 0.0, 5.0, 1.0, 0.1)
-    rf    = st.number_input("Risk-Free Rate (%)", 0.0, 20.0, 4.0, 0.1, format="%.1f") / 100
+    st.markdown("### Parameters")
+    gamma = st.slider("Risk Aversion γ", 0.5, 10.0, 3.0, 0.5,
+                      help="Higher γ penalises portfolio variance more. Typical institutional range: 2–6.")
+    lam   = st.slider("ESG Preference λ", 0.0, 5.0, 1.0, 0.1,
+                      help="Each unit of λ is worth roughly 10bp of return per ESG point gained.")
+    rf    = st.number_input("Risk-Free Rate %", 0.0, 20.0, 4.0, 0.1, format="%.1f") / 100
     st.markdown("---")
     st.markdown("### ESG Screen")
-    use_exclusion  = st.checkbox("Apply ESG exclusion screen", value=False)
+    use_exclusion  = st.checkbox("Apply minimum ESG screen", value=False)
     min_esg_filter = 0.0
     if use_exclusion:
-        min_esg_filter = st.slider("Min ESG score (0–10)", 0.0, 10.0, 4.0, 0.5)
+        min_esg_filter = st.slider("Minimum ESG score", 0.0, 10.0, 4.0, 0.5)
     st.markdown("---")
-    st.markdown("<small style='color:#d6e5cb'>ECN316 · Sustainable Finance · 2026</small>",
-                unsafe_allow_html=True)
+    st.markdown("<small>ECN316 · Sustainable Finance · 2026</small>", unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # HEADER
 # ══════════════════════════════════════════════════════════════════════════════
 
-st.markdown('<div class="hero-title">GreenPort</div>', unsafe_allow_html=True)
-st.markdown('<div class="hero-sub">ESG-aware portfolio optimiser · ECN316 Sustainable Finance</div>',
-            unsafe_allow_html=True)
+st.markdown('''
+<div class="gp-header">
+  <div class="gp-top-row">
+    <div class="gp-logo">GP</div>
+    <span class="gp-name">GreenPort</span>
+    <span class="gp-tag">Beta</span>
+  </div>
+  <div class="gp-sub">ESG-Aware Portfolio Optimiser &nbsp;&middot;&nbsp; ECN316 Sustainable Finance</div>
+</div>''', unsafe_allow_html=True)
 
 if _ESG_DB:
     st.markdown(
-        f'<div class="info-box"> ESG database loaded: <strong>{len(_ESG_DB):,} tickers</strong> '
-        f'from LSEG ESGCombinedScore CSV — most recent year per ticker, scaled 0–10.</div>',
+        f'<div class="info-box"><strong>{len(_ESG_DB):,} tickers</strong> loaded from LSEG ESGCombinedScore — most recent year per ticker, scaled 0–10.</div>',
         unsafe_allow_html=True)
 else:
     st.markdown(
-        f'<div class="error-box">Warning: Could not load ESG data. '
-        f'Tried GitHub: <code>{_ESG_CSV_URL}</code> and local fallback. '
-        f'Check your internet connection or place the CSV at <code>{_ESG_CSV_LOCAL}</code>.</div>',
+        '<div class="error-box">Could not load ESG data. Check internet connection or verify the CSV path.</div>',
         unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1831,47 +1871,62 @@ if "chat_data" in st.session_state:
     if "chat_history" not in st.session_state:
         st.session_state["chat_history"] = []
 
-    # Header
-    st.markdown(
-        '''<div class="chat-wrap">
-  <div class="chat-header">
+    # ── Chat window ───────────────────────────────────────────────────────────
+    st.markdown('''
+<div class="chat-outer">
+  <div class="chat-bar">
+    <div class="chat-avatar">GP</div>
     <div>
-      <p class="chat-header-title">GreenPort Portfolio Explainer</p>
-      <p class="chat-header-sub">Ask anything about your portfolio — weights, ESG scores, the frontier, or the model. All answers are computed directly from your results.</p>
+      <div class="chat-bar-title">Portfolio Analyst</div>
+      <div class="chat-bar-sub">Answers computed from your live portfolio data</div>
     </div>
-  </div>
-  <div class="chat-body">''',
-        unsafe_allow_html=True)
+  </div>''', unsafe_allow_html=True)
 
-    # Suggested question buttons
-    st.markdown("**Try asking:**")
-    pill_cols = st.columns(4)
-    for idx, q in enumerate(SUGGESTED_QUESTIONS):
-        with pill_cols[idx % 4]:
+    # Conversation history (scrollable)
+    st.markdown('<div class="chat-msgs">', unsafe_allow_html=True)
+    if not st.session_state["chat_history"]:
+        st.markdown(
+            '<div style="text-align:center;padding:32px 0;color:rgba(255,255,255,0.2);'
+            'font-size:13px;">Ask a question below to get started</div>',
+            unsafe_allow_html=True)
+    for msg in st.session_state["chat_history"]:
+        content = msg["content"].replace("\n", "<br>")
+        if msg["role"] == "user":
+            st.markdown(
+                f'<div class="msg-user"><div class="bubble-user">{content}</div></div>',
+                unsafe_allow_html=True)
+        else:
+            st.markdown(
+                f'<div class="msg-bot"><div class="bubble-bot">{content}</div></div>',
+                unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # Suggested questions — compact pill strip
+    st.markdown('''<div style="padding:10px 18px 8px;border-top:1px solid rgba(255,255,255,0.08);
+border-bottom:1px solid rgba(255,255,255,0.06);
+background:rgba(255,255,255,0.015);">
+<div style="font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;
+color:rgba(255,255,255,0.25);margin-bottom:8px;">Suggestions</div>''',
+        unsafe_allow_html=True)
+    q_cols = st.columns(3)
+    for idx, q in enumerate(SUGGESTED_QUESTIONS[:9]):
+        with q_cols[idx % 3]:
             if st.button(q, key=f"pill_{idx}", use_container_width=True):
                 reply = answer_question(q)
                 st.session_state["chat_history"].append({"role": "user",      "content": q})
                 st.session_state["chat_history"].append({"role": "assistant", "content": reply})
                 st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    # Conversation history
-    for msg in st.session_state["chat_history"]:
-        css_class = "chat-msg-user" if msg["role"] == "user" else "chat-msg-assistant"
-        # Render newlines as <br> so multi-line answers display correctly
-        content = msg["content"].replace("\n", "<br>")
-        st.markdown(f'<div class="{css_class}">{content}</div>', unsafe_allow_html=True)
-
-    st.markdown("</div></div>", unsafe_allow_html=True)
-
-    # Free-text input
+    # Input bar
+    st.markdown('<div class="chat-footer">', unsafe_allow_html=True)
     with st.form(key="chat_form", clear_on_submit=True):
-        fi_col, fb_col = st.columns([5, 1])
-        user_input = fi_col.text_input(
-            "Your question",
-            placeholder="e.g. Why does my portfolio hold so much of this asset?",
-            label_visibility="collapsed",
-        )
-        submitted = fb_col.form_submit_button("Send", use_container_width=True)
+        inp_col, btn_col = st.columns([6, 1])
+        user_input = inp_col.text_input(
+            "message", placeholder="Ask anything about your portfolio...",
+            label_visibility="collapsed")
+        submitted = btn_col.form_submit_button("Send", use_container_width=True)
+    st.markdown('</div></div>', unsafe_allow_html=True)
 
     if submitted and user_input.strip():
         reply = answer_question(user_input.strip())
@@ -1880,6 +1935,15 @@ if "chat_data" in st.session_state:
         st.rerun()
 
     if st.session_state.get("chat_history"):
-        if st.button("Clear conversation", key="chat_clear"):
-            st.session_state["chat_history"] = []
-            st.rerun()
+        clr_col, _ = st.columns([1, 4])
+        with clr_col:
+            if st.button("Clear", key="chat_clear", use_container_width=True):
+                st.session_state["chat_history"] = []
+                st.rerun()
+
+# ── Footer ─────────────────────────────────────────────────────────────────
+st.markdown('''
+<div class="gp-footer">
+  <span>GreenPort &copy; 2026 &nbsp;&middot;&nbsp; ECN316 Sustainable Finance</span>
+  <span>LSEG ESGCombinedScore &nbsp;&middot;&nbsp; Built with Streamlit</span>
+</div>''', unsafe_allow_html=True)
