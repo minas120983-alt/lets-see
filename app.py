@@ -694,8 +694,34 @@ if _page == "home":
         max-width: 100% !important;
         padding-left: 0 !important; padding-right: 0 !important;
     }
+    /* Dark forest-green background so button area blends with canvas bottom */
+    .stApp { background: #052e16 !important; }
+    /* Home-page enter button: white pill on dark green */
+    div[data-testid="stButton"] > button {
+        background: rgba(255,255,255,0.94) !important;
+        color: #052e16 !important;
+        border: none !important;
+        border-radius: 12px !important;
+        padding: 0.82rem 0 !important;
+        font-size: 1rem !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.01em !important;
+        box-shadow: 0 4px 30px rgba(0,0,0,0.30) !important;
+        width: 100% !important;
+        transition: transform 0.18s ease, background 0.18s ease,
+                    box-shadow 0.18s ease !important;
+    }
+    div[data-testid="stButton"] > button:hover {
+        background: #ffffff !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 8px 40px rgba(0,0,0,0.40) !important;
+    }
+    div[data-testid="stButton"] > button:active {
+        transform: translateY(0) scale(0.98) !important;
+    }
     </style>""", unsafe_allow_html=True)
 
+    # ── GradientBlinds canvas animation (no button inside the iframe) ──────
     _HOME_HTML = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -707,16 +733,12 @@ if _page == "home":
 html, body {
   width: 100%; height: 100%;
   overflow: hidden;
-  background: #0a0010;
+  background: #052e16;
   font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
 }
-canvas {
-  position: absolute; top: 0; left: 0;
-  width: 100%; height: 100%; display: block;
-}
+canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
 .overlay {
-  position: absolute; top: 0; left: 0;
-  width: 100%; height: 100%;
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   z-index: 20; text-align: center; padding: 2rem;
@@ -749,36 +771,14 @@ canvas {
   font-size: clamp(3.8rem, 12vw, 8rem);
   font-weight: 800; letter-spacing: -0.055em; line-height: 0.9;
   color: white; margin-bottom: 1.1rem; animation-delay: 0.25s;
-  text-shadow: 0 0 80px rgba(255,255,255,0.10);
+  text-shadow: 0 0 80px rgba(255,255,255,0.12);
 }
-.title .dim { opacity: 0.48; }
+.title .dim { opacity: 0.45; }
 .subtitle {
   font-size: clamp(0.88rem, 1.6vw, 1.02rem);
   color: rgba(255,255,255,0.55); max-width: 400px;
-  line-height: 1.72; margin-bottom: 2.6rem;
-  font-weight: 400; animation-delay: 0.35s;
+  line-height: 1.72; font-weight: 400; animation-delay: 0.35s;
 }
-.cta-wrap { pointer-events: auto; animation-delay: 0.45s; }
-.enter-btn {
-  background: rgba(255,255,255,0.93); color: #1a0833;
-  border: none; border-radius: 12px; padding: 15px 44px;
-  font-family: "Plus Jakarta Sans", system-ui, sans-serif;
-  font-size: 0.93rem; font-weight: 700; letter-spacing: -0.01em;
-  cursor: pointer;
-  transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
-  box-shadow: 0 2px 28px rgba(0,0,0,0.25);
-}
-.enter-btn:hover {
-  background: white; transform: translateY(-2px);
-  box-shadow: 0 8px 40px rgba(0,0,0,0.32);
-}
-.enter-btn:active { transform: translateY(0) scale(0.98); }
-.meta {
-  margin-top: 1.6rem; font-size: 0.58rem;
-  color: rgba(255,255,255,0.26); letter-spacing: 0.1em;
-  text-transform: uppercase; animation-delay: 0.55s;
-}
-body.leaving { opacity: 0; transition: opacity 0.35s ease; }
 </style>
 </head>
 <body>
@@ -792,10 +792,6 @@ body.leaving { opacity: 0; transition: opacity 0.35s ease; }
   <div class="badge">ECN316 &nbsp;&middot;&nbsp; Sustainable Finance &nbsp;&middot;&nbsp; 2026</div>
   <h1 class="title">Green<span class="dim">Port</span></h1>
   <p class="subtitle">ESG-integrated portfolio optimisation. Build and analyse sustainable investments with live LSEG data and mean-variance theory.</p>
-  <div class="cta-wrap">
-    <button class="enter-btn" onclick="enterApp()">Enter GreenPort &nbsp;&rarr;</button>
-  </div>
-  <p class="meta">LSEG ESG Data &nbsp;&middot;&nbsp; Mean-Variance Optimisation &nbsp;&middot;&nbsp; AI Explainer</p>
 </div>
 <script>
 var canvas = document.getElementById('canvas');
@@ -807,8 +803,8 @@ var frame = 0;
 var BLIND_COUNT = 12;
 var SPOT_R = 0.5;
 var DAMP = 0.15;
-var COLOR_A = '#FF9FFC';
-var COLOR_B = '#5227FF';
+var COLOR_A = '#4ade80';
+var COLOR_B = '#052e16';
 
 function lerp(a, b, t) { return a + (b - a) * t; }
 
@@ -830,14 +826,12 @@ function draw() {
   sm.y = lerp(sm.y, mouse.y, DAMP);
   ctx.clearRect(0, 0, W, H);
 
-  // Gradient background
   var bg = ctx.createLinearGradient(0, 0, W, H);
   bg.addColorStop(0, COLOR_A);
   bg.addColorStop(1, COLOR_B);
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
 
-  // Blinds
   var bw = W / BLIND_COUNT;
   for (var i = 0; i < BLIND_COUNT; i++) {
     var nx = (i + 0.5) / BLIND_COUNT;
@@ -864,24 +858,28 @@ function draw() {
     ctx.stroke();
   }
 
-  // Mouse spotlight
-  var sx = sm.x * W;
-  var sy = sm.y * H;
+  var sx = sm.x * W; var sy = sm.y * H;
   var sr = SPOT_R * Math.min(W, H);
   var spot = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr);
-  spot.addColorStop(0,    'rgba(255,255,255,0.42)');
-  spot.addColorStop(0.45, 'rgba(255,255,255,0.14)');
+  spot.addColorStop(0,    'rgba(255,255,255,0.38)');
+  spot.addColorStop(0.45, 'rgba(255,255,255,0.12)');
   spot.addColorStop(1,    'rgba(255,255,255,0)');
   ctx.globalCompositeOperation = 'lighten';
   ctx.fillStyle = spot;
   ctx.fillRect(0, 0, W, H);
   ctx.globalCompositeOperation = 'source-over';
 
-  // Left-side shine
   var shine = ctx.createLinearGradient(0, 0, W * 0.35, 0);
-  shine.addColorStop(0, 'rgba(255,255,255,0.07)');
+  shine.addColorStop(0, 'rgba(255,255,255,0.06)');
   shine.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = shine;
+  ctx.fillRect(0, 0, W, H);
+
+  /* Bottom fade — blends canvas into the dark-green button area below */
+  var fade = ctx.createLinearGradient(0, H * 0.72, 0, H);
+  fade.addColorStop(0, 'rgba(5,46,22,0)');
+  fade.addColorStop(1, 'rgba(5,46,22,0.92)');
+  ctx.fillStyle = fade;
   ctx.fillRect(0, 0, W, H);
 
   requestAnimationFrame(draw);
@@ -889,24 +887,29 @@ function draw() {
 
 resize();
 draw();
-
-function enterApp() {
-  document.body.classList.add('leaving');
-  setTimeout(function() {
-    try {
-      var url = new URL(window.parent.location.href);
-      url.searchParams.set('enter', '1');
-      window.parent.location.href = url.toString();
-    } catch(e) {
-      window.parent.location.search = '?enter=1';
-    }
-  }, 350);
-}
 </script>
 </body>
 </html>"""
 
-    components.html(_HOME_HTML, height=750, scrolling=False)
+    components.html(_HOME_HTML, height=620, scrolling=False)
+
+    # ── Native Streamlit button — 100% reliable navigation ─────────────────
+    st.markdown("<div style='height:0.1rem;background:#052e16;'></div>",
+                unsafe_allow_html=True)
+    _, _btn_col, _ = st.columns([1.8, 1, 1.8])
+    with _btn_col:
+        if st.button("Enter GreenPort →", use_container_width=True, key="home_enter"):
+            st.session_state["page"] = "input"
+            st.rerun()
+
+    st.markdown("""
+<p style="text-align:center;margin-top:1.1rem;font-size:0.58rem;
+   color:rgba(255,255,255,0.22);letter-spacing:0.1em;text-transform:uppercase;
+   font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#052e16;
+   padding-bottom:1.5rem;">
+  LSEG ESG Data &nbsp;&middot;&nbsp; Mean-Variance Optimisation &nbsp;&middot;&nbsp; AI Explainer
+</p>""", unsafe_allow_html=True)
+
     st.stop()
 
 # ── Light-mode CSS override ───────────────────────────────────────────────────
