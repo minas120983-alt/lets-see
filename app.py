@@ -495,10 +495,14 @@ def find_tangency(mu, cov, rf, bounds=None):
 
 def find_optimal(mu, cov, esg, rf, gamma, lam):
     n = len(mu)
-    # Normalise ESG to [0,1] so it is on the same scale as E[R] (also ≈ 0–1).
-    # Without this, ESG (0–10) dominates and the optimiser always picks the
-    # highest-ESG asset regardless of return/risk (λ×8.5 >> E[R]≈0.07).
-    esg_norm = np.asarray(esg) / 10.0
+    # Scale ESG to [0, 0.1] so its magnitude is comparable to E[R] (≈ 0.05–0.30).
+    # Dividing by 10 leaves ESG still ~10× larger than E[R], causing the optimiser
+    # to always pick the highest-ESG asset (MSFT wins at any λ > 0.26 with /10).
+    # Dividing by 100 makes the ESG term comparable to financial utility:
+    #   λ=1 → each ESG point worth 1% return equivalent (max 10% for perfect ESG).
+    #   Crossover: MSFT beats JNJ only at λ > ~2.5, so default λ=1 gives
+    #   financially-driven diversified weights, λ=3–5 tilts toward high-ESG assets.
+    esg_norm = np.asarray(esg) / 100.0
     res = minimize(
         lambda w: -(port_ret(w,mu) - gamma/2*port_var(w,cov) + lam*float(np.asarray(w)@esg_norm)),
         np.ones(n)/n, method="SLSQP",
@@ -592,27 +596,28 @@ def _portfolio_answer(question: str, d: dict) -> str:
 
     # ── utility function ──────────────────────────────────────────────────────
     if any(k in q for k in ["utility", "objective", "maximis", "optimi", "formula", "u ="]):
-        esg_term = lam * (esg_bar / 10)
+        esg_term = lam * (esg_bar / 100)
         var_term = gamma / 2 * sp ** 2
         lines = [
             "The model maximises investor utility:",
-            "    U = E[Rp] − (γ/2)·σ²p + λ·(ESḠ/10)",
+            "    U = E[Rp] − (γ/2)·σ²p + λ·(ESG̅/100)",
             "",
             f"For your portfolio (γ={gamma}, λ={lam}, rf={rf*100:.1f}%):",
             f"  E[Rp]          =  {ep*100:.2f}%  → rewards return",
             f"  −(γ/2)σ²       = −{var_term*100:.3f}%  → penalises variance (your σ={sp*100:.2f}%)",
-            f"  λ·(ESḠ/10)    = {lam}·({esg_bar:.2f}/10) = +{esg_term:.4f}  → rewards ESG quality",
+            f"  λ·(ESG̅/100)   = {lam}·({esg_bar:.2f}/100) = +{esg_term:.4f}  → rewards ESG quality",
             f"  Total U        =  {u_val:.5f}",
             "",
-            f"ESG is divided by 10 to match the decimal scale of returns. With λ={lam}, "
-            f"each extra ESG point is worth {lam/10*100:.1f} basis points of return.",
+            f"ESG is divided by 100 so it is on the same scale as E[R] (both ≈ 0.05–0.30).",
+            f"With λ={lam}, each ESG point out of 10 is worth {lam/100*100:.2f}% return equivalent.",
+            f"At λ=1 financial quality dominates; raise λ above ~2.5 to tilt heavily toward ESG.",
         ]
         return "\n".join(lines)
 
     # ── portfolio weights ─────────────────────────────────────────────────────
     if any(k in q for k in ["weight", "allocation", "holding", "position", "why does my portfolio"]):
         lines = [
-            f"Weights maximise U = E[Rp] − (γ/2)σ² + λ·(ESG/10) with γ={gamma}, λ={lam}.",
+            f"Weights maximise U = E[Rp] − (γ/2)σ² + λ·(ESG/100) with γ={gamma}, λ={lam}.",
             f"The dominant holding is {top_w_name} at {top_w_pct:.1f}% because it scores well on",
             f"the combination of return, low risk, and ESG that γ and λ imply.",
             "",
@@ -670,14 +675,14 @@ def _portfolio_answer(question: str, d: dict) -> str:
 
     # ── lambda ────────────────────────────────────────────────────────────────
     if any(k in q for k in ["lambda", "λ", "esg preference", "what does the esg"]):
-        esg_term = lam * (esg_bar / 10)
+        esg_term = lam * (esg_bar / 100)
         lines = [
             f"λ (lambda) = {lam} is your ESG preference parameter.",
-            f"It enters utility as: +λ·(ESḠ/10) = {lam}·({esg_bar:.2f}/10) = {esg_term:.4f}",
+            f"λ (lambda) = {lam} is your ESG preference parameter.",
+            f"It enters utility as: +λ·(ESG̅/100) = {lam}·({esg_bar:.2f}/100) = {esg_term:.4f}",
             "",
             f"Interpretation: with λ={lam}, each 1-point improvement in portfolio ESG score",
-            f"is worth {lam/10*100:.1f} basis points of expected return in your utility function.",
-            "",
+            f"is worth {lam/100*100:.2f}% of expected return in your utility function.",
             f"If λ were 0 (pure financial investor), you'd hold the tangency portfolio with SR={sr_tan_all:.3f}.",
             f"At λ={lam}, ESG quality is a real objective, shifting allocation toward {top_w_name}",
             f"(ESG={esg_scores[sorted_by_w[0]]:.1f}/10) at the cost of {sharpe_cost:.3f} Sharpe points.",
