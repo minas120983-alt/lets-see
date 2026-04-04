@@ -347,6 +347,52 @@ hr { border: none !important; border-top: 1px solid var(--sep) !important; margi
 .chat-input-bar { background: var(--input-bar-bg); border-top: 1px solid var(--sep); padding: 0.6rem 1.1rem 0.7rem; }
 .chat-input-bar .stTextInput input { border-radius: 20px !important; font-size: 0.88rem !important; background: var(--bg-elevated) !important; }
 .input-centered .block-container { max-width: 740px !important; }
+/* ── Gradual-blur chart reveal — one graph per column ── */
+@keyframes blurReveal {
+  0%   { filter: blur(14px) saturate(0.15); opacity: 0; transform: scale(1.04); }
+  100% { filter: blur(0px)  saturate(1);    opacity: 1; transform: scale(1);    }
+}
+[data-testid="stImage"] img {
+  animation: blurReveal 0.95s cubic-bezier(0.16, 1, 0.3, 1) both;
+  border-radius: 8px; display: block; width: 100%;
+}
+[data-testid="column"]:nth-child(1) [data-testid="stImage"] img { animation-delay: 0.05s; }
+[data-testid="column"]:nth-child(2) [data-testid="stImage"] img { animation-delay: 0.24s; }
+[data-testid="column"]:nth-child(3) [data-testid="stImage"] img { animation-delay: 0.43s; }
+[data-testid="column"]:nth-child(4) [data-testid="stImage"] img { animation-delay: 0.62s; }
+/* ── Rotating nav text — CSS-only ticker ── */
+@keyframes gp-rw-out {
+  0%,42%  { transform: translateY(0);     opacity: 1; }
+  50%,92% { transform: translateY(-160%); opacity: 0; }
+  100%    { transform: translateY(0);     opacity: 1; }
+}
+@keyframes gp-rw-in  {
+  0%,42%  { transform: translateY(160%);  opacity: 0; }
+  50%,92% { transform: translateY(0);     opacity: 1; }
+  100%    { transform: translateY(160%);  opacity: 0; }
+}
+.gp-rw-outer {
+  display: flex; align-items: center; height: 62px;
+}
+.gp-rw-text {
+  font-size: 0.78rem; font-weight: 600;
+  color: var(--text-2); font-family: var(--font);
+  white-space: nowrap; display: inline-flex; align-items: baseline; gap: 4px;
+}
+.gp-rw-wrap {
+  position: relative; display: inline-block;
+  width: 70px; height: 1em; overflow: hidden; vertical-align: baseline;
+}
+.gp-rw-a {
+  position: absolute; top: 0; left: 0;
+  animation: gp-rw-out 5s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  color: var(--accent); font-weight: 700;
+}
+.gp-rw-b {
+  position: absolute; top: 0; left: 0;
+  animation: gp-rw-in  5s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  color: var(--accent); font-weight: 700;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -694,19 +740,19 @@ if _page == "home":
         max-width: 100% !important;
         padding-left: 0 !important; padding-right: 0 !important;
     }
-    /* Dark forest-green background so button area blends with canvas bottom */
-    .stApp { background: #052e16 !important; }
-    /* Home-page enter button: white pill on dark green */
+    /* Black background so button area blends with canvas bottom-right */
+    .stApp { background: #000000 !important; }
+    /* Home-page enter button: white pill */
     div[data-testid="stButton"] > button {
-        background: rgba(255,255,255,0.94) !important;
-        color: #052e16 !important;
+        background: rgba(255,255,255,0.95) !important;
+        color: #080808 !important;
         border: none !important;
         border-radius: 12px !important;
         padding: 0.82rem 0 !important;
         font-size: 1rem !important;
         font-weight: 700 !important;
         letter-spacing: -0.01em !important;
-        box-shadow: 0 4px 30px rgba(0,0,0,0.30) !important;
+        box-shadow: 0 4px 32px rgba(0,0,0,0.40) !important;
         width: 100% !important;
         transition: transform 0.18s ease, background 0.18s ease,
                     box-shadow 0.18s ease !important;
@@ -714,14 +760,18 @@ if _page == "home":
     div[data-testid="stButton"] > button:hover {
         background: #ffffff !important;
         transform: translateY(-2px) !important;
-        box-shadow: 0 8px 40px rgba(0,0,0,0.40) !important;
+        box-shadow: 0 8px 44px rgba(0,0,0,0.55) !important;
     }
     div[data-testid="stButton"] > button:active {
         transform: translateY(0) scale(0.98) !important;
     }
+    /* Force the button row to be truly centred */
+    [data-testid="stHorizontalBlock"] {
+        justify-content: center !important;
+    }
     </style>""", unsafe_allow_html=True)
 
-    # ── GradientBlinds canvas animation (no button inside the iframe) ──────
+    # ── GradientBlinds canvas — green left → black right, 20 crisp slats ───
     _HOME_HTML = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -730,54 +780,37 @@ if _page == "home":
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-html, body {
-  width: 100%; height: 100%;
-  overflow: hidden;
-  background: #052e16;
-  font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
-}
+html, body { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: "Plus Jakarta Sans", system-ui, sans-serif; }
 canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
 .overlay {
   position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  z-index: 20; text-align: center; padding: 2rem;
-  pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 20; text-align: center; padding: 2rem; pointer-events: none;
 }
-.overlay > * {
-  opacity: 0; transform: translateY(18px);
-  animation: fadeUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
+.overlay > * { opacity: 0; transform: translateY(18px); animation: fadeUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
 .logo-mark {
   width: 52px; height: 52px; border-radius: 14px;
-  background: rgba(255,255,255,0.13);
-  border: 1px solid rgba(255,255,255,0.28);
+  background: rgba(255,255,255,0.11); border: 1px solid rgba(255,255,255,0.24);
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   display: flex; align-items: center; justify-content: center;
   margin: 0 auto 1.3rem; animation-delay: 0.05s;
 }
 .badge {
-  background: rgba(255,255,255,0.10);
-  border: 1px solid rgba(255,255,255,0.22);
-  border-radius: 100px; padding: 5px 18px;
-  font-size: 9.5px; font-weight: 700;
-  letter-spacing: 0.14em; text-transform: uppercase;
-  color: rgba(255,255,255,0.78); margin-bottom: 1.5rem;
-  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-  animation-delay: 0.15s;
+  background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 100px; padding: 5px 18px; font-size: 9.5px; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.72);
+  margin-bottom: 1.5rem; backdrop-filter: blur(8px); animation-delay: 0.15s;
 }
 .title {
-  font-size: clamp(3.8rem, 12vw, 8rem);
-  font-weight: 800; letter-spacing: -0.055em; line-height: 0.9;
-  color: white; margin-bottom: 1.1rem; animation-delay: 0.25s;
-  text-shadow: 0 0 80px rgba(255,255,255,0.12);
+  font-size: clamp(3.8rem, 12vw, 8rem); font-weight: 800;
+  letter-spacing: -0.055em; line-height: 0.9; color: white; margin-bottom: 1.1rem;
+  animation-delay: 0.25s; text-shadow: 0 0 60px rgba(74,222,128,0.18);
 }
-.title .dim { opacity: 0.45; }
+.title .dim { opacity: 0.42; }
 .subtitle {
-  font-size: clamp(0.88rem, 1.6vw, 1.02rem);
-  color: rgba(255,255,255,0.55); max-width: 400px;
-  line-height: 1.72; font-weight: 400; animation-delay: 0.35s;
+  font-size: clamp(0.88rem, 1.6vw, 1.02rem); color: rgba(255,255,255,0.50);
+  max-width: 400px; line-height: 1.72; font-weight: 400; animation-delay: 0.35s;
 }
 </style>
 </head>
@@ -800,16 +833,18 @@ var W = 0, H = 0;
 var mouse = { x: 0.5, y: 0.5 };
 var sm = { x: 0.5, y: 0.5 };
 var frame = 0;
-var BLIND_COUNT = 12;
-var SPOT_R = 0.5;
-var DAMP = 0.15;
-var COLOR_A = '#4ade80';
-var COLOR_B = '#052e16';
+/* Props: 20 crisp slats, horizontal gradient green→black, spotlight 0.5 */
+var BLIND_COUNT = 20;
+var SPOT_R  = 0.5;
+var DAMP    = 0.15;
+var COLOR_A = '#4ade80';   /* bright green — left  */
+var COLOR_B = '#000000';   /* pure black   — right */
 
 function lerp(a, b, t) { return a + (b - a) * t; }
+function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
 
 function resize() {
-  W = canvas.width = canvas.offsetWidth;
+  W = canvas.width  = canvas.offsetWidth;
   H = canvas.height = canvas.offsetHeight;
 }
 window.addEventListener('resize', resize);
@@ -817,7 +852,7 @@ window.addEventListener('resize', resize);
 document.addEventListener('mousemove', function(e) {
   var r = canvas.getBoundingClientRect();
   mouse.x = (e.clientX - r.left) / W;
-  mouse.y = (e.clientY - r.top) / H;
+  mouse.y = (e.clientY - r.top)  / H;
 });
 
 function draw() {
@@ -826,60 +861,67 @@ function draw() {
   sm.y = lerp(sm.y, mouse.y, DAMP);
   ctx.clearRect(0, 0, W, H);
 
-  var bg = ctx.createLinearGradient(0, 0, W, H);
+  /* Horizontal gradient: green left, black right */
+  var bg = ctx.createLinearGradient(0, 0, W, 0);
   bg.addColorStop(0, COLOR_A);
   bg.addColorStop(1, COLOR_B);
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
 
+  /* Crisp venetian blinds — thinner, sharper edges */
   var bw = W / BLIND_COUNT;
   for (var i = 0; i < BLIND_COUNT; i++) {
-    var nx = (i + 0.5) / BLIND_COUNT;
+    var nx  = (i + 0.5) / BLIND_COUNT;
     var dist = Math.abs(nx - sm.x);
-    var spotInfluence = Math.max(0, 1 - dist / SPOT_R);
-    var wave = 0.04 * Math.sin(frame * 0.022 + i * 0.8);
-    var shadow = 0.38 * (1 - spotInfluence * 0.75) + wave;
-    shadow = Math.max(0.02, Math.min(0.55, shadow));
+    var spot = Math.max(0, 1 - dist / SPOT_R);
+    var wave = 0.03 * Math.sin(frame * 0.020 + i * 0.9);
+    var s    = clamp(0.42 * (1 - spot * 0.72) + wave, 0.02, 0.60);
 
+    /* Sharp-edge gradient: very dark at slat edges, bright centre */
     var g = ctx.createLinearGradient(i * bw, 0, (i + 1) * bw, 0);
-    g.addColorStop(0,    'rgba(0,0,0,' + Math.min(0.65, shadow + 0.14) + ')');
-    g.addColorStop(0.18, 'rgba(0,0,0,' + (shadow * 0.4) + ')');
-    g.addColorStop(0.5,  'rgba(0,0,0,' + Math.max(0, shadow - 0.08) + ')');
-    g.addColorStop(0.82, 'rgba(0,0,0,' + (shadow * 0.4) + ')');
-    g.addColorStop(1,    'rgba(0,0,0,' + Math.min(0.65, shadow + 0.14) + ')');
+    g.addColorStop(0,    'rgba(0,0,0,' + clamp(s + 0.32, 0, 0.85) + ')');
+    g.addColorStop(0.08, 'rgba(0,0,0,' + clamp(s + 0.10, 0, 0.70) + ')');
+    g.addColorStop(0.30, 'rgba(0,0,0,' + clamp(s - 0.10, 0, 0.50) + ')');
+    g.addColorStop(0.50, 'rgba(0,0,0,' + clamp(s - 0.15, 0, 0.45) + ')');
+    g.addColorStop(0.70, 'rgba(0,0,0,' + clamp(s - 0.10, 0, 0.50) + ')');
+    g.addColorStop(0.92, 'rgba(0,0,0,' + clamp(s + 0.10, 0, 0.70) + ')');
+    g.addColorStop(1,    'rgba(0,0,0,' + clamp(s + 0.32, 0, 0.85) + ')');
     ctx.fillStyle = g;
     ctx.fillRect(i * bw, 0, bw, H);
 
-    ctx.strokeStyle = 'rgba(0,0,0,0.10)';
-    ctx.lineWidth = 1;
+    /* Crisp divider line — defined slat edge */
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(Math.round(i * bw), 0);
-    ctx.lineTo(Math.round(i * bw), H);
+    ctx.moveTo(Math.round(i * bw) + 0.5, 0);
+    ctx.lineTo(Math.round(i * bw) + 0.5, H);
     ctx.stroke();
   }
 
-  var sx = sm.x * W; var sy = sm.y * H;
+  /* Mouse spotlight — lighten composite */
+  var sx = sm.x * W, sy = sm.y * H;
   var sr = SPOT_R * Math.min(W, H);
-  var spot = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr);
-  spot.addColorStop(0,    'rgba(255,255,255,0.38)');
-  spot.addColorStop(0.45, 'rgba(255,255,255,0.12)');
-  spot.addColorStop(1,    'rgba(255,255,255,0)');
+  var sp = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr);
+  sp.addColorStop(0,    'rgba(255,255,255,0.36)');
+  sp.addColorStop(0.40, 'rgba(255,255,255,0.10)');
+  sp.addColorStop(1,    'rgba(255,255,255,0)');
   ctx.globalCompositeOperation = 'lighten';
-  ctx.fillStyle = spot;
+  ctx.fillStyle = sp;
   ctx.fillRect(0, 0, W, H);
   ctx.globalCompositeOperation = 'source-over';
 
-  var shine = ctx.createLinearGradient(0, 0, W * 0.35, 0);
-  shine.addColorStop(0, 'rgba(255,255,255,0.06)');
-  shine.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = shine;
+  /* Left-side shine */
+  var sh = ctx.createLinearGradient(0, 0, W * 0.3, 0);
+  sh.addColorStop(0, 'rgba(255,255,255,0.05)');
+  sh.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = sh;
   ctx.fillRect(0, 0, W, H);
 
-  /* Bottom fade — blends canvas into the dark-green button area below */
-  var fade = ctx.createLinearGradient(0, H * 0.72, 0, H);
-  fade.addColorStop(0, 'rgba(5,46,22,0)');
-  fade.addColorStop(1, 'rgba(5,46,22,0.92)');
-  ctx.fillStyle = fade;
+  /* Bottom fade to black — seamless with Streamlit page */
+  var fd = ctx.createLinearGradient(0, H * 0.68, 0, H);
+  fd.addColorStop(0, 'rgba(0,0,0,0)');
+  fd.addColorStop(1, 'rgba(0,0,0,0.94)');
+  ctx.fillStyle = fd;
   ctx.fillRect(0, 0, W, H);
 
   requestAnimationFrame(draw);
@@ -893,10 +935,10 @@ draw();
 
     components.html(_HOME_HTML, height=620, scrolling=False)
 
-    # ── Native Streamlit button — 100% reliable navigation ─────────────────
-    st.markdown("<div style='height:0.1rem;background:#052e16;'></div>",
+    # ── Native Streamlit button — guaranteed navigation ─────────────────────
+    st.markdown("<div style='height:0.15rem;background:#000;'></div>",
                 unsafe_allow_html=True)
-    _, _btn_col, _ = st.columns([1.8, 1, 1.8])
+    _, _btn_col, _ = st.columns([3, 2, 3])
     with _btn_col:
         if st.button("Enter GreenPort →", use_container_width=True, key="home_enter"):
             st.session_state["page"] = "input"
@@ -904,8 +946,8 @@ draw();
 
     st.markdown("""
 <p style="text-align:center;margin-top:1.1rem;font-size:0.58rem;
-   color:rgba(255,255,255,0.22);letter-spacing:0.1em;text-transform:uppercase;
-   font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#052e16;
+   color:rgba(255,255,255,0.20);letter-spacing:0.1em;text-transform:uppercase;
+   font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#000;
    padding-bottom:1.5rem;">
   LSEG ESG Data &nbsp;&middot;&nbsp; Mean-Variance Optimisation &nbsp;&middot;&nbsp; AI Explainer
 </p>""", unsafe_allow_html=True)
@@ -956,7 +998,7 @@ if _page == "input":
 # ════════════════════════════════════════════════════════════════════════════
 # NAVBAR
 # ════════════════════════════════════════════════════════════════════════════
-_n_logo, _n_spacer, _n_back, _n_theme = st.columns([5, 2.5, 2.2, 1.8])
+_n_logo, _n_rot, _n_gap, _n_back, _n_theme = st.columns([3.2, 3.8, 0.3, 2.2, 1.8])
 with _n_logo:
     st.markdown("""
 <div class="gp-nav">
@@ -969,6 +1011,15 @@ with _n_logo:
     <span class="gp-wordmark">Green<span>Port</span></span>
     <span class="gp-badge">ESG</span>
   </div>
+</div>
+""", unsafe_allow_html=True)
+with _n_rot:
+    st.markdown("""
+<div class="gp-rw-outer">
+  <span class="gp-rw-text">Sustainable&nbsp;<span class="gp-rw-wrap">
+    <span class="gp-rw-a">Portfolio</span>
+    <span class="gp-rw-b">Life</span>
+  </span></span>
 </div>
 """, unsafe_allow_html=True)
 with _n_back:
