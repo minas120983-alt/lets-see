@@ -1098,739 +1098,953 @@ with st.sidebar:
 """, unsafe_allow_html=True)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# HEADER
-# ══════════════════════════════════════════════════════════════════════════════
-
+# ── Extra CSS for tabs + iMessage chat page ───────────────────────────────────
 st.markdown("""
-<div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.25rem;">
-  <div style="width:46px; height:46px; border-radius:11px; background:linear-gradient(135deg,#30D158 0%,#0A84FF 100%); display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow: 0 2px 12px rgba(10,132,255,0.3);">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.1 2 5 5.6 5 10C5 14.1 7.9 17.5 11.7 17.96V21H12.3V17.96C16.1 17.5 19 14.1 19 10C19 5.6 15.9 2 12 2Z" fill="white"/></svg>
-  </div>
-  <div class="hero-title">GreenPort</div>
-</div>
-<div class="hero-sub">ESG-aware portfolio optimiser · ECN316 Sustainable Finance</div>
+<style>
+/* ── Tabs ── */
+.stTabs [data-baseweb="tab-list"] {
+  gap: 0;
+  background: #1C1C1E;
+  border-radius: 10px;
+  padding: 3px;
+  border: 0.5px solid #3A3A3C;
+  margin-bottom: 1.5rem;
+  width: fit-content;
+}
+.stTabs [data-baseweb="tab"] {
+  border-radius: 8px;
+  padding: 0.35rem 1.1rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: rgba(235,235,245,0.50) !important;
+  background: transparent !important;
+  border: none !important;
+  letter-spacing: -0.01em;
+  transition: color 0.15s, background 0.15s;
+}
+.stTabs [aria-selected="true"] {
+  background: #3A3A3C !important;
+  color: rgba(255,255,255,1) !important;
+  font-weight: 600 !important;
+}
+.stTabs [data-baseweb="tab-highlight"] { display: none !important; }
+.stTabs [data-baseweb="tab-border"]    { display: none !important; }
+
+/* ── Chat page full-height container ── */
+.imessage-page {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 160px);
+  min-height: 500px;
+  background: #000000;
+  border: 0.5px solid #3A3A3C;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+/* ── Chat page header (contact card style) ── */
+.imessage-header {
+  background: rgba(28,28,30,0.95);
+  border-bottom: 0.5px solid #3A3A3C;
+  padding: 0.85rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-shrink: 0;
+  backdrop-filter: blur(20px);
+}
+.imessage-avatar {
+  width: 42px; height: 42px; border-radius: 50%;
+  background: linear-gradient(135deg, #30D158 0%, #0A84FF 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.95rem; font-weight: 700; color: white;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(48,209,88,0.3);
+}
+.imessage-contact { flex: 1; }
+.imessage-name {
+  font-size: 0.95rem; font-weight: 600;
+  color: rgba(255,255,255,1); letter-spacing: -0.01em;
+  margin: 0; line-height: 1.2;
+}
+.imessage-status {
+  font-size: 0.72rem; color: #30D158;
+  margin: 0; display: flex; align-items: center; gap: 4px;
+}
+.imessage-status::before {
+  content: ""; display: inline-block;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #30D158;
+}
+
+/* ── Suggestion chips ── */
+.chips-row {
+  display: flex; gap: 7px; flex-wrap: nowrap;
+  overflow-x: auto; padding: 0.7rem 1.25rem 0.5rem;
+  border-bottom: 0.5px solid rgba(58,58,60,0.6);
+  flex-shrink: 0;
+  scrollbar-width: none;
+}
+.chips-row::-webkit-scrollbar { display: none; }
+.chip {
+  background: #2C2C2E; color: #0A84FF;
+  border: 0.5px solid #3A3A3C;
+  border-radius: 100px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.76rem; font-weight: 500;
+  white-space: nowrap; cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.chip:hover { background: #3A3A3C; }
+
+/* ── Messages scroll area ── */
+.messages-area {
+  flex: 1; overflow-y: auto;
+  padding: 1rem 1.25rem 0.5rem;
+  display: flex; flex-direction: column; gap: 0.15rem;
+  scrollbar-width: thin;
+  scrollbar-color: #3A3A3C transparent;
+}
+
+/* ── Bubble styles ── */
+.bubble-row { display: flex; margin-bottom: 0.2rem; }
+.bubble-row.user-row  { justify-content: flex-end; }
+.bubble-row.bot-row   { justify-content: flex-start; align-items: flex-end; gap: 0.45rem; }
+
+.bot-mini-avatar {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: linear-gradient(135deg, #30D158, #0A84FF);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.58rem; font-weight: 700; color: white;
+  flex-shrink: 0; margin-bottom: 2px;
+}
+
+.bubble {
+  max-width: 72%;
+  padding: 0.6rem 0.9rem;
+  line-height: 1.55;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.bubble-u {
+  background: #0A84FF; color: #ffffff;
+  border-radius: 18px 18px 5px 18px;
+  font-weight: 400;
+}
+.bubble-b {
+  background: #2C2C2E; color: rgba(255,255,255,0.88);
+  border-radius: 18px 18px 18px 5px;
+}
+
+/* ── Input bar ── */
+.imessage-input-bar {
+  background: rgba(28,28,30,0.98);
+  border-top: 0.5px solid #3A3A3C;
+  padding: 0.6rem 1rem 0.75rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+</style>
 """, unsafe_allow_html=True)
 
-if _ESG_DB:
-    st.markdown(
-        f'<div class="info-box">ESG database loaded: <strong>{len(_ESG_DB):,} tickers</strong> '
-        f'from LSEG ESGCombinedScore CSV — most recent year per ticker, scaled 0–10.</div>',
-        unsafe_allow_html=True)
-else:
-    st.markdown(
-        f'<div class="error-box">Could not load ESG data. '
-        f'Tried GitHub: <code>{_ESG_CSV_URL}</code> and local fallback. '
-        f'Check your internet connection or place the CSV at <code>{_ESG_CSV_LOCAL}</code>.</div>',
-        unsafe_allow_html=True)
-
 # ══════════════════════════════════════════════════════════════════════════════
-# INPUT MODE
+# TABS  — Portfolio Optimiser | Portfolio Explainer
 # ══════════════════════════════════════════════════════════════════════════════
 
-st.markdown('<div class="section-header">Asset Universe</div>', unsafe_allow_html=True)
+_tab1, _tab2 = st.tabs(["Portfolio Optimiser", "Portfolio Explainer"])
 
-with st.columns([1.5, 3])[0]:
-    input_mode = st.radio("Input method", ["Manual input", "Ticker-based input"], horizontal=False)
+with _tab1:
 
-default_names   = ["Tech ETF","Green Bond","Energy Stock","Healthcare","Consumer ETF",
-                   "Infra Fund","EM Equity","Gov Bond","Real Estate","Commodity"]
-default_ret     = [9.0, 4.5, 7.0, 7.5, 6.5, 5.5, 10.0, 3.0, 6.0, 5.0]
-default_vol     = [18.0, 5.0, 22.0, 15.0, 14.0, 10.0, 25.0, 4.0, 13.0, 20.0]
-default_esg     = [6.5, 8.5, 2.0, 7.0, 5.5, 7.5, 4.0, 6.0, 5.0, 3.5]
-default_tickers = ["AAPL","MSFT","XOM","JNJ","SPY","TLT","NVDA","VWO","GLD","META"]
+    # ══════════════════════════════════════════════════════════════════════════════
+    # HEADER
+    # ══════════════════════════════════════════════════════════════════════════════
 
-asset_data = []; ticker_rows = []; corr_df = None; lookback_period = "3y"
+    st.markdown("""
+    <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.25rem;">
+      <div style="width:46px; height:46px; border-radius:11px; background:linear-gradient(135deg,#30D158 0%,#0A84FF 100%); display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow: 0 2px 12px rgba(10,132,255,0.3);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.1 2 5 5.6 5 10C5 14.1 7.9 17.5 11.7 17.96V21H12.3V17.96C16.1 17.5 19 14.1 19 10C19 5.6 15.9 2 12 2Z" fill="white"/></svg>
+      </div>
+      <div class="hero-title">GreenPort</div>
+    </div>
+    <div class="hero-sub">ESG-aware portfolio optimiser · ECN316 Sustainable Finance</div>
+    """, unsafe_allow_html=True)
 
-# ── Manual ───────────────────────────────────────────────────────────────────
-if input_mode == "Manual input":
-    cl, cr = st.columns([2, 1])
-    with cr:
-        n_assets = st.number_input("Number of assets", 2, 10, 3, 1)
-        st.markdown('<div class="info-box">Enter expected return, volatility and ESG score (0–10).</div>',
-                    unsafe_allow_html=True)
-    with cl:
-        h = st.columns([2,1.2,1.2,1.2])
-        h[0].markdown("**Asset name**"); h[1].markdown("**E[R] (%)**")
-        h[2].markdown("**σ (%)**");      h[3].markdown("**ESG (0–10)**")
-        for i in range(int(n_assets)):
-            c0,c1,c2,c3 = st.columns([2,1.2,1.2,1.2])
-            name = c0.text_input("",value=default_names[i],key=f"name_{i}",label_visibility="collapsed")
-            ret  = c1.number_input("",value=default_ret[i], key=f"ret_{i}", label_visibility="collapsed",format="%.1f")
-            vol  = c2.number_input("",value=default_vol[i], key=f"vol_{i}", label_visibility="collapsed",format="%.1f",min_value=0.1)
-            esg  = c3.number_input("",value=default_esg[i], key=f"esg_{i}", label_visibility="collapsed",format="%.1f",min_value=0.0,max_value=10.0)
-            asset_data.append({"name":name,"ret":ret/100,"vol":vol/100,"esg":esg})
-
-    st.markdown("**Correlation Matrix**")
-    st.markdown('<div class="info-box">Enter pairwise correlations (−1 to 1). Diagonal fixed at 1.</div>',
-                unsafe_allow_html=True)
-    n = int(n_assets)
-    ci = pd.DataFrame(np.eye(n),columns=[asset_data[i]["name"] for i in range(n)],
-                      index=[asset_data[i]["name"] for i in range(n)])
-    for r in range(n):
-        for c in range(n):
-            if r != c: ci.iloc[r,c] = 0.25
-    corr_df = st.data_editor(ci, use_container_width=True, key="corr_matrix")
-
-# ── Ticker ────────────────────────────────────────────────────────────────────
-else:
-    cl, cr = st.columns([2,1])
-    with cr:
-        n_assets = st.number_input("Number of assets",2,10,3,1,key="n_ticker_assets")
-        lookback_period = st.selectbox("History window",["1y","3y","5y","10y"],index=1)
-    with cl:
-        h = st.columns([1.1,1.8])
-        h[0].markdown("**Ticker**"); h[1].markdown("**Display name**")
-        for i in range(int(n_assets)):
-            c1,c2 = st.columns([1.1,1.8])
-            ticker = c1.text_input("",value=default_tickers[i],key=f"ticker_{i}",label_visibility="collapsed").upper().strip()
-            name   = c2.text_input("",value=default_names[i],  key=f"ticker_name_{i}",label_visibility="collapsed")
-            ticker_rows.append({"ticker":ticker,"name":name or ticker,"manual_esg":None})
-
-    valid_tickers = [r["ticker"] for r in ticker_rows if r["ticker"]]
-    if valid_tickers:
-        esg_preview = {r["ticker"]: lookup_esg(r["ticker"]) for r in ticker_rows if r["ticker"]}
-        missing_esg = [t for t, res in esg_preview.items() if not res["has_esg"]]
-
-        # Check which tickers are not on Yahoo Finance (price data unavailable)
-        # We do a lightweight .info call — if it returns no regularMarketPrice the ticker is bad
-        bad_tickers = []
-        for r in ticker_rows:
-            t = r["ticker"]
-            try:
-                info = yf.Ticker(t).fast_info
-                price = getattr(info, "last_price", None)
-                if price is None:
-                    bad_tickers.append(t)
-            except Exception:
-                bad_tickers.append(t)
-
-        manual_overrides = {}   # ESG overrides
-        manual_ret_vol   = {}   # {ticker: {"ret": float, "vol": float}}
-
-        if bad_tickers:
-            st.markdown(
-                f'<div class="warn-box"><strong>Ticker(s) not found on Yahoo Finance:</strong> '
-                f'{", ".join(bad_tickers)}. '
-                f'Enter expected return and volatility manually below.</div>',
-                unsafe_allow_html=True)
-            st.markdown("**Manual return / volatility inputs (annualised):**")
-            for t in bad_tickers:
-                def_idx = default_tickers.index(t) if t in default_tickers else 0
-                bc1, bc2, bc3 = st.columns(3)
-                bc1.markdown(f"**{t}**")
-                m_ret = bc2.number_input(f"{t} E[R] (%)", value=default_ret[def_idx],
-                                         min_value=-50.0, max_value=200.0, step=0.5, format="%.1f",
-                                         key=f"manual_ret_{t}")
-                m_vol = bc3.number_input(f"{t} σ (%)", value=default_vol[def_idx],
-                                         min_value=0.1, max_value=200.0, step=0.5, format="%.1f",
-                                         key=f"manual_vol_{t}")
-                manual_ret_vol[t] = {"ret": m_ret / 100.0, "vol": m_vol / 100.0}
-
-        if missing_esg:
-            st.markdown(
-                f'<div class="warn-box"><strong>Not in ESG CSV:</strong> '
-                f'{", ".join(missing_esg)}. Enter ESG scores below.</div>',
-                unsafe_allow_html=True)
-            st.markdown("**Manual ESG scores (0–10):**")
-            fcols = st.columns(min(len(missing_esg), 5))
-            for idx, t in enumerate(missing_esg):
-                def_idx = default_tickers.index(t) if t in default_tickers else 0
-                manual_overrides[t] = fcols[idx % len(fcols)].number_input(
-                    f"{t} ESG", value=float(default_esg[def_idx]),
-                    min_value=0.0, max_value=10.0, step=0.1, format="%.1f",
-                    key=f"manual_esg_{t}")
-
-        if not missing_esg and not bad_tickers:
-            st.markdown('<div class="info-box">All ticker data and ESG scores found.</div>',
-                        unsafe_allow_html=True)
-
-        for row in ticker_rows:
-            t = row["ticker"]
-            row["manual_esg"]     = manual_overrides.get(t, None)
-            row["manual_ret_vol"] = manual_ret_vol.get(t, None)
-
-# ══════════════════════════════════════════════════════════════════════════════
-# RUN
-# ══════════════════════════════════════════════════════════════════════════════
-
-st.markdown("---")
-run_col, _ = st.columns([1,3])
-with run_col:
-    run = st.button("Optimise Portfolio")
-
-if run:
-    # ── Build mu, cov, esg arrays ────────────────────────────────────────────
-    if input_mode == "Manual input":
-        names      = [d["name"] for d in asset_data]
-        mu         = np.array([d["ret"] for d in asset_data], dtype=float)
-        vols       = np.array([d["vol"] for d in asset_data], dtype=float)
-        esg_scores = np.array([d["esg"] for d in asset_data], dtype=float)
-        n          = len(names)
-        try:
-            corr_np = corr_df.values.astype(float)
-        except Exception:
-            st.error("Please make sure all correlation values are numeric."); st.stop()
-        corr_np = (corr_np + corr_np.T) / 2
-        np.fill_diagonal(corr_np, 1.0)
-        corr_np = np.clip(corr_np, -0.999, 0.999)
-        cov = np.outer(vols, vols) * corr_np
-        esg_letters = {}
-        ticker_data_display = None
-
+    if _ESG_DB:
+        st.markdown(
+            f'<div class="info-box">ESG database loaded: <strong>{len(_ESG_DB):,} tickers</strong> '
+            f'from LSEG ESGCombinedScore CSV — most recent year per ticker, scaled 0–10.</div>',
+            unsafe_allow_html=True)
     else:
-        tickers = [r["ticker"] for r in ticker_rows if r["ticker"]]
-        if len(tickers) < 2:
-            st.error("Please enter at least two valid ticker symbols."); st.stop()
-        try:
-            prices, returns, mu_series, vols_series, cov_df, corr_df_market = \
-                fetch_market_data(tickers, period=lookback_period)
-        except Exception as e:
-            st.error(f"Failed to fetch ticker data: {e}"); st.stop()
+        st.markdown(
+            f'<div class="error-box">Could not load ESG data. '
+            f'Tried GitHub: <code>{_ESG_CSV_URL}</code> and local fallback. '
+            f'Check your internet connection or place the CSV at <code>{_ESG_CSV_LOCAL}</code>.</div>',
+            unsafe_allow_html=True)
 
-        # Combine fetched tickers with any manually-specified bad tickers
-        manual_rv_map = {r["ticker"]: r.get("manual_ret_vol") for r in ticker_rows}
-        manual_rv_map = {t: v for t, v in manual_rv_map.items() if v is not None}
+    # ══════════════════════════════════════════════════════════════════════════════
+    # INPUT MODE
+    # ══════════════════════════════════════════════════════════════════════════════
 
-        # Tickers where we have price data from Yahoo
-        available = [t for t in tickers if t in mu_series.index]
-        # Tickers where user provided manual return/vol
-        manual_price_tickers = [r["ticker"] for r in ticker_rows
-                                 if r["ticker"] not in available and r.get("manual_ret_vol")]
-        all_tickers = available + manual_price_tickers
+    st.markdown('<div class="section-header">Asset Universe</div>', unsafe_allow_html=True)
 
-        if len(all_tickers) < 2:
-            st.error("Not enough valid tickers. Check symbols or provide manual return/vol inputs.")
-            st.stop()
+    with st.columns([1.5, 3])[0]:
+        input_mode = st.radio("Input method", ["Manual input", "Ticker-based input"], horizontal=False)
 
-        filtered_rows = [r for r in ticker_rows if r["ticker"] in all_tickers]
-        esg_map = {t: lookup_esg(t) for t in all_tickers}
-        resolved = []; used_manual_esg = []; esg_letters = {}
+    default_names   = ["Tech ETF","Green Bond","Energy Stock","Healthcare","Consumer ETF",
+                       "Infra Fund","EM Equity","Gov Bond","Real Estate","Commodity"]
+    default_ret     = [9.0, 4.5, 7.0, 7.5, 6.5, 5.5, 10.0, 3.0, 6.0, 5.0]
+    default_vol     = [18.0, 5.0, 22.0, 15.0, 14.0, 10.0, 25.0, 4.0, 13.0, 20.0]
+    default_esg     = [6.5, 8.5, 2.0, 7.0, 5.5, 7.5, 4.0, 6.0, 5.0, 3.5]
+    default_tickers = ["AAPL","MSFT","XOM","JNJ","SPY","TLT","NVDA","VWO","GLD","META"]
 
-        for row in filtered_rows:
-            t    = row["ticker"]
-            meta = esg_map[t]
-            if meta["has_esg"]:
-                fe = float(meta["app_esg"]); esg_src = meta["source"]
-                esg_letters[t] = meta.get("letter", "")
-            else:
-                fe = float(row.get("manual_esg") or 5.0)
-                esg_src = "Manual"; used_manual_esg.append(t)
-            resolved.append({"ticker": t, "name": row["name"], "final_esg": fe,
-                              "src": esg_src, "letter": meta.get("letter"), "year": meta.get("year")})
+    asset_data = []; ticker_rows = []; corr_df = None; lookback_period = "3y"
 
-        if used_manual_esg:
-            st.markdown(f'<div class="error-box"><strong>Manual ESG used for:</strong> '
-                        f'{", ".join(used_manual_esg)}.</div>', unsafe_allow_html=True)
+    # ── Manual ───────────────────────────────────────────────────────────────────
+    if input_mode == "Manual input":
+        cl, cr = st.columns([2, 1])
+        with cr:
+            n_assets = st.number_input("Number of assets", 2, 10, 3, 1)
+            st.markdown('<div class="info-box">Enter expected return, volatility and ESG score (0–10).</div>',
+                        unsafe_allow_html=True)
+        with cl:
+            h = st.columns([2,1.2,1.2,1.2])
+            h[0].markdown("**Asset name**"); h[1].markdown("**E[R] (%)**")
+            h[2].markdown("**σ (%)**");      h[3].markdown("**ESG (0–10)**")
+            for i in range(int(n_assets)):
+                c0,c1,c2,c3 = st.columns([2,1.2,1.2,1.2])
+                name = c0.text_input("",value=default_names[i],key=f"name_{i}",label_visibility="collapsed")
+                ret  = c1.number_input("",value=default_ret[i], key=f"ret_{i}", label_visibility="collapsed",format="%.1f")
+                vol  = c2.number_input("",value=default_vol[i], key=f"vol_{i}", label_visibility="collapsed",format="%.1f",min_value=0.1)
+                esg  = c3.number_input("",value=default_esg[i], key=f"esg_{i}", label_visibility="collapsed",format="%.1f",min_value=0.0,max_value=10.0)
+                asset_data.append({"name":name,"ret":ret/100,"vol":vol/100,"esg":esg})
 
-        names      = [r["name"] for r in resolved]
-        esg_scores = np.array([r["final_esg"] for r in resolved], dtype=float)
-        n          = len(all_tickers)
+        st.markdown("**Correlation Matrix**")
+        st.markdown('<div class="info-box">Enter pairwise correlations (−1 to 1). Diagonal fixed at 1.</div>',
+                    unsafe_allow_html=True)
+        n = int(n_assets)
+        ci = pd.DataFrame(np.eye(n),columns=[asset_data[i]["name"] for i in range(n)],
+                          index=[asset_data[i]["name"] for i in range(n)])
+        for r in range(n):
+            for c in range(n):
+                if r != c: ci.iloc[r,c] = 0.25
+        corr_df = st.data_editor(ci, use_container_width=True, key="corr_matrix")
 
-        # Build mu, vols, cov — mixing Yahoo data with manual overrides
-        mu_list   = []
-        vols_list = []
-        for t in all_tickers:
-            if t in available:
-                mu_list.append(float(mu_series.loc[t]))
-                vols_list.append(float(vols_series.loc[t]))
-            else:
-                rv = manual_rv_map[t]
-                mu_list.append(rv["ret"])
-                vols_list.append(rv["vol"])
-        mu   = np.array(mu_list, dtype=float)
-        vols = np.array(vols_list, dtype=float)
+    # ── Ticker ────────────────────────────────────────────────────────────────────
+    else:
+        cl, cr = st.columns([2,1])
+        with cr:
+            n_assets = st.number_input("Number of assets",2,10,3,1,key="n_ticker_assets")
+            lookback_period = st.selectbox("History window",["1y","3y","5y","10y"],index=1)
+        with cl:
+            h = st.columns([1.1,1.8])
+            h[0].markdown("**Ticker**"); h[1].markdown("**Display name**")
+            for i in range(int(n_assets)):
+                c1,c2 = st.columns([1.1,1.8])
+                ticker = c1.text_input("",value=default_tickers[i],key=f"ticker_{i}",label_visibility="collapsed").upper().strip()
+                name   = c2.text_input("",value=default_names[i],  key=f"ticker_name_{i}",label_visibility="collapsed")
+                ticker_rows.append({"ticker":ticker,"name":name or ticker,"manual_esg":None})
 
-        # Covariance: use Yahoo cov for available pairs, assume zero correlation for manual
-        cov = np.zeros((n, n))
-        idx_map = {t: i for i, t in enumerate(all_tickers)}
-        for i, ti in enumerate(all_tickers):
-            for j, tj in enumerate(all_tickers):
-                if ti in available and tj in available:
-                    cov[i, j] = float(cov_df.loc[ti, tj])
-                elif i == j:
-                    cov[i, j] = vols[i] ** 2
-                # off-diagonal cross terms with manual tickers = 0 (no correlation data)
+        valid_tickers = [r["ticker"] for r in ticker_rows if r["ticker"]]
+        if valid_tickers:
+            esg_preview = {r["ticker"]: lookup_esg(r["ticker"]) for r in ticker_rows if r["ticker"]}
+            missing_esg = [t for t, res in esg_preview.items() if not res["has_esg"]]
 
-        corr_np = np.zeros((n, n))
-        for i, ti in enumerate(all_tickers):
-            for j, tj in enumerate(all_tickers):
-                if ti in available and tj in available:
-                    corr_np[i, j] = float(corr_df_market.loc[ti, tj])
-                elif i == j:
-                    corr_np[i, j] = 1.0
+            # Check which tickers are not on Yahoo Finance (price data unavailable)
+            # We do a lightweight .info call — if it returns no regularMarketPrice the ticker is bad
+            bad_tickers = []
+            for r in ticker_rows:
+                t = r["ticker"]
+                try:
+                    info = yf.Ticker(t).fast_info
+                    price = getattr(info, "last_price", None)
+                    if price is None:
+                        bad_tickers.append(t)
+                except Exception:
+                    bad_tickers.append(t)
 
-        ticker_data_display = pd.DataFrame({
-            "Ticker":           all_tickers,
-            "Name":             names,
-            "E[R] (%)":         (mu * 100).round(2),
-            "σ (%)":            (vols * 100).round(2),
-            "ESG Score (0–10)": [r["final_esg"] for r in resolved],
-            "LSEG Letter":      [r["letter"]    for r in resolved],
-            "ESG Year":         [r["year"]      for r in resolved],
-            "ESG Source":       [r["src"]       for r in resolved],
-            "Return Source":    ["Yahoo Finance" if t in available else "Manual input"
-                                 for t in all_tickers],
-        })
-        loaded_msg = ", ".join(available) if available else "none"
-        manual_msg = (f" Manual inputs for: {', '.join(manual_price_tickers)}."
-                      if manual_price_tickers else "")
-        st.markdown(f'<div class="info-box">Market data loaded for: {loaded_msg} '
-                    f'over {lookback_period}.{manual_msg}</div>', unsafe_allow_html=True)
+            manual_overrides = {}   # ESG overrides
+            manual_ret_vol   = {}   # {ticker: {"ret": float, "vol": float}}
 
-    # PSD fix
-    if np.any(np.linalg.eigvalsh(cov) < -1e-8):
-        st.markdown('<div class="warn-box">Covariance matrix adjusted to PSD.</div>', unsafe_allow_html=True)
-        cov = nearest_psd(cov)
+            if bad_tickers:
+                st.markdown(
+                    f'<div class="warn-box"><strong>Ticker(s) not found on Yahoo Finance:</strong> '
+                    f'{", ".join(bad_tickers)}. '
+                    f'Enter expected return and volatility manually below.</div>',
+                    unsafe_allow_html=True)
+                st.markdown("**Manual return / volatility inputs (annualised):**")
+                for t in bad_tickers:
+                    def_idx = default_tickers.index(t) if t in default_tickers else 0
+                    bc1, bc2, bc3 = st.columns(3)
+                    bc1.markdown(f"**{t}**")
+                    m_ret = bc2.number_input(f"{t} E[R] (%)", value=default_ret[def_idx],
+                                             min_value=-50.0, max_value=200.0, step=0.5, format="%.1f",
+                                             key=f"manual_ret_{t}")
+                    m_vol = bc3.number_input(f"{t} σ (%)", value=default_vol[def_idx],
+                                             min_value=0.1, max_value=200.0, step=0.5, format="%.1f",
+                                             key=f"manual_vol_{t}")
+                    manual_ret_vol[t] = {"ret": m_ret / 100.0, "vol": m_vol / 100.0}
 
-    # ESG threshold for green frontier
-    esg_thresh = min_esg_filter if use_exclusion else 0.0
-    active_mask = esg_scores >= esg_thresh
-    active_idx  = np.where(active_mask)[0]
-    excluded = [names[i] for i in range(n) if not active_mask[i]]
-    if excluded:
-        st.markdown(f'<div class="warn-box">Excluded from ESG frontier: {", ".join(excluded)} '
-                    f'(ESG < {esg_thresh:.1f})</div>', unsafe_allow_html=True)
-    if len(active_idx) < 2:
-        st.error("Need ≥ 2 assets passing ESG screen. Relax the filter."); st.stop()
+            if missing_esg:
+                st.markdown(
+                    f'<div class="warn-box"><strong>Not in ESG CSV:</strong> '
+                    f'{", ".join(missing_esg)}. Enter ESG scores below.</div>',
+                    unsafe_allow_html=True)
+                st.markdown("**Manual ESG scores (0–10):**")
+                fcols = st.columns(min(len(missing_esg), 5))
+                for idx, t in enumerate(missing_esg):
+                    def_idx = default_tickers.index(t) if t in default_tickers else 0
+                    manual_overrides[t] = fcols[idx % len(fcols)].number_input(
+                        f"{t} ESG", value=float(default_esg[def_idx]),
+                        min_value=0.0, max_value=10.0, step=0.1, format="%.1f",
+                        key=f"manual_esg_{t}")
 
-    mu_a    = mu[active_idx]; cov_a = cov[np.ix_(active_idx, active_idx)]
-    esg_a   = esg_scores[active_idx]; names_a = [names[i] for i in active_idx]
-    vols_a  = vols[active_idx]
+            if not missing_esg and not bad_tickers:
+                st.markdown('<div class="info-box">All ticker data and ESG scores found.</div>',
+                            unsafe_allow_html=True)
 
-    # Bounds for green frontier: only ESG-passing assets can have weight > 0
-    bounds_green = [(0.,1.) if active_mask[i] else (0.,0.) for i in range(n)]
+            for row in ticker_rows:
+                t = row["ticker"]
+                row["manual_esg"]     = manual_overrides.get(t, None)
+                row["manual_ret_vol"] = manual_ret_vol.get(t, None)
 
-    # ── Portfolios ────────────────────────────────────────────────────────────
-    w_tan_all, ep_tan_all, sp_tan_all, sr_tan_all = find_tangency(mu, cov, rf)
-    w_tan_esg, ep_tan_esg, sp_tan_esg, sr_tan_esg = find_tangency(mu, cov, rf, bounds=bounds_green)
-    w_opt_a = find_optimal(mu_a, cov_a, esg_a, rf, gamma, lam)
-    w_opt   = np.zeros(n)
-    for idx, wi in zip(active_idx, w_opt_a): w_opt[idx] = wi
-    ep, sp, sr, esg_bar = port_stats(w_opt_a, mu_a, cov_a, esg_a, rf)
+    # ══════════════════════════════════════════════════════════════════════════════
+    # RUN
+    # ══════════════════════════════════════════════════════════════════════════════
 
-    # ── Build frontiers ───────────────────────────────────────────────────────
-    with st.spinner("Building mean-variance frontiers…"):
-        std_blue,  ret_blue  = build_mv_frontier(mu, cov, n_points=100)
-        std_green, ret_green = build_mv_frontier(mu, cov, bounds=bounds_green, n_points=100)
-
-    # ── Metrics ───────────────────────────────────────────────────────────────
     st.markdown("---")
-    st.markdown('<div class="section-header">Optimal Portfolio</div>', unsafe_allow_html=True)
-    m1,m2,m3,m4 = st.columns(4)
-    metric_data = [
-        (m1, "Expected Return", f"{ep*100:.2f}",  "%",    "metric-pos", "card-ret"),
-        (m2, "Volatility",      f"{sp*100:.2f}",  "%",    "",            "card-vol"),
-        (m3, "Sharpe Ratio",    f"{sr:.3f}",       "",     "metric-pos" if sr > 0 else "metric-neg", "card-sr"),
-        (m4, "ESG Score",       f"{esg_bar:.2f}", "/ 10", "metric-pos" if esg_bar >= 5 else "", "card-esg"),
-    ]
-    for col, label, val, unit, cls, card_cls in metric_data:
-        with col:
-            st.markdown(
-                f'<div class="metric-card {card_cls}">'
-                f'<div class="metric-label">{label}</div>'
-                f'<div class="metric-value {cls}">{val}<span class="metric-unit">{unit}</span></div>'
-                f'</div>', unsafe_allow_html=True)
+    run_col, _ = st.columns([1,3])
+    with run_col:
+        run = st.button("Optimise Portfolio")
 
-    u_val = ep - gamma/2*sp**2 + lam*esg_bar
-    st.markdown(
-        f'<div class="info-box">U = E[Rp] − (γ/2)σ² + λs̄ = <strong>{u_val:.4f}</strong>'
-        f' &nbsp;|&nbsp; γ={gamma}, λ={lam}, r_f={rf*100:.1f}%'
-        f' &nbsp;|&nbsp; Tangency Sharpe (all assets) = {sr_tan_all:.3f}'
-        f' &nbsp;|&nbsp; Tangency Sharpe (ESG screen) = {sr_tan_esg:.3f}</div>',
-        unsafe_allow_html=True)
+    if run:
+        # ── Build mu, cov, esg arrays ────────────────────────────────────────────
+        if input_mode == "Manual input":
+            names      = [d["name"] for d in asset_data]
+            mu         = np.array([d["ret"] for d in asset_data], dtype=float)
+            vols       = np.array([d["vol"] for d in asset_data], dtype=float)
+            esg_scores = np.array([d["esg"] for d in asset_data], dtype=float)
+            n          = len(names)
+            try:
+                corr_np = corr_df.values.astype(float)
+            except Exception:
+                st.error("Please make sure all correlation values are numeric."); st.stop()
+            corr_np = (corr_np + corr_np.T) / 2
+            np.fill_diagonal(corr_np, 1.0)
+            corr_np = np.clip(corr_np, -0.999, 0.999)
+            cov = np.outer(vols, vols) * corr_np
+            esg_letters = {}
+            ticker_data_display = None
 
-    st.markdown("#### Portfolio Weights")
-    st.dataframe(pd.DataFrame({
-        "Asset":              names,
-        "Weight (%)":         [f"{w*100:.2f}"  for w in w_opt],
-        "E[R] (%)":           [f"{r*100:.2f}"  for r in mu],
-        "σ (%)":              [f"{v*100:.2f}"  for v in vols],
-        "ESG (0–10)":         [f"{s:.2f}"      for s in esg_scores],
-        "In ESG frontier":    ["" if m else "No" for m in active_mask],
-    }), use_container_width=True, hide_index=True)
+        else:
+            tickers = [r["ticker"] for r in ticker_rows if r["ticker"]]
+            if len(tickers) < 2:
+                st.error("Please enter at least two valid ticker symbols."); st.stop()
+            try:
+                prices, returns, mu_series, vols_series, cov_df, corr_df_market = \
+                    fetch_market_data(tickers, period=lookback_period)
+            except Exception as e:
+                st.error(f"Failed to fetch ticker data: {e}"); st.stop()
 
-    if input_mode == "Ticker-based input":
-        st.markdown("#### Ticker Data Used")
-        st.dataframe(ticker_data_display, use_container_width=True, hide_index=True)
-        st.markdown("#### Correlation Matrix")
-        st.dataframe(pd.DataFrame(corr_np,index=names,columns=names).round(3),
-                     use_container_width=True)
+            # Combine fetched tickers with any manually-specified bad tickers
+            manual_rv_map = {r["ticker"]: r.get("manual_ret_vol") for r in ticker_rows}
+            manual_rv_map = {t: v for t, v in manual_rv_map.items() if v is not None}
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # CHARTS — iOS / macOS system palette
-    # ══════════════════════════════════════════════════════════════════════════
-    BG     = '#000000'   # iOS true black
-    BG2    = '#1C1C1E'   # iOS system background 2
-    BLUE   = '#0A84FF'   # iOS system blue   — "all assets" frontier
-    GREEN  = '#30D158'   # iOS system green  — ESG frontier
-    ORANGE = '#FF9F0A'   # iOS system orange — optimal portfolio point
-    GREY   = '#636366'   # iOS system gray   — labels
+            # Tickers where we have price data from Yahoo
+            available = [t for t in tickers if t in mu_series.index]
+            # Tickers where user provided manual return/vol
+            manual_price_tickers = [r["ticker"] for r in ticker_rows
+                                     if r["ticker"] not in available and r.get("manual_ret_vol")]
+            all_tickers = available + manual_price_tickers
 
-    st.markdown('<div class="section-header">ESG-Efficient Frontier</div>', unsafe_allow_html=True)
-    c1, c2 = st.columns(2)
+            if len(all_tickers) < 2:
+                st.error("Not enough valid tickers. Check symbols or provide manual return/vol inputs.")
+                st.stop()
 
-    # ── Chart 1: Mean-Variance Frontier (matches lecture slide) ──────────────
-    with c1:
-        fig, ax = plt.subplots(figsize=(6.5, 5.5))
-        fig.patch.set_facecolor(BG); ax.set_facecolor(BG)
+            filtered_rows = [r for r in ticker_rows if r["ticker"] in all_tickers]
+            esg_map = {t: lookup_esg(t) for t in all_tickers}
+            resolved = []; used_manual_esg = []; esg_letters = {}
 
-        # Blue frontier — all assets
-        if len(std_blue) > 2:
-            ax.plot(std_blue, ret_blue, color=BLUE, lw=2.4, zorder=4,
-                    label='Mean-variance frontier\n(all assets)')
+            for row in filtered_rows:
+                t    = row["ticker"]
+                meta = esg_map[t]
+                if meta["has_esg"]:
+                    fe = float(meta["app_esg"]); esg_src = meta["source"]
+                    esg_letters[t] = meta.get("letter", "")
+                else:
+                    fe = float(row.get("manual_esg") or 5.0)
+                    esg_src = "Manual"; used_manual_esg.append(t)
+                resolved.append({"ticker": t, "name": row["name"], "final_esg": fe,
+                                  "src": esg_src, "letter": meta.get("letter"), "year": meta.get("year")})
 
-        # Green frontier — ESG-screened
-        if len(std_green) > 2:
-            ax.plot(std_green, ret_green, color=GREEN, lw=2.4, zorder=4,
-                    label=f'Mean-variance frontier\n(ESG ≥ {esg_thresh:.1f})')
+            if used_manual_esg:
+                st.markdown(f'<div class="error-box"><strong>Manual ESG used for:</strong> '
+                            f'{", ".join(used_manual_esg)}.</div>', unsafe_allow_html=True)
 
-        # CML for all-assets tangency (blue dashed)
-        if sp_tan_all > 1e-9 and len(std_blue) > 0:
-            cml_max = max(np.nanmax(std_blue), sp_tan_all*100) * 1.5
-            sd_cml  = np.linspace(0, cml_max, 300)
-            ax.plot(sd_cml, rf*100 + (ep_tan_all-rf)/sp_tan_all*sd_cml,
-                    color=BLUE, lw=1.5, linestyle='--', zorder=3,
-                    label='CML (all assets)')
+            names      = [r["name"] for r in resolved]
+            esg_scores = np.array([r["final_esg"] for r in resolved], dtype=float)
+            n          = len(all_tickers)
 
-        # CML for ESG-constrained tangency (green dashed)
-        if sp_tan_esg > 1e-9 and len(std_green) > 0:
-            cml_max2 = max(np.nanmax(std_green), sp_tan_esg*100) * 1.5
-            sd_cml2  = np.linspace(0, cml_max2, 300)
-            ax.plot(sd_cml2, rf*100 + (ep_tan_esg-rf)/sp_tan_esg*sd_cml2,
-                    color=GREEN, lw=1.5, linestyle='--', zorder=3,
-                    label=f'CML (ESG ≥ {esg_thresh:.1f})')
+            # Build mu, vols, cov — mixing Yahoo data with manual overrides
+            mu_list   = []
+            vols_list = []
+            for t in all_tickers:
+                if t in available:
+                    mu_list.append(float(mu_series.loc[t]))
+                    vols_list.append(float(vols_series.loc[t]))
+                else:
+                    rv = manual_rv_map[t]
+                    mu_list.append(rv["ret"])
+                    vols_list.append(rv["vol"])
+            mu   = np.array(mu_list, dtype=float)
+            vols = np.array(vols_list, dtype=float)
 
-        # Tangency: all assets (blue star)
-        ax.scatter(sp_tan_all*100, ep_tan_all*100, color=BLUE, s=160,
-                   zorder=9, edgecolors='white', lw=1.5, marker='*')
-        ax.annotate('tangency portfolio\n(all assets)',
-                    (sp_tan_all*100, ep_tan_all*100),
-                    textcoords="offset points", xytext=(8, 2),
-                    fontsize=7, color=BLUE, fontstyle='italic')
+            # Covariance: use Yahoo cov for available pairs, assume zero correlation for manual
+            cov = np.zeros((n, n))
+            idx_map = {t: i for i, t in enumerate(all_tickers)}
+            for i, ti in enumerate(all_tickers):
+                for j, tj in enumerate(all_tickers):
+                    if ti in available and tj in available:
+                        cov[i, j] = float(cov_df.loc[ti, tj])
+                    elif i == j:
+                        cov[i, j] = vols[i] ** 2
+                    # off-diagonal cross terms with manual tickers = 0 (no correlation data)
 
-        # Tangency: ESG-constrained (green star)
-        if len(std_green) > 2:
-            ax.scatter(sp_tan_esg*100, ep_tan_esg*100, color=GREEN, s=160,
+            corr_np = np.zeros((n, n))
+            for i, ti in enumerate(all_tickers):
+                for j, tj in enumerate(all_tickers):
+                    if ti in available and tj in available:
+                        corr_np[i, j] = float(corr_df_market.loc[ti, tj])
+                    elif i == j:
+                        corr_np[i, j] = 1.0
+
+            ticker_data_display = pd.DataFrame({
+                "Ticker":           all_tickers,
+                "Name":             names,
+                "E[R] (%)":         (mu * 100).round(2),
+                "σ (%)":            (vols * 100).round(2),
+                "ESG Score (0–10)": [r["final_esg"] for r in resolved],
+                "LSEG Letter":      [r["letter"]    for r in resolved],
+                "ESG Year":         [r["year"]      for r in resolved],
+                "ESG Source":       [r["src"]       for r in resolved],
+                "Return Source":    ["Yahoo Finance" if t in available else "Manual input"
+                                     for t in all_tickers],
+            })
+            loaded_msg = ", ".join(available) if available else "none"
+            manual_msg = (f" Manual inputs for: {', '.join(manual_price_tickers)}."
+                          if manual_price_tickers else "")
+            st.markdown(f'<div class="info-box">Market data loaded for: {loaded_msg} '
+                        f'over {lookback_period}.{manual_msg}</div>', unsafe_allow_html=True)
+
+        # PSD fix
+        if np.any(np.linalg.eigvalsh(cov) < -1e-8):
+            st.markdown('<div class="warn-box">Covariance matrix adjusted to PSD.</div>', unsafe_allow_html=True)
+            cov = nearest_psd(cov)
+
+        # ESG threshold for green frontier
+        esg_thresh = min_esg_filter if use_exclusion else 0.0
+        active_mask = esg_scores >= esg_thresh
+        active_idx  = np.where(active_mask)[0]
+        excluded = [names[i] for i in range(n) if not active_mask[i]]
+        if excluded:
+            st.markdown(f'<div class="warn-box">Excluded from ESG frontier: {", ".join(excluded)} '
+                        f'(ESG < {esg_thresh:.1f})</div>', unsafe_allow_html=True)
+        if len(active_idx) < 2:
+            st.error("Need ≥ 2 assets passing ESG screen. Relax the filter."); st.stop()
+
+        mu_a    = mu[active_idx]; cov_a = cov[np.ix_(active_idx, active_idx)]
+        esg_a   = esg_scores[active_idx]; names_a = [names[i] for i in active_idx]
+        vols_a  = vols[active_idx]
+
+        # Bounds for green frontier: only ESG-passing assets can have weight > 0
+        bounds_green = [(0.,1.) if active_mask[i] else (0.,0.) for i in range(n)]
+
+        # ── Portfolios ────────────────────────────────────────────────────────────
+        w_tan_all, ep_tan_all, sp_tan_all, sr_tan_all = find_tangency(mu, cov, rf)
+        w_tan_esg, ep_tan_esg, sp_tan_esg, sr_tan_esg = find_tangency(mu, cov, rf, bounds=bounds_green)
+        w_opt_a = find_optimal(mu_a, cov_a, esg_a, rf, gamma, lam)
+        w_opt   = np.zeros(n)
+        for idx, wi in zip(active_idx, w_opt_a): w_opt[idx] = wi
+        ep, sp, sr, esg_bar = port_stats(w_opt_a, mu_a, cov_a, esg_a, rf)
+
+        # ── Build frontiers ───────────────────────────────────────────────────────
+        with st.spinner("Building mean-variance frontiers…"):
+            std_blue,  ret_blue  = build_mv_frontier(mu, cov, n_points=100)
+            std_green, ret_green = build_mv_frontier(mu, cov, bounds=bounds_green, n_points=100)
+
+        # ── Metrics ───────────────────────────────────────────────────────────────
+        st.markdown("---")
+        st.markdown('<div class="section-header">Optimal Portfolio</div>', unsafe_allow_html=True)
+        m1,m2,m3,m4 = st.columns(4)
+        metric_data = [
+            (m1, "Expected Return", f"{ep*100:.2f}",  "%",    "metric-pos", "card-ret"),
+            (m2, "Volatility",      f"{sp*100:.2f}",  "%",    "",            "card-vol"),
+            (m3, "Sharpe Ratio",    f"{sr:.3f}",       "",     "metric-pos" if sr > 0 else "metric-neg", "card-sr"),
+            (m4, "ESG Score",       f"{esg_bar:.2f}", "/ 10", "metric-pos" if esg_bar >= 5 else "", "card-esg"),
+        ]
+        for col, label, val, unit, cls, card_cls in metric_data:
+            with col:
+                st.markdown(
+                    f'<div class="metric-card {card_cls}">'
+                    f'<div class="metric-label">{label}</div>'
+                    f'<div class="metric-value {cls}">{val}<span class="metric-unit">{unit}</span></div>'
+                    f'</div>', unsafe_allow_html=True)
+
+        u_val = ep - gamma/2*sp**2 + lam*esg_bar
+        st.markdown(
+            f'<div class="info-box">U = E[Rp] − (γ/2)σ² + λs̄ = <strong>{u_val:.4f}</strong>'
+            f' &nbsp;|&nbsp; γ={gamma}, λ={lam}, r_f={rf*100:.1f}%'
+            f' &nbsp;|&nbsp; Tangency Sharpe (all assets) = {sr_tan_all:.3f}'
+            f' &nbsp;|&nbsp; Tangency Sharpe (ESG screen) = {sr_tan_esg:.3f}</div>',
+            unsafe_allow_html=True)
+
+        st.markdown("#### Portfolio Weights")
+        st.dataframe(pd.DataFrame({
+            "Asset":              names,
+            "Weight (%)":         [f"{w*100:.2f}"  for w in w_opt],
+            "E[R] (%)":           [f"{r*100:.2f}"  for r in mu],
+            "σ (%)":              [f"{v*100:.2f}"  for v in vols],
+            "ESG (0–10)":         [f"{s:.2f}"      for s in esg_scores],
+            "In ESG frontier":    ["" if m else "No" for m in active_mask],
+        }), use_container_width=True, hide_index=True)
+
+        if input_mode == "Ticker-based input":
+            st.markdown("#### Ticker Data Used")
+            st.dataframe(ticker_data_display, use_container_width=True, hide_index=True)
+            st.markdown("#### Correlation Matrix")
+            st.dataframe(pd.DataFrame(corr_np,index=names,columns=names).round(3),
+                         use_container_width=True)
+
+        # ══════════════════════════════════════════════════════════════════════════
+        # CHARTS — iOS / macOS system palette
+        # ══════════════════════════════════════════════════════════════════════════
+        BG     = '#000000'   # iOS true black
+        BG2    = '#1C1C1E'   # iOS system background 2
+        BLUE   = '#0A84FF'   # iOS system blue   — "all assets" frontier
+        GREEN  = '#30D158'   # iOS system green  — ESG frontier
+        ORANGE = '#FF9F0A'   # iOS system orange — optimal portfolio point
+        GREY   = '#636366'   # iOS system gray   — labels
+
+        st.markdown('<div class="section-header">ESG-Efficient Frontier</div>', unsafe_allow_html=True)
+        c1, c2 = st.columns(2)
+
+        # ── Chart 1: Mean-Variance Frontier (matches lecture slide) ──────────────
+        with c1:
+            fig, ax = plt.subplots(figsize=(6.5, 5.5))
+            fig.patch.set_facecolor(BG); ax.set_facecolor(BG)
+
+            # Blue frontier — all assets
+            if len(std_blue) > 2:
+                ax.plot(std_blue, ret_blue, color=BLUE, lw=2.4, zorder=4,
+                        label='Mean-variance frontier\n(all assets)')
+
+            # Green frontier — ESG-screened
+            if len(std_green) > 2:
+                ax.plot(std_green, ret_green, color=GREEN, lw=2.4, zorder=4,
+                        label=f'Mean-variance frontier\n(ESG ≥ {esg_thresh:.1f})')
+
+            # CML for all-assets tangency (blue dashed)
+            if sp_tan_all > 1e-9 and len(std_blue) > 0:
+                cml_max = max(np.nanmax(std_blue), sp_tan_all*100) * 1.5
+                sd_cml  = np.linspace(0, cml_max, 300)
+                ax.plot(sd_cml, rf*100 + (ep_tan_all-rf)/sp_tan_all*sd_cml,
+                        color=BLUE, lw=1.5, linestyle='--', zorder=3,
+                        label='CML (all assets)')
+
+            # CML for ESG-constrained tangency (green dashed)
+            if sp_tan_esg > 1e-9 and len(std_green) > 0:
+                cml_max2 = max(np.nanmax(std_green), sp_tan_esg*100) * 1.5
+                sd_cml2  = np.linspace(0, cml_max2, 300)
+                ax.plot(sd_cml2, rf*100 + (ep_tan_esg-rf)/sp_tan_esg*sd_cml2,
+                        color=GREEN, lw=1.5, linestyle='--', zorder=3,
+                        label=f'CML (ESG ≥ {esg_thresh:.1f})')
+
+            # Tangency: all assets (blue star)
+            ax.scatter(sp_tan_all*100, ep_tan_all*100, color=BLUE, s=160,
                        zorder=9, edgecolors='white', lw=1.5, marker='*')
-            ax.annotate('tangency portfolio\n(ESG screen)',
-                        (sp_tan_esg*100, ep_tan_esg*100),
-                        textcoords="offset points", xytext=(8, -20),
-                        fontsize=7, color=GREEN, fontstyle='italic')
+            ax.annotate('tangency portfolio\n(all assets)',
+                        (sp_tan_all*100, ep_tan_all*100),
+                        textcoords="offset points", xytext=(8, 2),
+                        fontsize=7, color=BLUE, fontstyle='italic')
 
-        # Risk-free
-        ax.scatter(0, rf*100, color=GREY, s=70, zorder=8,
-                   edgecolors='white', lw=1, marker='s')
+            # Tangency: ESG-constrained (green star)
+            if len(std_green) > 2:
+                ax.scatter(sp_tan_esg*100, ep_tan_esg*100, color=GREEN, s=160,
+                           zorder=9, edgecolors='white', lw=1.5, marker='*')
+                ax.annotate('tangency portfolio\n(ESG screen)',
+                            (sp_tan_esg*100, ep_tan_esg*100),
+                            textcoords="offset points", xytext=(8, -20),
+                            fontsize=7, color=GREEN, fontstyle='italic')
 
-        # ESG-optimal
-        ax.scatter(sp*100, ep*100, color=ORANGE, s=180, zorder=10,
-                   edgecolors='white', lw=2, marker='*', label='ESG-Optimal portfolio')
+            # Risk-free
+            ax.scatter(0, rf*100, color=GREY, s=70, zorder=8,
+                       edgecolors='white', lw=1, marker='s')
 
-        # Individual assets — blue dots if excluded from ESG frontier, green if included
-        for i in range(n):
-            col_pt = GREEN if active_mask[i] else BLUE
-            ax.scatter(vols[i]*100, mu[i]*100, color=col_pt, s=50, zorder=6,
-                       edgecolors='white', lw=0.8, alpha=0.85)
-            ax.annotate(names[i], (vols[i]*100, mu[i]*100),
-                        textcoords="offset points", xytext=(4,3),
-                        fontsize=7, color=GREY)
+            # ESG-optimal
+            ax.scatter(sp*100, ep*100, color=ORANGE, s=180, zorder=10,
+                       edgecolors='white', lw=2, marker='*', label='ESG-Optimal portfolio')
 
-        ax.set_xlabel("Std (%)", fontsize=9, color=GREY)
-        ax.set_ylabel("Expected Return (%)", fontsize=9, color=GREY)
-        ax.set_title("Mean-Variance Frontier", fontsize=11, fontweight='bold',
-                     color='#F2F2F7', pad=10)
-        ax.set_xlim(left=0)
-        ax.tick_params(colors=GREY, labelsize=8)
-        for sp_ in ax.spines.values(): sp_.set_color('#2C2C2E')
-        ax.legend(fontsize=7, framealpha=0.92, facecolor='#1C1C1E', edgecolor='#3A3A3C',
-                  loc='upper left', labelcolor='#8E8E93')
-        ax.grid(True, alpha=0.25, color='#2C2C2E', linestyle='--', linewidth=0.7)
-        fig.tight_layout(); st.pyplot(fig); plt.close()
+            # Individual assets — blue dots if excluded from ESG frontier, green if included
+            for i in range(n):
+                col_pt = GREEN if active_mask[i] else BLUE
+                ax.scatter(vols[i]*100, mu[i]*100, color=col_pt, s=50, zorder=6,
+                           edgecolors='white', lw=0.8, alpha=0.85)
+                ax.annotate(names[i], (vols[i]*100, mu[i]*100),
+                            textcoords="offset points", xytext=(4,3),
+                            fontsize=7, color=GREY)
 
-    # ── Chart 2: ESG-SR Frontier — matching the lecture slide ──────────────────
-    # Lecture: single curve = max Sharpe for each ESG level (sweep ESG constraint).
-    # Two labelled dots:
-    #   - "Tangency portfolio using ESG information"   = peak of the curve (ESG-aware tangency)
-    #   - "Tangency portfolio ignoring ESG information" = unconstrained tangency plotted at its ESG score
-    # Individual assets shown as dots below the curve.
-    with c2:
-        # Sweep minimum-ESG constraint from min to max; record (achieved_ESG, Sharpe)
-        esg_min_val = float(np.min(esg_a))
-        esg_max_val = float(np.max(esg_a))
-        esg_sweep   = np.linspace(esg_min_val, esg_max_val, 150)
-        sw_esg, sw_sr = [], []
-        for et in esg_sweep:
-            res = minimize(
-                lambda w: -port_sr(w, mu_a, cov_a, rf),
-                np.ones(len(mu_a)) / len(mu_a), method="SLSQP",
-                bounds=[(0., 1.)] * len(mu_a),
-                constraints=[
-                    {"type": "eq",   "fun": lambda w: np.sum(w) - 1},
-                    {"type": "ineq", "fun": lambda w, t=et: float(w @ esg_a) - t},
-                ],
-                options={"ftol": 1e-9, "maxiter": 400})
-            if res.success:
-                sw_esg.append(float(res.x @ esg_a))
-                sw_sr.append(port_sr(res.x, mu_a, cov_a, rf))
+            ax.set_xlabel("Std (%)", fontsize=9, color=GREY)
+            ax.set_ylabel("Expected Return (%)", fontsize=9, color=GREY)
+            ax.set_title("Mean-Variance Frontier", fontsize=11, fontweight='bold',
+                         color='#F2F2F7', pad=10)
+            ax.set_xlim(left=0)
+            ax.tick_params(colors=GREY, labelsize=8)
+            for sp_ in ax.spines.values(): sp_.set_color('#2C2C2E')
+            ax.legend(fontsize=7, framealpha=0.92, facecolor='#1C1C1E', edgecolor='#3A3A3C',
+                      loc='upper left', labelcolor='#8E8E93')
+            ax.grid(True, alpha=0.25, color='#2C2C2E', linestyle='--', linewidth=0.7)
+            fig.tight_layout(); st.pyplot(fig); plt.close()
 
-        # "Tangency using ESG info" = unconstrained tangency among ESG assets (peak of curve)
-        # This is w_tan_esg restricted to active assets
-        esg_tan_using    = float(w_tan_esg[active_mask] @ esg_a) if active_mask.any() else esg_bar
-        sr_tan_using     = sr_tan_esg
+        # ── Chart 2: ESG-SR Frontier — matching the lecture slide ──────────────────
+        # Lecture: single curve = max Sharpe for each ESG level (sweep ESG constraint).
+        # Two labelled dots:
+        #   - "Tangency portfolio using ESG information"   = peak of the curve (ESG-aware tangency)
+        #   - "Tangency portfolio ignoring ESG information" = unconstrained tangency plotted at its ESG score
+        # Individual assets shown as dots below the curve.
+        with c2:
+            # Sweep minimum-ESG constraint from min to max; record (achieved_ESG, Sharpe)
+            esg_min_val = float(np.min(esg_a))
+            esg_max_val = float(np.max(esg_a))
+            esg_sweep   = np.linspace(esg_min_val, esg_max_val, 150)
+            sw_esg, sw_sr = [], []
+            for et in esg_sweep:
+                res = minimize(
+                    lambda w: -port_sr(w, mu_a, cov_a, rf),
+                    np.ones(len(mu_a)) / len(mu_a), method="SLSQP",
+                    bounds=[(0., 1.)] * len(mu_a),
+                    constraints=[
+                        {"type": "eq",   "fun": lambda w: np.sum(w) - 1},
+                        {"type": "ineq", "fun": lambda w, t=et: float(w @ esg_a) - t},
+                    ],
+                    options={"ftol": 1e-9, "maxiter": 400})
+                if res.success:
+                    sw_esg.append(float(res.x @ esg_a))
+                    sw_sr.append(port_sr(res.x, mu_a, cov_a, rf))
 
-        # "Tangency ignoring ESG info" = unconstrained tangency across ALL assets
-        # plotted at its own ESG score — sits BELOW the frontier (exactly as in lecture)
-        esg_tan_ignoring = float(w_tan_all @ esg_scores)   # its actual ESG score
-        sr_tan_ignoring  = sr_tan_all                       # its Sharpe ratio
+            # "Tangency using ESG info" = unconstrained tangency among ESG assets (peak of curve)
+            # This is w_tan_esg restricted to active assets
+            esg_tan_using    = float(w_tan_esg[active_mask] @ esg_a) if active_mask.any() else esg_bar
+            sr_tan_using     = sr_tan_esg
 
-        fig2, ax2 = plt.subplots(figsize=(6.5, 5.5))
-        fig2.patch.set_facecolor(BG); ax2.set_facecolor(BG)
+            # "Tangency ignoring ESG info" = unconstrained tangency across ALL assets
+            # plotted at its own ESG score — sits BELOW the frontier (exactly as in lecture)
+            esg_tan_ignoring = float(w_tan_all @ esg_scores)   # its actual ESG score
+            sr_tan_ignoring  = sr_tan_all                       # its Sharpe ratio
 
-        # Frontier curve
-        if sw_esg:
-            ax2.plot(sw_esg, sw_sr, color=BLUE, lw=2.5, zorder=4,
-                     label="ESG-SR frontier")
-            ax2.fill_between(sw_esg, sw_sr,
-                             alpha=0.08, color=BLUE)
+            fig2, ax2 = plt.subplots(figsize=(6.5, 5.5))
+            fig2.patch.set_facecolor(BG); ax2.set_facecolor(BG)
 
-        # Individual assets (dots below curve)
-        for i in range(len(mu_a)):
-            sr_i = (mu_a[i] - rf) / vols_a[i]
-            ax2.scatter(esg_a[i], sr_i, color=BLUE, s=55, zorder=5,
-                        edgecolors="white", lw=0.8, alpha=0.85)
-            ax2.annotate(names_a[i], (esg_a[i], sr_i),
-                         textcoords="offset points", xytext=(5, 4),
-                         fontsize=7.5, color=GREY)
+            # Frontier curve
+            if sw_esg:
+                ax2.plot(sw_esg, sw_sr, color=BLUE, lw=2.5, zorder=4,
+                         label="ESG-SR frontier")
+                ax2.fill_between(sw_esg, sw_sr,
+                                 alpha=0.08, color=BLUE)
 
-        # Tangency using ESG info (on or near peak of curve)
-        ax2.scatter(esg_tan_using, sr_tan_using, color=GREEN, s=140, zorder=9,
-                    edgecolors=BG, lw=1.5)
-        ax2.annotate("Tangency portfolio\nusing ESG information",
-                     (esg_tan_using, sr_tan_using),
-                     textcoords="offset points", xytext=(8, 4),
-                     fontsize=7.5, color=GREEN,
-                     arrowprops=dict(arrowstyle="-", color=GREY, lw=0.8))
+            # Individual assets (dots below curve)
+            for i in range(len(mu_a)):
+                sr_i = (mu_a[i] - rf) / vols_a[i]
+                ax2.scatter(esg_a[i], sr_i, color=BLUE, s=55, zorder=5,
+                            edgecolors="white", lw=0.8, alpha=0.85)
+                ax2.annotate(names_a[i], (esg_a[i], sr_i),
+                             textcoords="offset points", xytext=(5, 4),
+                             fontsize=7.5, color=GREY)
 
-        # Tangency ignoring ESG info (below curve — same as lecture)
-        ax2.scatter(esg_tan_ignoring, sr_tan_ignoring, color=BLUE, s=100, zorder=8,
-                    edgecolors=BG, lw=1.5)
-        ax2.annotate("Tangency portfolio\nignoring ESG information",
-                     (esg_tan_ignoring, sr_tan_ignoring),
-                     textcoords="offset points", xytext=(8, -28),
-                     fontsize=7.5, color=BLUE,
-                     arrowprops=dict(arrowstyle="-", color=GREY, lw=0.8))
+            # Tangency using ESG info (on or near peak of curve)
+            ax2.scatter(esg_tan_using, sr_tan_using, color=GREEN, s=140, zorder=9,
+                        edgecolors=BG, lw=1.5)
+            ax2.annotate("Tangency portfolio\nusing ESG information",
+                         (esg_tan_using, sr_tan_using),
+                         textcoords="offset points", xytext=(8, 4),
+                         fontsize=7.5, color=GREEN,
+                         arrowprops=dict(arrowstyle="-", color=GREY, lw=0.8))
 
-        # ESG-optimal portfolio
-        ax2.scatter(esg_bar, sr, color=ORANGE, s=120, zorder=10,
-                    edgecolors=BG, lw=2)
-        ax2.annotate("Optimal portfolio",
-                     (esg_bar, sr),
-                     textcoords="offset points", xytext=(-80, 8),
-                     fontsize=7.5, color=ORANGE,
-                     arrowprops=dict(arrowstyle="-", color=GREY, lw=0.8))
+            # Tangency ignoring ESG info (below curve — same as lecture)
+            ax2.scatter(esg_tan_ignoring, sr_tan_ignoring, color=BLUE, s=100, zorder=8,
+                        edgecolors=BG, lw=1.5)
+            ax2.annotate("Tangency portfolio\nignoring ESG information",
+                         (esg_tan_ignoring, sr_tan_ignoring),
+                         textcoords="offset points", xytext=(8, -28),
+                         fontsize=7.5, color=BLUE,
+                         arrowprops=dict(arrowstyle="-", color=GREY, lw=0.8))
 
-        ax2.set_xlabel("ESG Score (0–10)", fontsize=9, color=GREY)
-        ax2.set_ylabel("Sharpe Ratio",     fontsize=9, color=GREY)
-        ax2.set_title("ESG-SR Frontier", fontsize=11, fontweight="bold",
-                      color='#F2F2F7', pad=10)
-        ax2.tick_params(colors=GREY, labelsize=8)
-        for sp_ in ax2.spines.values(): sp_.set_color('#2C2C2E')
-        ax2.legend(fontsize=8, framealpha=0.92, facecolor='#1C1C1E', edgecolor='#3A3A3C',
-                   labelcolor='#8E8E93')
-        ax2.grid(True, alpha=0.25, color='#2C2C2E', linestyle='--', linewidth=0.7)
-        fig2.tight_layout(); st.pyplot(fig2); plt.close()
+            # ESG-optimal portfolio
+            ax2.scatter(esg_bar, sr, color=ORANGE, s=120, zorder=10,
+                        edgecolors=BG, lw=2)
+            ax2.annotate("Optimal portfolio",
+                         (esg_bar, sr),
+                         textcoords="offset points", xytext=(-80, 8),
+                         fontsize=7.5, color=ORANGE,
+                         arrowprops=dict(arrowstyle="-", color=GREY, lw=0.8))
 
-    # ── Allocation charts ─────────────────────────────────────────────────────
-    st.markdown("#### Portfolio Allocation")
-    pc, bc = st.columns(2)
-    nz = [(names[i],w_opt[i],esg_scores[i]) for i in range(n) if w_opt[i]>0.005]
-    if nz:
-        plabels=[x[0] for x in nz]; pvals=[x[1] for x in nz]; pesg=[x[2] for x in nz]
-        greens=['#1E4D2A','#2D7A42','#3D9A56','#52B86A','#6ECC84',
-                '#90DAAA','#B0E8C4','#CAEFD8','#E0F7EB','#F0FCF4']
-        with pc:
-            f3,a3 = plt.subplots(figsize=(5,4))
-            f3.patch.set_facecolor(BG); a3.set_facecolor(BG)
-            a3.pie(pvals,labels=plabels,autopct='%1.1f%%',colors=greens[:len(pvals)],
-                   startangle=140,textprops={'fontsize':8,'color':'#A8C8A8'},
-                   wedgeprops={'edgecolor':BG,'linewidth':2})
-            a3.set_title("Weight Allocation",fontsize=11,fontweight='bold',color='#F2F2F7',pad=10)
-            f3.tight_layout(); st.pyplot(f3); plt.close()
-        with bc:
-            f4,a4 = plt.subplots(figsize=(5,4))
-            f4.patch.set_facecolor(BG); a4.set_facecolor(BG)
-            bcols = [plt.cm.YlGn(s/10) for s in pesg]
-            bars  = a4.barh(plabels,[v*100 for v in pvals],color=bcols,edgecolor=BG,height=0.55)
-            for bar,ev in zip(bars,pesg):
-                a4.text(bar.get_width()+0.3,bar.get_y()+bar.get_height()/2,
-                        f'ESG {ev:.1f}',va='center',fontsize=7.5,color=GREY)
-            a4.set_xlabel("Weight (%)",fontsize=9,color=GREY)
-            a4.set_title("Weights with ESG Scores",fontsize=11,fontweight='bold',color='#F2F2F7',pad=10)
-            a4.tick_params(colors=GREY,labelsize=8)
-            for sp_ in a4.spines.values(): sp_.set_color('#2C2C2E')
-            a4.grid(True,alpha=0.25,color='#2C2C2E',axis='x',linestyle='--',linewidth=0.7)
-            f4.tight_layout(); st.pyplot(f4); plt.close()
+            ax2.set_xlabel("ESG Score (0–10)", fontsize=9, color=GREY)
+            ax2.set_ylabel("Sharpe Ratio",     fontsize=9, color=GREY)
+            ax2.set_title("ESG-SR Frontier", fontsize=11, fontweight="bold",
+                          color='#F2F2F7', pad=10)
+            ax2.tick_params(colors=GREY, labelsize=8)
+            for sp_ in ax2.spines.values(): sp_.set_color('#2C2C2E')
+            ax2.legend(fontsize=8, framealpha=0.92, facecolor='#1C1C1E', edgecolor='#3A3A3C',
+                       labelcolor='#8E8E93')
+            ax2.grid(True, alpha=0.25, color='#2C2C2E', linestyle='--', linewidth=0.7)
+            fig2.tight_layout(); st.pyplot(fig2); plt.close()
 
-    # ── Sensitivity ───────────────────────────────────────────────────────────
-    with st.expander("Sensitivity Analysis — ESG Preference (λ)"):
-        lam_vals  = np.linspace(0, 5, 20)
-        sens_rows = []
-        for lv in lam_vals:
-            ww = find_optimal(mu_a, cov_a, esg_a, rf, gamma, lv)
-            ep2,sp2,sr2,esg2 = port_stats(ww,mu_a,cov_a,esg_a,rf)
-            sens_rows.append({"λ":round(float(lv),2),"E[R](%)":round(ep2*100,2),
-                              "σ(%)":round(sp2*100,2),"Sharpe":round(sr2,3),"ESG":round(esg2,2)})
-        sens_df = pd.DataFrame(sens_rows)
-        f5,axes = plt.subplots(1,3,figsize=(12,3.5)); f5.patch.set_facecolor(BG)
-        for ax_,col_,c_,yl_,tl_ in [
-            (axes[0],"Sharpe",GREEN,"Sharpe Ratio","Sharpe vs λ"),
-            (axes[1],"ESG",   GREEN,"ESG Score",   "ESG Score vs λ"),
-        ]:
-            ax_.set_facecolor(BG); ax_.plot(sens_df["λ"],sens_df[col_],color=c_,lw=2)
-            ax_.set_title(tl_,fontsize=10,color='#F2F2F7')
-            ax_.set_xlabel("λ",fontsize=9); ax_.set_ylabel(yl_,fontsize=9)
-            ax_.tick_params(colors='#5a7a5a',labelsize=8)
-            for sp_ in ax_.spines.values(): sp_.set_color('#2C2C2E')
-            ax_.grid(True,alpha=0.3,color='#c8d8b8',linestyle='--')
-        axes[2].set_facecolor(BG)
-        axes[2].plot(sens_df["λ"],sens_df["E[R](%)"],color='#00d4aa',lw=2,label='E[R]')
-        axes[2].plot(sens_df["λ"],sens_df["σ(%)"],color='#f59e0b',lw=2,linestyle='--',label='σ')
-        axes[2].set_title("Return & Risk vs λ",fontsize=10,color='#F2F2F7')
-        axes[2].set_xlabel("λ",fontsize=9); axes[2].set_ylabel("%",fontsize=9)
-        axes[2].legend(fontsize=8,facecolor='#1C1C1E',edgecolor='#3A3A3C')
-        axes[2].tick_params(colors='#5a7a5a',labelsize=8)
-        for sp_ in axes[2].spines.values(): sp_.set_color('#2C2C2E')
-        axes[2].grid(True,alpha=0.3,color='#c8d8b8',linestyle='--')
-        f5.tight_layout(); st.pyplot(f5); plt.close()
-        st.dataframe(sens_df,use_container_width=True,hide_index=True)
+        # ── Allocation charts ─────────────────────────────────────────────────────
+        st.markdown("#### Portfolio Allocation")
+        pc, bc = st.columns(2)
+        nz = [(names[i],w_opt[i],esg_scores[i]) for i in range(n) if w_opt[i]>0.005]
+        if nz:
+            plabels=[x[0] for x in nz]; pvals=[x[1] for x in nz]; pesg=[x[2] for x in nz]
+            greens=['#1E4D2A','#2D7A42','#3D9A56','#52B86A','#6ECC84',
+                    '#90DAAA','#B0E8C4','#CAEFD8','#E0F7EB','#F0FCF4']
+            with pc:
+                f3,a3 = plt.subplots(figsize=(5,4))
+                f3.patch.set_facecolor(BG); a3.set_facecolor(BG)
+                a3.pie(pvals,labels=plabels,autopct='%1.1f%%',colors=greens[:len(pvals)],
+                       startangle=140,textprops={'fontsize':8,'color':'#A8C8A8'},
+                       wedgeprops={'edgecolor':BG,'linewidth':2})
+                a3.set_title("Weight Allocation",fontsize=11,fontweight='bold',color='#F2F2F7',pad=10)
+                f3.tight_layout(); st.pyplot(f3); plt.close()
+            with bc:
+                f4,a4 = plt.subplots(figsize=(5,4))
+                f4.patch.set_facecolor(BG); a4.set_facecolor(BG)
+                bcols = [plt.cm.YlGn(s/10) for s in pesg]
+                bars  = a4.barh(plabels,[v*100 for v in pvals],color=bcols,edgecolor=BG,height=0.55)
+                for bar,ev in zip(bars,pesg):
+                    a4.text(bar.get_width()+0.3,bar.get_y()+bar.get_height()/2,
+                            f'ESG {ev:.1f}',va='center',fontsize=7.5,color=GREY)
+                a4.set_xlabel("Weight (%)",fontsize=9,color=GREY)
+                a4.set_title("Weights with ESG Scores",fontsize=11,fontweight='bold',color='#F2F2F7',pad=10)
+                a4.tick_params(colors=GREY,labelsize=8)
+                for sp_ in a4.spines.values(): sp_.set_color('#2C2C2E')
+                a4.grid(True,alpha=0.25,color='#2C2C2E',axis='x',linestyle='--',linewidth=0.7)
+                f4.tight_layout(); st.pyplot(f4); plt.close()
 
-    st.markdown("---")
-    st.markdown(
-        '<div class="info-box"><strong>Methodology:</strong> '
-        'Utility U = E[Rp] − (γ/2)σ²p + λs̄, maximised via SLSQP (no short-selling). '
-        '<strong>Blue frontier</strong>: unconstrained MV frontier across all assets. '
-        '<strong>Green frontier</strong>: MV frontier restricted to assets passing the ESG screen '
-        '— lies to the right of blue (same return costs more risk), matching the lecture diagram. '
-        'Both CMLs drawn from r_f through their respective tangency portfolios. '
-        'ESG data: LSEG ESGCombinedScore CSV, most recent year per ticker, '
-        'scaled 0–1 → 0–10 (higher = better).</div>',
-        unsafe_allow_html=True)
+        # ── Sensitivity ───────────────────────────────────────────────────────────
+        with st.expander("Sensitivity Analysis — ESG Preference (λ)"):
+            lam_vals  = np.linspace(0, 5, 20)
+            sens_rows = []
+            for lv in lam_vals:
+                ww = find_optimal(mu_a, cov_a, esg_a, rf, gamma, lv)
+                ep2,sp2,sr2,esg2 = port_stats(ww,mu_a,cov_a,esg_a,rf)
+                sens_rows.append({"λ":round(float(lv),2),"E[R](%)":round(ep2*100,2),
+                                  "σ(%)":round(sp2*100,2),"Sharpe":round(sr2,3),"ESG":round(esg2,2)})
+            sens_df = pd.DataFrame(sens_rows)
+            f5,axes = plt.subplots(1,3,figsize=(12,3.5)); f5.patch.set_facecolor(BG)
+            for ax_,col_,c_,yl_,tl_ in [
+                (axes[0],"Sharpe",GREEN,"Sharpe Ratio","Sharpe vs λ"),
+                (axes[1],"ESG",   GREEN,"ESG Score",   "ESG Score vs λ"),
+            ]:
+                ax_.set_facecolor(BG); ax_.plot(sens_df["λ"],sens_df[col_],color=c_,lw=2)
+                ax_.set_title(tl_,fontsize=10,color='#F2F2F7')
+                ax_.set_xlabel("λ",fontsize=9); ax_.set_ylabel(yl_,fontsize=9)
+                ax_.tick_params(colors='#5a7a5a',labelsize=8)
+                for sp_ in ax_.spines.values(): sp_.set_color('#2C2C2E')
+                ax_.grid(True,alpha=0.3,color='#c8d8b8',linestyle='--')
+            axes[2].set_facecolor(BG)
+            axes[2].plot(sens_df["λ"],sens_df["E[R](%)"],color='#00d4aa',lw=2,label='E[R]')
+            axes[2].plot(sens_df["λ"],sens_df["σ(%)"],color='#f59e0b',lw=2,linestyle='--',label='σ')
+            axes[2].set_title("Return & Risk vs λ",fontsize=10,color='#F2F2F7')
+            axes[2].set_xlabel("λ",fontsize=9); axes[2].set_ylabel("%",fontsize=9)
+            axes[2].legend(fontsize=8,facecolor='#1C1C1E',edgecolor='#3A3A3C')
+            axes[2].tick_params(colors='#5a7a5a',labelsize=8)
+            for sp_ in axes[2].spines.values(): sp_.set_color('#2C2C2E')
+            axes[2].grid(True,alpha=0.3,color='#c8d8b8',linestyle='--')
+            f5.tight_layout(); st.pyplot(f5); plt.close()
+            st.dataframe(sens_df,use_container_width=True,hide_index=True)
 
-    # Store all portfolio data for the simulated chatbot engine
-    st.session_state["chat_data"] = {
-        "names":      names,
-        "mu":         mu,
-        "vols":       vols,
-        "esg_scores": esg_scores,
-        "w_opt":      w_opt,
-        "ep":         ep,
-        "sp":         sp,
-        "sr":         sr,
-        "esg_bar":    esg_bar,
-        "gamma":      gamma,
-        "lam":        lam,
-        "rf":         rf,
-        "ep_tan_all": ep_tan_all,
-        "sp_tan_all": sp_tan_all,
-        "sr_tan_all": sr_tan_all,
-        "ep_tan_esg": ep_tan_esg,
-        "sp_tan_esg": sp_tan_esg,
-        "sr_tan_esg": sr_tan_esg,
-        "active_mask":active_mask,
-        "esg_thresh": esg_thresh,
-        "cov":        cov,
-        "n":          n,
-    }
-    # Reset chat history each time a new optimisation runs
-    st.session_state["chat_history"] = []
+        st.markdown("---")
+        st.markdown(
+            '<div class="info-box"><strong>Methodology:</strong> '
+            'Utility U = E[Rp] − (γ/2)σ²p + λs̄, maximised via SLSQP (no short-selling). '
+            '<strong>Blue frontier</strong>: unconstrained MV frontier across all assets. '
+            '<strong>Green frontier</strong>: MV frontier restricted to assets passing the ESG screen '
+            '— lies to the right of blue (same return costs more risk), matching the lecture diagram. '
+            'Both CMLs drawn from r_f through their respective tangency portfolios. '
+            'ESG data: LSEG ESGCombinedScore CSV, most recent year per ticker, '
+            'scaled 0–1 → 0–10 (higher = better).</div>',
+            unsafe_allow_html=True)
 
-else:
-    st.markdown('<div class="warn-box">Configure the asset universe and click '
-                '<strong>Optimise Portfolio</strong> to generate results.</div>',
-                unsafe_allow_html=True)
-    with st.expander("How does the model work?"):
-        st.markdown(r"""
-**Utility Function**
-
-$$U = E[R_p] - \frac{\gamma}{2}\sigma_p^2 + \lambda \bar{s}$$
-
-**Frontier Construction — matching the lecture diagram**
-
-Two mean-variance frontiers are built by minimising portfolio standard deviation for each target return level:
-
-- **Blue**: No ESG constraints — uses all assets. This is the standard Markowitz frontier.
-- **Green**: ESG-constrained — only assets passing the minimum ESG threshold can receive non-zero weight. Because this restricts the feasible set, the green frontier lies *to the right* of the blue (higher σ for the same E[R]), exactly as shown in the lecture slide.
-
-Both frontiers show their Capital Market Line (dashed), tangency portfolio (★), and the risk-free asset.
-
-**ESG Data Source**
-
-Scores come from the uploaded LSEG ESGCombinedScore CSV. The `valuescore` column (0–1 scale, higher = better) is multiplied by 10 to give a 0–10 display scale. The most recent available year is used per ticker. If a ticker is not in the CSV, a manual score input appears.
-""")
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# PORTFOLIO EXPLAINER CHATBOT
-# Fully simulated — no API key needed. All answers computed from portfolio data.
-# ══════════════════════════════════════════════════════════════════════════════
-
-if "chat_data" in st.session_state:
-    st.markdown("---")
-    st.markdown('<div class="section-header">Portfolio Explainer</div>', unsafe_allow_html=True)
-
-    if "chat_history" not in st.session_state:
+        # Store all portfolio data for the simulated chatbot engine
+        st.session_state["chat_data"] = {
+            "names":      names,
+            "mu":         mu,
+            "vols":       vols,
+            "esg_scores": esg_scores,
+            "w_opt":      w_opt,
+            "ep":         ep,
+            "sp":         sp,
+            "sr":         sr,
+            "esg_bar":    esg_bar,
+            "gamma":      gamma,
+            "lam":        lam,
+            "rf":         rf,
+            "ep_tan_all": ep_tan_all,
+            "sp_tan_all": sp_tan_all,
+            "sr_tan_all": sr_tan_all,
+            "ep_tan_esg": ep_tan_esg,
+            "sp_tan_esg": sp_tan_esg,
+            "sr_tan_esg": sr_tan_esg,
+            "active_mask":active_mask,
+            "esg_thresh": esg_thresh,
+            "cov":        cov,
+            "n":          n,
+        }
+        # Reset chat history each time a new optimisation runs
         st.session_state["chat_history"] = []
 
-    # Header
-    st.markdown(
-        '''<div class="chat-wrap">
-  <div class="chat-header">
-    <div class="chat-avatar">GP</div>
-    <div>
-      <p class="chat-header-title">Portfolio Explainer</p>
-      <p class="chat-header-sub">Ask anything about your portfolio — weights, ESG scores, the frontier, or the model.</p>
+    else:
+        st.markdown('<div class="warn-box">Configure the asset universe and click '
+                    '<strong>Optimise Portfolio</strong> to generate results.</div>',
+                    unsafe_allow_html=True)
+        with st.expander("How does the model work?"):
+            st.markdown(r"""
+    **Utility Function**
+
+    $$U = E[R_p] - \frac{\gamma}{2}\sigma_p^2 + \lambda \bar{s}$$
+
+    **Frontier Construction — matching the lecture diagram**
+
+    Two mean-variance frontiers are built by minimising portfolio standard deviation for each target return level:
+
+    - **Blue**: No ESG constraints — uses all assets. This is the standard Markowitz frontier.
+    - **Green**: ESG-constrained — only assets passing the minimum ESG threshold can receive non-zero weight. Because this restricts the feasible set, the green frontier lies *to the right* of the blue (higher σ for the same E[R]), exactly as shown in the lecture slide.
+
+    Both frontiers show their Capital Market Line (dashed), tangency portfolio (★), and the risk-free asset.
+
+    **ESG Data Source**
+
+    Scores come from the uploaded LSEG ESGCombinedScore CSV. The `valuescore` column (0–1 scale, higher = better) is multiplied by 10 to give a 0–10 display scale. The most recent available year is used per ticker. If a ticker is not in the CSV, a manual score input appears.
+    """)
+
+
+with _tab2:
+    if "chat_data" not in st.session_state:
+        st.markdown("""
+<div style="display:flex; flex-direction:column; align-items:center; justify-content:center;
+            min-height:400px; text-align:center; gap:1rem;">
+  <div style="width:64px; height:64px; border-radius:16px;
+              background:linear-gradient(135deg,#30D158,#0A84FF);
+              display:flex; align-items:center; justify-content:center;
+              box-shadow:0 4px 20px rgba(10,132,255,0.35);">
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+      <path d="M10 8C10 8 8 10 8 14C8 18 11 21 16 21.5V25H17V21.5C22 21 25 18 25 14C25 10 23 8 23 8"
+            stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/>
+    </svg>
+  </div>
+  <div>
+    <div style="font-size:1.1rem; font-weight:600; color:rgba(255,255,255,1); margin-bottom:0.35rem;">
+      Portfolio Explainer
+    </div>
+    <div style="font-size:0.84rem; color:rgba(235,235,245,0.45); max-width:320px; line-height:1.55;">
+      Run the optimiser first, then come back here to ask questions about your portfolio.
     </div>
   </div>
-  <div class="chat-body">''',
-        unsafe_allow_html=True)
-
-    # Suggested question buttons
-    st.markdown("**Try asking:**")
-    pill_cols = st.columns(4)
-    for idx, q in enumerate(SUGGESTED_QUESTIONS):
-        with pill_cols[idx % 4]:
-            if st.button(q, key=f"pill_{idx}", use_container_width=True):
-                reply = answer_question(q)
-                st.session_state["chat_history"].append({"role": "user",      "content": q})
-                st.session_state["chat_history"].append({"role": "assistant", "content": reply})
-                st.rerun()
-
-    # Conversation history
-    for msg in st.session_state["chat_history"]:
-        css_class = "chat-msg-user" if msg["role"] == "user" else "chat-msg-assistant"
-        # Render newlines as <br> so multi-line answers display correctly
-        content = msg["content"].replace("\n", "<br>")
-        st.markdown(f'<div class="{css_class}">{content}</div>', unsafe_allow_html=True)
-
-    st.markdown("</div></div>", unsafe_allow_html=True)
-
-    # Free-text input
-    with st.form(key="chat_form", clear_on_submit=True):
-        fi_col, fb_col = st.columns([5, 1])
-        user_input = fi_col.text_input(
-            "Your question",
-            placeholder="e.g. Why does my portfolio hold so much of this asset?",
-            label_visibility="collapsed",
-        )
-        submitted = fb_col.form_submit_button("Send", use_container_width=True)
-
-    if submitted and user_input.strip():
-        reply = answer_question(user_input.strip())
-        st.session_state["chat_history"].append({"role": "user",      "content": user_input.strip()})
-        st.session_state["chat_history"].append({"role": "assistant", "content": reply})
-        st.rerun()
-
-    if st.session_state.get("chat_history"):
-        if st.button("Clear conversation", key="chat_clear"):
+</div>
+""", unsafe_allow_html=True)
+    else:
+        if "chat_history" not in st.session_state:
             st.session_state["chat_history"] = []
+
+        # ── iMessage page container header ────────────────────────────────
+        st.markdown("""
+<div class="imessage-header" style="border-radius:20px 20px 0 0; border:0.5px solid #3A3A3C; border-bottom:0.5px solid #3A3A3C; margin-bottom:0;">
+  <div class="imessage-avatar">GP</div>
+  <div class="imessage-contact">
+    <p class="imessage-name">Portfolio Explainer</p>
+    <p class="imessage-status">Active now</p>
+  </div>
+  <div style="font-size:0.72rem; color:rgba(235,235,245,0.30); text-align:right; line-height:1.6;">
+    Powered by GreenPort<br>No API key needed
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
+        # ── Suggestion chips (horizontal scroll) ─────────────────────────
+        chips_html = '<div class="chips-row" style="background:#000; border-left:0.5px solid #3A3A3C; border-right:0.5px solid #3A3A3C;">'
+        for q in SUGGESTED_QUESTIONS:
+            chips_html += f'<span class="chip">{q}</span>'
+        chips_html += '</div>'
+        st.markdown(chips_html, unsafe_allow_html=True)
+
+        # ── Message history ───────────────────────────────────────────────
+        st.markdown('<div class="messages-area" style="background:#000; border-left:0.5px solid #3A3A3C; border-right:0.5px solid #3A3A3C; min-height:380px; max-height:480px;">', unsafe_allow_html=True)
+        if not st.session_state["chat_history"]:
+            st.markdown("""
+<div style="display:flex; flex-direction:column; align-items:center; justify-content:center;
+            min-height:320px; gap:0.6rem; text-align:center;">
+  <div style="font-size:0.78rem; color:rgba(235,235,245,0.25); line-height:1.7;">
+    Ask about weights, the Sharpe ratio, ESG scores,<br>
+    the utility function, or any part of your portfolio.
+  </div>
+</div>
+""", unsafe_allow_html=True)
+        else:
+            for msg in st.session_state["chat_history"]:
+                safe = msg["content"].replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                safe_br = safe
+                if msg["role"] == "user":
+                    st.markdown(
+                        f'<div class="bubble-row user-row"><div class="bubble bubble-u">{safe_br}</div></div>',
+                        unsafe_allow_html=True)
+                else:
+                    st.markdown(
+                        f'<div class="bubble-row bot-row">'
+                        f'<div class="bot-mini-avatar">GP</div>'
+                        f'<div class="bubble bubble-b">{safe_br}</div>'
+                        f'</div>',
+                        unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # ── Input bar ─────────────────────────────────────────────────────
+        st.markdown('<div style="background:#1C1C1E; border:0.5px solid #3A3A3C; border-top:0.5px solid #3A3A3C; border-radius:0 0 20px 20px; padding:0.7rem 1rem 0.8rem;">', unsafe_allow_html=True)
+        with st.form(key="imessage_form", clear_on_submit=True):
+            col_input, col_send = st.columns([8, 1])
+            with col_input:
+                user_input = st.text_input(
+                    "Message",
+                    placeholder="Message GreenPort...",
+                    label_visibility="collapsed",
+                )
+            with col_send:
+                submitted = st.form_submit_button(
+                    "↑",
+                    use_container_width=True,
+                    type="primary",
+                )
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        if submitted and user_input.strip():
+            reply = answer_question(user_input.strip())
+            st.session_state["chat_history"].append({"role": "user", "content": user_input.strip()})
+            st.session_state["chat_history"].append({"role": "assistant", "content": reply})
             st.rerun()
+
+        # ── Chip button triggers (one per suggested question) ─────────────
+        st.markdown("<div style='margin-top:0.6rem;'>", unsafe_allow_html=True)
+        pill_cols = st.columns(3)
+        for idx, q in enumerate(SUGGESTED_QUESTIONS[:9]):
+            with pill_cols[idx % 3]:
+                if st.button(q, key=f"chip_{idx}", use_container_width=True):
+                    reply = answer_question(q)
+                    st.session_state["chat_history"].append({"role": "user", "content": q})
+                    st.session_state["chat_history"].append({"role": "assistant", "content": reply})
+                    st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        if st.session_state.get("chat_history"):
+            if st.button("Clear conversation", key="chat_clear"):
+                st.session_state["chat_history"] = []
+                st.rerun()
