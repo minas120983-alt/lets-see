@@ -1041,103 +1041,16 @@ if run:
         'scaled 0–1 → 0–10 (higher = better).</div>',
         unsafe_allow_html=True)
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # PORTFOLIO EXPLAINER CHATBOT
-    # ══════════════════════════════════════════════════════════════════════════
-
-    st.markdown("---")
-    st.markdown('<div class="section-header">Portfolio Explainer</div>', unsafe_allow_html=True)
-
-    # Build the portfolio context string and store in session state so it
-    # survives chat turns without rerunning the optimiser.
-    portfolio_ctx = build_portfolio_context(
+    # Store portfolio context in session state for the chatbot (rendered below)
+    st.session_state["portfolio_ctx"] = build_portfolio_context(
         names, mu, vols, esg_scores, w_opt,
         ep, sp, sr, esg_bar, gamma, lam, rf,
         ep_tan_all, sp_tan_all, sr_tan_all,
         ep_tan_esg, sp_tan_esg, sr_tan_esg,
         active_mask, esg_thresh,
     )
-    st.session_state["portfolio_ctx"] = portfolio_ctx
-
-    # Initialise chat history if not already present (or if a new optimisation ran)
-    if "chat_history" not in st.session_state:
-        st.session_state["chat_history"] = []
-
-    SYSTEM_PROMPT = (
-        "You are GreenPort's portfolio explainer — a friendly, knowledgeable assistant "
-        "embedded inside an ESG portfolio optimisation tool built for a university sustainable "
-        "finance course (ECN316). Your ONLY job is to explain this specific portfolio and the "
-        "model behind it. You always refer to the actual numbers in the portfolio summary below. "
-        "Be concise (2-4 short paragraphs max), use plain English, avoid jargon unless you "
-        "immediately explain it, and never give personalised financial advice. "
-        "When equations help, write them inline (e.g. U = E[Rp] - (γ/2)σ² + λs̄). "
-        "If a question is unrelated to this portfolio or model, politely redirect the user.\n\n"
-        + st.session_state["portfolio_ctx"]
-    )
-
-    # ── Chat header ───────────────────────────────────────────────────────────
-    st.markdown("""
-    <div class="chat-wrap">
-      <div class="chat-header">
-        <div class="chat-header-icon"></div>
-        <div>
-          <p class="chat-header-title">GreenPort Portfolio Explainer</p>
-          <p class="chat-header-sub">Ask me anything about your portfolio — weights, ESG scores, frontiers, or the model</p>
-        </div>
-      </div>
-      <div class="chat-body">
-    """, unsafe_allow_html=True)
-
-    # ── Suggested question pills ──────────────────────────────────────────────
-    st.markdown("**Try asking:**")
-    pill_cols = st.columns(4)
-    for idx, q in enumerate(SUGGESTED_QUESTIONS):
-        with pill_cols[idx % 4]:
-            if st.button(q, key=f"pill_{idx}", use_container_width=True):
-                st.session_state["chat_history"].append({"role": "user", "content": q})
-                with st.spinner("Thinking…"):
-                    reply = call_claude(SYSTEM_PROMPT, st.session_state["chat_history"])
-                st.session_state["chat_history"].append({"role": "assistant", "content": reply})
-                st.rerun()
-
-    # ── Conversation history ──────────────────────────────────────────────────
-    for msg in st.session_state["chat_history"]:
-        if msg["role"] == "user":
-            st.markdown(
-                f'<div class="chat-msg-user">{msg["content"]}</div>',
-                unsafe_allow_html=True)
-        else:
-            st.markdown(
-                f'<div class="chat-msg-assistant">{msg["content"]}</div>',
-                unsafe_allow_html=True)
-
-    st.markdown("</div></div>", unsafe_allow_html=True)
-
-    # ── Free-text input ───────────────────────────────────────────────────────
-    st.markdown("<br>", unsafe_allow_html=True)
-    chat_input_col, send_col = st.columns([5, 1])
-    with chat_input_col:
-        user_input = st.text_input(
-            "Ask a question about your portfolio",
-            placeholder="e.g. Why does my portfolio hold so much of asset X?",
-            key="chat_input",
-            label_visibility="collapsed",
-        )
-    with send_col:
-        send = st.button("Send", use_container_width=True, key="chat_send")
-
-    if send and user_input.strip():
-        st.session_state["chat_history"].append({"role": "user", "content": user_input.strip()})
-        with st.spinner("Thinking…"):
-            reply = call_claude(SYSTEM_PROMPT, st.session_state["chat_history"])
-        st.session_state["chat_history"].append({"role": "assistant", "content": reply})
-        st.rerun()
-
-    # Clear conversation button
-    if st.session_state.get("chat_history"):
-        if st.button("Clear conversation", key="chat_clear"):
-            st.session_state["chat_history"] = []
-            st.rerun()
+    # Reset chat history each time a new optimisation runs
+    st.session_state["chat_history"] = []
 
 else:
     st.markdown('<div class="warn-box">Configure the asset universe and click '
@@ -1162,3 +1075,81 @@ Both frontiers show their Capital Market Line (dashed), tangency portfolio (★)
 
 Scores come from the uploaded LSEG ESGCombinedScore CSV. The `valuescore` column (0–1 scale, higher = better) is multiplied by 10 to give a 0–10 display scale. The most recent available year is used per ticker. If a ticker is not in the CSV, a manual score input appears.
 """)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PORTFOLIO EXPLAINER CHATBOT
+# Rendered outside if run: so it persists across Streamlit reruns triggered
+# by chat interactions. Portfolio context is read from session_state.
+# ══════════════════════════════════════════════════════════════════════════════
+
+if "portfolio_ctx" in st.session_state:
+    st.markdown("---")
+    st.markdown('<div class="section-header">Portfolio Explainer</div>', unsafe_allow_html=True)
+
+    if "chat_history" not in st.session_state:
+        st.session_state["chat_history"] = []
+
+    _SYSTEM_PROMPT = (
+        "You are GreenPort's portfolio explainer — a knowledgeable assistant embedded inside "
+        "an ESG portfolio optimisation tool built for a university sustainable finance course "
+        "(ECN316). Your only job is to explain this specific portfolio and the model behind it. "
+        "Always refer to the actual numbers in the portfolio summary below. "
+        "Be concise (2–4 short paragraphs), use plain English, and never give personalised "
+        "financial advice. When helpful, write equations inline (e.g. U = E[Rp] - (γ/2)σ² + λs̄). "
+        "If a question is unrelated to this portfolio or model, politely redirect the user.\n\n"
+        + st.session_state["portfolio_ctx"]
+    )
+
+    # Header
+    st.markdown(
+        '''<div class="chat-wrap">
+  <div class="chat-header">
+    <div>
+      <p class="chat-header-title">GreenPort Portfolio Explainer</p>
+      <p class="chat-header-sub">Ask anything about your portfolio — weights, ESG scores, frontiers, or the model</p>
+    </div>
+  </div>
+  <div class="chat-body">''',
+        unsafe_allow_html=True)
+
+    # Suggested question buttons
+    st.markdown("**Try asking:**")
+    pill_cols = st.columns(4)
+    for idx, q in enumerate(SUGGESTED_QUESTIONS):
+        with pill_cols[idx % 4]:
+            if st.button(q, key=f"pill_{idx}", use_container_width=True):
+                st.session_state["chat_history"].append({"role": "user", "content": q})
+                with st.spinner("Thinking..."):
+                    reply = call_claude(_SYSTEM_PROMPT, st.session_state["chat_history"])
+                st.session_state["chat_history"].append({"role": "assistant", "content": reply})
+
+    # Conversation history
+    for msg in st.session_state["chat_history"]:
+        css_class = "chat-msg-user" if msg["role"] == "user" else "chat-msg-assistant"
+        st.markdown(f'<div class="{css_class}">{msg["content"]}</div>',
+                    unsafe_allow_html=True)
+
+    st.markdown("</div></div>", unsafe_allow_html=True)
+
+    # Free-text input — use a form so Enter key submits without rerun loop
+    with st.form(key="chat_form", clear_on_submit=True):
+        fi_col, fb_col = st.columns([5, 1])
+        user_input = fi_col.text_input(
+            "Your question",
+            placeholder="e.g. Why does my portfolio hold so much of this asset?",
+            label_visibility="collapsed",
+        )
+        submitted = fb_col.form_submit_button("Send", use_container_width=True)
+
+    if submitted and user_input.strip():
+        st.session_state["chat_history"].append({"role": "user", "content": user_input.strip()})
+        with st.spinner("Thinking..."):
+            reply = call_claude(_SYSTEM_PROMPT, st.session_state["chat_history"])
+        st.session_state["chat_history"].append({"role": "assistant", "content": reply})
+        st.rerun()
+
+    if st.session_state.get("chat_history"):
+        if st.button("Clear conversation", key="chat_clear"):
+            st.session_state["chat_history"] = []
+            st.rerun()
