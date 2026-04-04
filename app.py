@@ -352,7 +352,10 @@ def call_claude(system_prompt, messages):
     try:
         resp = requests.post(
             "https://api.anthropic.com/v1/messages",
-            headers={"Content-Type": "application/json"},
+            headers={
+                "Content-Type": "application/json",
+                "anthropic-version": "2023-06-01",
+            },
             json={
                 "model": "claude-sonnet-4-20250514",
                 "max_tokens": 1000,
@@ -365,7 +368,7 @@ def call_claude(system_prompt, messages):
         data = resp.json()
         return "".join(b["text"] for b in data.get("content", []) if b.get("type") == "text")
     except Exception as exc:
-        return f"Sorry, I could not reach the AI service right now. ({exc})"
+        return f"Sorry, I could not reach the AI service right now. Error: {exc}"
 
 
 SUGGESTED_QUESTIONS = [
@@ -441,12 +444,12 @@ st.markdown('<div class="hero-sub">ESG-aware portfolio optimiser · ECN316 Susta
 
 if _ESG_DB:
     st.markdown(
-        f'<div class="info-box">📊 ESG database loaded: <strong>{len(_ESG_DB):,} tickers</strong> '
+        f'<div class="info-box"> ESG database loaded: <strong>{len(_ESG_DB):,} tickers</strong> '
         f'from LSEG ESGCombinedScore CSV — most recent year per ticker, scaled 0–10.</div>',
         unsafe_allow_html=True)
 else:
     st.markdown(
-        f'<div class="error-box">⚠️ Could not load ESG data. '
+        f'<div class="error-box">Warning: Could not load ESG data. '
         f'Tried GitHub: <code>{_ESG_CSV_URL}</code> and local fallback. '
         f'Check your internet connection or place the CSV at <code>{_ESG_CSV_LOCAL}</code>.</div>',
         unsafe_allow_html=True)
@@ -516,30 +519,66 @@ else:
 
     valid_tickers = [r["ticker"] for r in ticker_rows if r["ticker"]]
     if valid_tickers:
-        esg_preview   = {r["ticker"]: lookup_esg(r["ticker"]) for r in ticker_rows if r["ticker"]}
-        missing_esg   = [t for t,res in esg_preview.items() if not res["has_esg"]]
+        esg_preview = {r["ticker"]: lookup_esg(r["ticker"]) for r in ticker_rows if r["ticker"]}
+        missing_esg = [t for t, res in esg_preview.items() if not res["has_esg"]]
+
+        # Check which tickers are not on Yahoo Finance (price data unavailable)
+        # We do a lightweight .info call — if it returns no regularMarketPrice the ticker is bad
+        bad_tickers = []
+        for r in ticker_rows:
+            t = r["ticker"]
+            try:
+                info = yf.Ticker(t).fast_info
+                price = getattr(info, "last_price", None)
+                if price is None:
+                    bad_tickers.append(t)
+            except Exception:
+                bad_tickers.append(t)
+
+        manual_overrides = {}   # ESG overrides
+        manual_ret_vol   = {}   # {ticker: {"ret": float, "vol": float}}
+
+        if bad_tickers:
+            st.markdown(
+                f'<div class="warn-box"><strong>Ticker(s) not found on Yahoo Finance:</strong> '
+                f'{", ".join(bad_tickers)}. '
+                f'Enter expected return and volatility manually below.</div>',
+                unsafe_allow_html=True)
+            st.markdown("**Manual return / volatility inputs (annualised):**")
+            for t in bad_tickers:
+                def_idx = default_tickers.index(t) if t in default_tickers else 0
+                bc1, bc2, bc3 = st.columns(3)
+                bc1.markdown(f"**{t}**")
+                m_ret = bc2.number_input(f"{t} E[R] (%)", value=default_ret[def_idx],
+                                         min_value=-50.0, max_value=200.0, step=0.5, format="%.1f",
+                                         key=f"manual_ret_{t}")
+                m_vol = bc3.number_input(f"{t} σ (%)", value=default_vol[def_idx],
+                                         min_value=0.1, max_value=200.0, step=0.5, format="%.1f",
+                                         key=f"manual_vol_{t}")
+                manual_ret_vol[t] = {"ret": m_ret / 100.0, "vol": m_vol / 100.0}
 
         if missing_esg:
             st.markdown(
                 f'<div class="warn-box"><strong>Not in ESG CSV:</strong> '
-                f'{", ".join(missing_esg)}. Enter manual scores below.</div>',
+                f'{", ".join(missing_esg)}. Enter ESG scores below.</div>',
                 unsafe_allow_html=True)
-            st.markdown("**Manual ESG scores:**")
-            fcols = st.columns(min(len(missing_esg),5))
-            manual_overrides = {}
-            for idx,t in enumerate(missing_esg):
+            st.markdown("**Manual ESG scores (0–10):**")
+            fcols = st.columns(min(len(missing_esg), 5))
+            for idx, t in enumerate(missing_esg):
                 def_idx = default_tickers.index(t) if t in default_tickers else 0
-                manual_overrides[t] = fcols[idx%len(fcols)].number_input(
+                manual_overrides[t] = fcols[idx % len(fcols)].number_input(
                     f"{t} ESG", value=float(default_esg[def_idx]),
                     min_value=0.0, max_value=10.0, step=0.1, format="%.1f",
                     key=f"manual_esg_{t}")
-        else:
-            manual_overrides = {}
-            st.markdown('<div class="info-box">✓ ESG scores found in CSV for all tickers.</div>',
+
+        if not missing_esg and not bad_tickers:
+            st.markdown('<div class="info-box">All ticker data and ESG scores found.</div>',
                         unsafe_allow_html=True)
 
         for row in ticker_rows:
-            row["manual_esg"] = manual_overrides.get(row["ticker"], None)
+            t = row["ticker"]
+            row["manual_esg"]     = manual_overrides.get(t, None)
+            row["manual_ret_vol"] = manual_ret_vol.get(t, None)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # RUN
@@ -579,37 +618,77 @@ if run:
         except Exception as e:
             st.error(f"Failed to fetch ticker data: {e}"); st.stop()
 
-        available     = [t for t in tickers if t in mu_series.index]
-        filtered_rows = [r for r in ticker_rows if r["ticker"] in available]
-        if len(available) < 2:
-            st.error("Not enough valid tickers returned."); st.stop()
+        # Combine fetched tickers with any manually-specified bad tickers
+        manual_rv_map = {r["ticker"]: r.get("manual_ret_vol") for r in ticker_rows}
+        manual_rv_map = {t: v for t, v in manual_rv_map.items() if v is not None}
 
-        esg_map = {t: lookup_esg(t) for t in available}
-        resolved = []; used_manual = []; esg_letters = {}
+        # Tickers where we have price data from Yahoo
+        available = [t for t in tickers if t in mu_series.index]
+        # Tickers where user provided manual return/vol
+        manual_price_tickers = [r["ticker"] for r in ticker_rows
+                                 if r["ticker"] not in available and r.get("manual_ret_vol")]
+        all_tickers = available + manual_price_tickers
+
+        if len(all_tickers) < 2:
+            st.error("Not enough valid tickers. Check symbols or provide manual return/vol inputs.")
+            st.stop()
+
+        filtered_rows = [r for r in ticker_rows if r["ticker"] in all_tickers]
+        esg_map = {t: lookup_esg(t) for t in all_tickers}
+        resolved = []; used_manual_esg = []; esg_letters = {}
 
         for row in filtered_rows:
             t    = row["ticker"]
             meta = esg_map[t]
             if meta["has_esg"]:
-                fe = float(meta["app_esg"]); src = meta["source"]
-                esg_letters[t] = meta.get("letter","")
+                fe = float(meta["app_esg"]); esg_src = meta["source"]
+                esg_letters[t] = meta.get("letter", "")
             else:
                 fe = float(row.get("manual_esg") or 5.0)
-                src = "Manual"; used_manual.append(t)
-            resolved.append({"ticker":t,"name":row["name"],"final_esg":fe,
-                             "src":src,"letter":meta.get("letter"),"year":meta.get("year")})
+                esg_src = "Manual"; used_manual_esg.append(t)
+            resolved.append({"ticker": t, "name": row["name"], "final_esg": fe,
+                              "src": esg_src, "letter": meta.get("letter"), "year": meta.get("year")})
 
-        if used_manual:
+        if used_manual_esg:
             st.markdown(f'<div class="error-box"><strong>Manual ESG used for:</strong> '
-                        f'{", ".join(used_manual)}.</div>', unsafe_allow_html=True)
+                        f'{", ".join(used_manual_esg)}.</div>', unsafe_allow_html=True)
 
         names      = [r["name"] for r in resolved]
         esg_scores = np.array([r["final_esg"] for r in resolved], dtype=float)
-        mu         = mu_series.loc[available].values.astype(float)
-        vols       = vols_series.loc[available].values.astype(float)
-        cov        = cov_df.loc[available, available].values.astype(float)
-        corr_np    = corr_df_market.loc[available, available].values.astype(float)
-        n          = len(available)
+        n          = len(all_tickers)
+
+        # Build mu, vols, cov — mixing Yahoo data with manual overrides
+        mu_list   = []
+        vols_list = []
+        for t in all_tickers:
+            if t in available:
+                mu_list.append(float(mu_series.loc[t]))
+                vols_list.append(float(vols_series.loc[t]))
+            else:
+                rv = manual_rv_map[t]
+                mu_list.append(rv["ret"])
+                vols_list.append(rv["vol"])
+        mu   = np.array(mu_list, dtype=float)
+        vols = np.array(vols_list, dtype=float)
+
+        # Covariance: use Yahoo cov for available pairs, assume zero correlation for manual
+        cov = np.zeros((n, n))
+        idx_map = {t: i for i, t in enumerate(all_tickers)}
+        for i, ti in enumerate(all_tickers):
+            for j, tj in enumerate(all_tickers):
+                if ti in available and tj in available:
+                    cov[i, j] = float(cov_df.loc[ti, tj])
+                elif i == j:
+                    cov[i, j] = vols[i] ** 2
+                # off-diagonal cross terms with manual tickers = 0 (no correlation data)
+
+        corr_np = np.zeros((n, n))
+        for i, ti in enumerate(all_tickers):
+            for j, tj in enumerate(all_tickers):
+                if ti in available and tj in available:
+                    corr_np[i, j] = float(corr_df_market.loc[ti, tj])
+                elif i == j:
+                    corr_np[i, j] = 1.0
 
         ticker_data_display = pd.DataFrame({
             "Ticker":              available,
@@ -690,7 +769,7 @@ if run:
         "E[R] (%)":           [f"{r*100:.2f}"  for r in mu],
         "σ (%)":              [f"{v*100:.2f}"  for v in vols],
         "ESG (0–10)":         [f"{s:.2f}"      for s in esg_scores],
-        "In ESG frontier":    ["✓" if m else "✗" for m in active_mask],
+        "In ESG frontier":    ["" if m else "No" for m in active_mask],
     }), use_container_width=True, hide_index=True)
 
     if input_mode == "Ticker-based input":
@@ -789,53 +868,96 @@ if run:
         ax.grid(True, alpha=0.3, color='#c8d8b8', linestyle='--')
         fig.tight_layout(); st.pyplot(fig); plt.close()
 
-    # ── Chart 2: ESG Score vs Sharpe frontier ────────────────────────────────
+    # ── Chart 2: ESG-SR Frontier — matching the lecture slide ──────────────────
+    # Lecture: single curve = max Sharpe for each ESG level (sweep ESG constraint).
+    # Two labelled dots:
+    #   - "Tangency portfolio using ESG information"   = peak of the curve (ESG-aware tangency)
+    #   - "Tangency portfolio ignoring ESG information" = unconstrained tangency plotted at its ESG score
+    # Individual assets shown as dots below the curve.
     with c2:
-        esg_sweep = np.linspace(float(np.min(esg_a)), float(np.max(esg_a)), 120)
+        # Sweep minimum-ESG constraint from min to max; record (achieved_ESG, Sharpe)
+        esg_min_val = float(np.min(esg_a))
+        esg_max_val = float(np.max(esg_a))
+        esg_sweep   = np.linspace(esg_min_val, esg_max_val, 150)
         sw_esg, sw_sr = [], []
         for et in esg_sweep:
             res = minimize(
                 lambda w: -port_sr(w, mu_a, cov_a, rf),
-                np.ones(len(mu_a))/len(mu_a), method="SLSQP",
-                bounds=[(0.,1.)]*len(mu_a),
+                np.ones(len(mu_a)) / len(mu_a), method="SLSQP",
+                bounds=[(0., 1.)] * len(mu_a),
                 constraints=[
-                    {"type":"eq",  "fun":lambda w: np.sum(w)-1},
-                    {"type":"ineq","fun":lambda w, t=et: float(w@esg_a)-t},
+                    {"type": "eq",   "fun": lambda w: np.sum(w) - 1},
+                    {"type": "ineq", "fun": lambda w, t=et: float(w @ esg_a) - t},
                 ],
-                options={"ftol":1e-9,"maxiter":400})
+                options={"ftol": 1e-9, "maxiter": 400})
             if res.success:
                 sw_esg.append(float(res.x @ esg_a))
                 sw_sr.append(port_sr(res.x, mu_a, cov_a, rf))
 
+        # "Tangency using ESG info" = unconstrained tangency among ESG assets (peak of curve)
+        # This is w_tan_esg restricted to active assets
+        esg_tan_using    = float(w_tan_esg[active_mask] @ esg_a) if active_mask.any() else esg_bar
+        sr_tan_using     = sr_tan_esg
+
+        # "Tangency ignoring ESG info" = unconstrained tangency across ALL assets
+        # plotted at its own ESG score — sits BELOW the frontier (exactly as in lecture)
+        esg_tan_ignoring = float(w_tan_all @ esg_scores)   # its actual ESG score
+        sr_tan_ignoring  = sr_tan_all                       # its Sharpe ratio
+
         fig2, ax2 = plt.subplots(figsize=(6.5, 5.5))
         fig2.patch.set_facecolor(BG); ax2.set_facecolor(BG)
 
+        # Frontier curve
         if sw_esg:
-            ax2.plot(sw_esg, sw_sr, color=GREEN, lw=2.5, label='ESG–Sharpe frontier')
-            ax2.fill_between(sw_esg, sw_sr, alpha=0.1, color=GREEN)
+            ax2.plot(sw_esg, sw_sr, color=BLUE, lw=2.5, zorder=4,
+                     label="ESG-SR frontier")
+            ax2.fill_between(sw_esg, sw_sr,
+                             alpha=0.08, color=BLUE)
 
+        # Individual assets (dots below curve)
         for i in range(len(mu_a)):
-            sr_i = (mu_a[i]-rf)/vols_a[i]
-            ax2.scatter(esg_a[i], sr_i, color='#88b179', s=65, zorder=5,
-                        edgecolors='#2d6a2d', lw=1)
+            sr_i = (mu_a[i] - rf) / vols_a[i]
+            ax2.scatter(esg_a[i], sr_i, color=BLUE, s=55, zorder=5,
+                        edgecolors="white", lw=0.8, alpha=0.85)
             ax2.annotate(names_a[i], (esg_a[i], sr_i),
-                         textcoords="offset points", xytext=(5,4),
-                         fontsize=7.5, color='#2d4a2d')
+                         textcoords="offset points", xytext=(5, 4),
+                         fontsize=7.5, color="#2d4a2d")
 
-        esg_tan_esg_val = float(w_tan_esg[active_mask] @ esg_a) if active_mask.any() else esg_bar
-        ax2.scatter(esg_tan_esg_val, sr_tan_esg, color=GREEN, s=130, zorder=9,
-                    edgecolors='white', lw=1.5, marker='*', label='Tangency (ESG screen)')
-        ax2.scatter(esg_bar, sr, color=ORANGE, s=150, zorder=10,
-                    edgecolors='white', lw=2, label='ESG-Optimal')
+        # Tangency using ESG info (on or near peak of curve)
+        ax2.scatter(esg_tan_using, sr_tan_using, color=BLUE, s=140, zorder=9,
+                    edgecolors="white", lw=1.5)
+        ax2.annotate("Tangency portfolio\nusing ESG information",
+                     (esg_tan_using, sr_tan_using),
+                     textcoords="offset points", xytext=(8, 4),
+                     fontsize=7.5, color="#1a2e1a",
+                     arrowprops=dict(arrowstyle="-", color="#888888", lw=0.8))
 
-        ax2.set_xlabel("Portfolio ESG Score (0–10)", fontsize=9, color='#2d4a2d')
-        ax2.set_ylabel("Sharpe Ratio", fontsize=9, color='#2d4a2d')
-        ax2.set_title("ESG Score vs Sharpe Ratio", fontsize=11, fontweight='bold',
-                      color='#1a2e1a', pad=10)
-        ax2.tick_params(colors='#5a7a5a', labelsize=8)
-        for sp_ in ax2.spines.values(): sp_.set_color('#c8d8b8')
-        ax2.legend(fontsize=8, framealpha=0.9, facecolor=BG, edgecolor='#c8d8b8')
-        ax2.grid(True, alpha=0.3, color='#c8d8b8', linestyle='--')
+        # Tangency ignoring ESG info (below curve — same as lecture)
+        ax2.scatter(esg_tan_ignoring, sr_tan_ignoring, color=BLUE, s=100, zorder=8,
+                    edgecolors="white", lw=1.5)
+        ax2.annotate("Tangency portfolio\nignoring ESG information",
+                     (esg_tan_ignoring, sr_tan_ignoring),
+                     textcoords="offset points", xytext=(8, -28),
+                     fontsize=7.5, color="#1a2e1a",
+                     arrowprops=dict(arrowstyle="-", color="#888888", lw=0.8))
+
+        # ESG-optimal portfolio (orange, same as lecture's red dot)
+        ax2.scatter(esg_bar, sr, color=ORANGE, s=120, zorder=10,
+                    edgecolors="white", lw=2)
+        ax2.annotate("Optimal portfolio",
+                     (esg_bar, sr),
+                     textcoords="offset points", xytext=(-80, 8),
+                     fontsize=7.5, color=ORANGE,
+                     arrowprops=dict(arrowstyle="-", color="#888888", lw=0.8))
+
+        ax2.set_xlabel("ESG Score (0–10)", fontsize=9, color="#2d4a2d")
+        ax2.set_ylabel("Sharpe Ratio",     fontsize=9, color="#2d4a2d")
+        ax2.set_title("ESG-SR Frontier", fontsize=11, fontweight="bold",
+                      color="#1a2e1a", pad=10)
+        ax2.tick_params(colors="#5a7a5a", labelsize=8)
+        for sp_ in ax2.spines.values(): sp_.set_color("#c8d8b8")
+        ax2.legend(fontsize=8, framealpha=0.9, facecolor=BG, edgecolor="#c8d8b8")
+        ax2.grid(True, alpha=0.3, color="#c8d8b8", linestyle="--")
         fig2.tight_layout(); st.pyplot(fig2); plt.close()
 
     # ── Allocation charts ─────────────────────────────────────────────────────
@@ -919,7 +1041,7 @@ if run:
     # ══════════════════════════════════════════════════════════════════════════
 
     st.markdown("---")
-    st.markdown('<div class="section-header">🌿 Portfolio Explainer</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">Portfolio Explainer</div>', unsafe_allow_html=True)
 
     # Build the portfolio context string and store in session state so it
     # survives chat turns without rerunning the optimiser.
@@ -952,7 +1074,7 @@ if run:
     st.markdown("""
     <div class="chat-wrap">
       <div class="chat-header">
-        <div class="chat-header-icon">🌱</div>
+        <div class="chat-header-icon"></div>
         <div>
           <p class="chat-header-title">GreenPort Portfolio Explainer</p>
           <p class="chat-header-sub">Ask me anything about your portfolio — weights, ESG scores, frontiers, or the model</p>
@@ -997,7 +1119,7 @@ if run:
             label_visibility="collapsed",
         )
     with send_col:
-        send = st.button("Send ➤", use_container_width=True, key="chat_send")
+        send = st.button("Send", use_container_width=True, key="chat_send")
 
     if send and user_input.strip():
         st.session_state["chat_history"].append({"role": "user", "content": user_input.strip()})
@@ -1008,7 +1130,7 @@ if run:
 
     # Clear conversation button
     if st.session_state.get("chat_history"):
-        if st.button("🗑 Clear conversation", key="chat_clear"):
+        if st.button("Clear conversation", key="chat_clear"):
             st.session_state["chat_history"] = []
             st.rerun()
 
