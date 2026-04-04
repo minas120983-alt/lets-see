@@ -691,17 +691,22 @@ if run:
                     corr_np[i, j] = 1.0
 
         ticker_data_display = pd.DataFrame({
-            "Ticker":              available,
-            "Name":                names,
-            "E[R] (%)":            (mu_series.loc[available].values*100).round(2),
-            "σ (%)":               (vols_series.loc[available].values*100).round(2),
-            "ESG Score (0–10)":    [r["final_esg"] for r in resolved],
-            "LSEG Letter":         [r["letter"]    for r in resolved],
-            "ESG Year":            [r["year"]      for r in resolved],
-            "Source":              [r["src"]       for r in resolved],
+            "Ticker":           all_tickers,
+            "Name":             names,
+            "E[R] (%)":         (mu * 100).round(2),
+            "σ (%)":            (vols * 100).round(2),
+            "ESG Score (0–10)": [r["final_esg"] for r in resolved],
+            "LSEG Letter":      [r["letter"]    for r in resolved],
+            "ESG Year":         [r["year"]      for r in resolved],
+            "ESG Source":       [r["src"]       for r in resolved],
+            "Return Source":    ["Yahoo Finance" if t in available else "Manual input"
+                                 for t in all_tickers],
         })
-        st.markdown(f'<div class="info-box">Market data loaded for: {", ".join(available)} '
-                    f'over {lookback_period}.</div>', unsafe_allow_html=True)
+        loaded_msg = ", ".join(available) if available else "none"
+        manual_msg = (f" Manual inputs for: {', '.join(manual_price_tickers)}."
+                      if manual_price_tickers else "")
+        st.markdown(f'<div class="info-box">Market data loaded for: {loaded_msg} '
+                    f'over {lookback_period}.{manual_msg}</div>', unsafe_allow_html=True)
 
     # PSD fix
     if np.any(np.linalg.eigvalsh(cov) < -1e-8):
