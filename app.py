@@ -17,132 +17,194 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── Custom CSS ────────────────────────────────────────────────────────────────
+# ── Custom CSS ─────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap');
-html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; color: #1a2e1a; }
-.stApp { background: #f5f2ec; color: #1a2e1a; }
-.block-container { padding-top: 3.2rem; color: #1a2e1a; }
-[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #163116 0%, #102910 100%) !important;
-    border-right: 1px solid #284528;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=SF+Pro+Display:wght@300;400;500;600;700&display=swap');
+
+/* ── Base ── */
+html, body, [class*="css"] {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", sans-serif;
+    -webkit-font-smoothing: antialiased;
 }
-[data-testid="stSidebar"] * { color: #d6e5cb !important; }
-[data-testid="stSidebar"] hr { border-color: #335333 !important; }
-[data-testid="stSidebar"] label,
-[data-testid="stSidebar"] .stMarkdown,
-[data-testid="stSidebar"] p,
-[data-testid="stSidebar"] span,
-[data-testid="stSidebar"] div { color: #d6e5cb !important; }
+.stApp { background: #0a0a0f; color: #e8eaf0; }
+.block-container { padding-top: 2rem; max-width: 1400px; }
+
+/* ── Sidebar ── */
+[data-testid="stSidebar"] {
+    background: #0f0f1a !important;
+    border-right: 1px solid #1e1e2e !important;
+}
+[data-testid="stSidebar"] * { color: #9094a8 !important; }
+[data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 { color: #e8eaf0 !important; font-size: 0.75rem !important; font-weight: 600 !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; }
+[data-testid="stSidebar"] hr { border-color: #1e1e2e !important; margin: 1rem 0 !important; }
 [data-testid="stSidebar"] label {
-    font-size: 0.84rem !important; font-weight: 700 !important;
+    font-size: 0.72rem !important; font-weight: 500 !important;
     letter-spacing: 0.08em !important; text-transform: uppercase !important;
+    color: #5a5f78 !important;
 }
 [data-testid="stSidebar"] .stSlider [role="slider"] {
-    background: #d4a020 !important; border: 2px solid #fff7df !important;
+    background: #00d4aa !important; border: none !important;
+    box-shadow: 0 0 0 3px rgba(0,212,170,0.2) !important;
 }
-[data-testid="stSidebar"] .stNumberInput input,
-[data-testid="stSidebar"] .stTextInput input {
-    background: #f7f5ef !important; color: #1a2e1a !important;
-    border: 1px solid #86a173 !important; border-radius: 8px !important;
+[data-testid="stSidebar"] .stSlider div[data-baseweb="slider"] div[data-testid="stTickBar"] { display: none; }
+[data-testid="stSidebar"] .stSlider div[style*="background"] { background: #00d4aa !important; }
+[data-testid="stSidebar"] .stNumberInput input {
+    background: #161622 !important; color: #e8eaf0 !important;
+    border: 1px solid #1e1e2e !important; border-radius: 8px !important;
+    font-size: 0.9rem !important;
 }
-h1, h2, h3, h4, h5, h6, p, div, label, span { color: #1a2e1a; }
-.hero-title {
-    font-family: 'DM Serif Display', serif; font-size: 3.4rem;
-    color: #1a2e1a; line-height: 1.06; margin-top: 0.9rem; margin-bottom: 0.2rem;
+[data-testid="stSidebar"] .stCheckbox label { font-size: 0.82rem !important; color: #9094a8 !important; }
+
+/* ── Typography ── */
+h1, h2, h3, h4, h5, h6 { color: #e8eaf0 !important; }
+p, div, label, span { color: #9094a8; }
+
+/* ── Hero ── */
+.gp-wordmark {
+    font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em;
+    color: #e8eaf0 !important;
+    display: flex; align-items: center; gap: 0.5rem;
+    margin-bottom: 0.15rem;
 }
-.hero-sub { font-size: 1.02rem; color: #5f7a5d; margin-bottom: 2.2rem; font-weight: 400; }
+.gp-wordmark span { color: #00d4aa !important; }
+.gp-subtitle { font-size: 0.82rem; color: #5a5f78 !important; letter-spacing: 0.02em; margin-bottom: 1.5rem; }
+
+/* ── Section headers ── */
 .section-header {
-    font-family: 'DM Serif Display', serif; font-size: 1.45rem; color: #1a2e1a;
-    border-bottom: 2px solid #c8dab8; padding-bottom: 0.4rem;
-    margin-top: 0.25rem; margin-bottom: 1rem;
+    font-size: 0.7rem; font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; color: #5a5f78 !important;
+    border-bottom: 1px solid #1e1e2e;
+    padding-bottom: 0.5rem; margin: 1.5rem 0 1rem;
 }
+
+/* ── Metric cards ── */
+.metric-card {
+    background: #0f0f1a;
+    border: 1px solid #1e1e2e;
+    border-radius: 12px;
+    padding: 1.1rem 1.25rem 1rem;
+    margin-bottom: 0.75rem;
+    transition: border-color 0.2s;
+}
+.metric-card:hover { border-color: #2a2a40; }
+.metric-label {
+    font-size: 0.68rem; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: #5a5f78 !important;
+    margin-bottom: 0.4rem;
+}
+.metric-value {
+    font-size: 1.85rem; font-weight: 600; letter-spacing: -0.03em;
+    color: #e8eaf0 !important; line-height: 1;
+}
+.metric-unit { font-size: 0.8rem; color: #5a5f78 !important; margin-left: 2px; font-weight: 400; }
+.metric-pos { color: #00d4aa !important; }
+.metric-neg { color: #ff4f4f !important; }
+
+/* ── Status boxes ── */
 .info-box {
-    background: #e8f5e0; border-left: 4px solid #4a8a3a; border-radius: 0 8px 8px 0;
-    padding: 0.85rem 1rem; margin: 0.6rem 0; font-size: 0.9rem; color: #2a4a2a;
+    background: rgba(0,212,170,0.06); border: 1px solid rgba(0,212,170,0.2);
+    border-radius: 8px; padding: 0.75rem 1rem; margin: 0.5rem 0;
+    font-size: 0.84rem; color: #7ae8d0 !important;
 }
 .warn-box {
-    background: #fff8e8; border-left: 4px solid #d4a020; border-radius: 0 8px 8px 0;
-    padding: 0.85rem 1rem; margin: 0.6rem 0; font-size: 0.9rem; color: #5a4010;
+    background: rgba(255,179,0,0.06); border: 1px solid rgba(255,179,0,0.2);
+    border-radius: 8px; padding: 0.75rem 1rem; margin: 0.5rem 0;
+    font-size: 0.84rem; color: #ffd566 !important;
 }
 .error-box {
-    background: #fdeceb; border-left: 4px solid #c0392b; border-radius: 0 8px 8px 0;
-    padding: 0.85rem 1rem; margin: 0.6rem 0; font-size: 0.9rem; color: #7a1f17;
+    background: rgba(255,79,79,0.06); border: 1px solid rgba(255,79,79,0.2);
+    border-radius: 8px; padding: 0.75rem 1rem; margin: 0.5rem 0;
+    font-size: 0.84rem; color: #ff8a8a !important;
 }
-.metric-card {
-    background: #ffffff; border: 1px solid #d4e0c8; border-radius: 12px;
-    padding: 1.15rem 1.35rem; margin-bottom: 0.8rem;
-    box-shadow: 0 2px 8px rgba(26,46,26,0.06);
-}
-.metric-label {
-    font-size: 0.74rem; font-weight: 700; letter-spacing: 0.09em;
-    text-transform: uppercase; color: #6e8e62; margin-bottom: 0.2rem;
-}
-.metric-value { font-family: 'DM Serif Display', serif; font-size: 2rem; color: #1a2e1a; line-height: 1; }
-.metric-unit { font-size: 0.85rem; color: #7d9b72; margin-left: 2px; }
+
+/* ── Buttons ── */
 div.stButton > button {
-    background: #2d6a2d; color: #ffffff !important; border: none; border-radius: 8px;
-    padding: 0.7rem 1.8rem; font-family: 'DM Sans', sans-serif;
-    font-weight: 700; font-size: 0.98rem; letter-spacing: 0.03em; width: 100%;
+    background: #00d4aa !important; color: #0a0a0f !important;
+    border: none; border-radius: 8px;
+    padding: 0.65rem 1.6rem;
+    font-weight: 600; font-size: 0.9rem; letter-spacing: 0.01em;
+    width: 100%; transition: opacity 0.15s;
 }
-div.stButton > button:hover { background: #215221; color: #ffffff !important; }
+div.stButton > button:hover { opacity: 0.85; }
+div.stButton > button:active { opacity: 0.7; }
+
+/* ── Inputs ── */
 .stNumberInput input, .stTextInput input, .stTextArea textarea {
-    background: #ffffff !important; color: #1a2e1a !important;
-    border: 1px solid #c8d8b8 !important; border-radius: 8px !important;
+    background: #0f0f1a !important; color: #e8eaf0 !important;
+    border: 1px solid #1e1e2e !important; border-radius: 8px !important;
+    font-size: 0.9rem !important;
+}
+.stNumberInput input:focus, .stTextInput input:focus {
+    border-color: #00d4aa !important;
+    box-shadow: 0 0 0 2px rgba(0,212,170,0.15) !important;
 }
 .stSelectbox div[data-baseweb="select"] > div {
-    background: #ffffff !important; color: #1a2e1a !important; border: 1px solid #c8d8b8 !important;
+    background: #0f0f1a !important; color: #e8eaf0 !important;
+    border: 1px solid #1e1e2e !important;
 }
-.stRadio label { color: #1a2e1a !important; }
-.stRadio div[role="radiogroup"] label { font-size: 0.96rem !important; font-weight: 600 !important; }
-.stCheckbox div[data-testid="stMarkdownContainer"] p { color: #1a2e1a !important; }
-.stDataFrame, [data-testid="stDataEditor"] { border-radius: 10px; overflow: hidden; }
-[data-testid="stDataEditor"] * { color: #1a2e1a !important; }
-[data-testid="stTable"] * { color: #1a2e1a !important; }
+.stRadio label { color: #9094a8 !important; }
+.stRadio div[role="radiogroup"] label { font-size: 0.88rem !important; font-weight: 500 !important; }
+.stCheckbox div[data-testid="stMarkdownContainer"] p { color: #9094a8 !important; }
+
+/* ── Tables & DataFrames ── */
+.stDataFrame, [data-testid="stDataEditor"] {
+    border-radius: 10px; overflow: hidden;
+    border: 1px solid #1e1e2e !important;
+}
+[data-testid="stDataEditor"] * { color: #e8eaf0 !important; background: #0f0f1a !important; }
+[data-testid="stTable"] * { color: #e8eaf0 !important; }
+.stDataFrame thead th { background: #161622 !important; color: #5a5f78 !important; font-size: 0.72rem !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; }
+.stDataFrame tbody tr { border-bottom: 1px solid #1e1e2e !important; }
+.stDataFrame tbody tr:hover { background: #161622 !important; }
+
+/* ── Expander ── */
 [data-testid="stExpander"] {
-    border: 1px solid #d4e0c8 !important; border-radius: 10px !important; background: #ffffff !important;
+    border: 1px solid #1e1e2e !important; border-radius: 10px !important;
+    background: #0f0f1a !important;
 }
-[data-testid="stExpander"] summary,
-[data-testid="stExpander"] summary * { color: #1a2e1a !important; font-weight: 600; }
-table, thead tr th, tbody tr td { color: #1a2e1a !important; }
+[data-testid="stExpander"] summary { color: #9094a8 !important; font-size: 0.88rem !important; font-weight: 500 !important; }
+[data-testid="stExpander"] summary * { color: #9094a8 !important; }
+[data-testid="stExpander"] p { color: #9094a8 !important; }
+
+/* ── Markdown ── */
+table { color: #e8eaf0 !important; border-collapse: collapse; width: 100%; }
+thead tr th { color: #5a5f78 !important; font-size: 0.72rem !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; border-bottom: 1px solid #1e1e2e !important; padding: 0.5rem 0.75rem !important; }
+tbody tr td { color: #9094a8 !important; border-bottom: 1px solid #1a1a28 !important; padding: 0.5rem 0.75rem !important; }
+tbody tr:hover td { background: #161622 !important; }
+
+/* ── Divider ── */
+hr { border-color: #1e1e2e !important; margin: 1.5rem 0 !important; }
 
 /* ── Chatbot ── */
 .chat-wrap {
+    background: #0f0f1a;
+    border: 1px solid #1e1e2e;
     border-radius: 14px; overflow: hidden;
-    border: 1px solid #c8dab8;
-    box-shadow: 0 4px 20px rgba(26,46,26,0.10);
     margin-top: 0.5rem;
 }
 .chat-header {
-    background: linear-gradient(135deg, #163116 0%, #2d6a2d 100%);
-    padding: 1rem 1.4rem 0.85rem;
-    display: flex; align-items: center; gap: 0.75rem;
+    background: #161622;
+    border-bottom: 1px solid #1e1e2e;
+    padding: 1rem 1.25rem;
 }
-.chat-header-icon { font-size: 1.7rem; line-height: 1; }
-.chat-header-title { color: #f0f8ec !important; margin: 0 0 0.15rem; font-size: 1.05rem; font-weight: 700; }
-.chat-header-sub   { color: #a8c898 !important; margin: 0; font-size: 0.8rem; }
-.chat-body { background: #ffffff; padding: 1rem 1.2rem 0.8rem; }
+.chat-header-title { color: #e8eaf0 !important; font-size: 0.9rem !important; font-weight: 600 !important; margin: 0 0 0.1rem !important; }
+.chat-header-sub { color: #5a5f78 !important; font-size: 0.76rem !important; margin: 0 !important; }
+.chat-body { padding: 1rem 1.25rem 0.75rem; }
 .chat-msg-user {
-    background: #2d6a2d; color: #ffffff !important;
-    border-radius: 14px 14px 4px 14px;
-    padding: 0.55rem 0.85rem; margin: 0.35rem 0 0.35rem 18%;
-    font-size: 0.875rem; display: block; text-align: right;
+    background: #00d4aa; color: #0a0a0f !important;
+    border-radius: 16px 16px 4px 16px;
+    padding: 0.6rem 0.9rem; margin: 0.4rem 0 0.4rem 20%;
+    font-size: 0.85rem; font-weight: 500; display: block; text-align: right;
+    line-height: 1.4;
 }
 .chat-msg-assistant {
-    background: #f0f7eb; color: #1a2e1a !important;
-    border-radius: 14px 14px 14px 4px;
-    padding: 0.65rem 0.9rem; margin: 0.35rem 18% 0.35rem 0;
-    font-size: 0.875rem; display: block; line-height: 1.6;
+    background: #161622; color: #c8cad8 !important;
+    border: 1px solid #1e1e2e;
+    border-radius: 16px 16px 16px 4px;
+    padding: 0.7rem 0.95rem; margin: 0.4rem 20% 0.4rem 0;
+    font-size: 0.85rem; display: block; line-height: 1.65;
 }
-.chat-pills { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.5rem 0 0.7rem; }
-.chat-pill {
-    background: #e8f5e0; border: 1px solid #6aaa5a;
-    border-radius: 20px; padding: 0.28rem 0.72rem;
-    font-size: 0.76rem; color: #2a4a2a !important; cursor: pointer;
-    transition: background 0.15s;
-}
-.chat-pill:hover { background: #c8e8b0; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -347,50 +409,10 @@ def build_portfolio_context(names, mu, vols, esg_scores, w_opt,
     return "\n".join(lines)
 
 
-def call_claude(system_prompt, messages):
-    """Call the Anthropic claude-sonnet-4-20250514 messages API.
-    API key is read from st.secrets['ANTHROPIC_API_KEY'].
-    On Streamlit Community Cloud add this in Settings > Secrets:
-        ANTHROPIC_API_KEY = "sk-ant-..."
-    """
-    # Resolve API key — secrets first, then environment variable fallback
-    api_key = None
-    try:
-        api_key = st.secrets["ANTHROPIC_API_KEY"]
-    except Exception:
-        pass
-    if not api_key:
-        import os
-        api_key = os.environ.get("ANTHROPIC_API_KEY", "")
-    if not api_key:
-        return (
-            "No API key found. Please add your Anthropic API key to Streamlit secrets: "
-            "open the app in Streamlit Cloud → Settings → Secrets, and add: "
-            "ANTHROPIC_API_KEY = \"sk-ant-...\""
-        )
-
-    try:
-        resp = requests.post(
-            "https://api.anthropic.com/v1/messages",
-            headers={
-                "Content-Type": "application/json",
-                "x-api-key": api_key,
-                "anthropic-version": "2023-06-01",
-            },
-            json={
-                "model": "claude-sonnet-4-20250514",
-                "max_tokens": 1000,
-                "system": system_prompt,
-                "messages": messages,
-            },
-            timeout=30,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        return "".join(b["text"] for b in data.get("content", []) if b.get("type") == "text")
-    except Exception as exc:
-        return f"Sorry, I could not reach the AI service right now. Error: {exc}"
-
+# ── Simulated chatbot — no API key required ──────────────────────────────────
+# All answers are computed directly from the portfolio numbers stored in
+# st.session_state["chat_data"]. The engine matches keywords in the user
+# question and returns a precise, numerically-grounded response.
 
 SUGGESTED_QUESTIONS = [
     "Why does my portfolio have these weights?",
@@ -399,9 +421,418 @@ SUGGESTED_QUESTIONS = [
     "What does the ESG preference (λ) actually do?",
     "How does increasing risk aversion (γ) change things?",
     "Which asset drags down my ESG score the most?",
-    "Explain the Capital Market Line in my chart.",
     "What is the cost of the ESG constraint here?",
+    "Explain the utility function used here.",
+    "How does the Capital Market Line work?",
+    "What would happen if I removed the ESG screen?",
+    "Which asset has the best individual Sharpe ratio?",
+    "Why is the tangency portfolio important?",
 ]
+
+
+def _portfolio_answer(question: str, d: dict) -> str:
+    """
+    Generate a precise, data-driven answer from portfolio data dict d.
+    d keys: names, mu, vols, esg_scores, w_opt, ep, sp, sr, esg_bar,
+            gamma, lam, rf, ep_tan_all, sp_tan_all, sr_tan_all,
+            ep_tan_esg, sp_tan_esg, sr_tan_esg, active_mask, esg_thresh,
+            cov (np array), n
+    """
+    import numpy as np
+    q = question.lower()
+
+    names      = d["names"]
+    mu         = d["mu"]
+    vols       = d["vols"]
+    esg_scores = d["esg_scores"]
+    w_opt      = d["w_opt"]
+    ep         = d["ep"]
+    sp         = d["sp"]
+    sr         = d["sr"]
+    esg_bar    = d["esg_bar"]
+    gamma      = d["gamma"]
+    lam        = d["lam"]
+    rf         = d["rf"]
+    ep_tan_all = d["ep_tan_all"]
+    sp_tan_all = d["sp_tan_all"]
+    sr_tan_all = d["sr_tan_all"]
+    ep_tan_esg = d["ep_tan_esg"]
+    sp_tan_esg = d["sp_tan_esg"]
+    sr_tan_esg = d["sr_tan_esg"]
+    active_mask= d["active_mask"]
+    esg_thresh = d["esg_thresh"]
+    cov        = d["cov"]
+    n          = d["n"]
+
+    # Individual Sharpe ratios
+    ind_sr = [(mu[i] - rf) / vols[i] for i in range(n)]
+    # Sort assets by weight descending
+    sorted_by_w = sorted(range(n), key=lambda i: w_opt[i], reverse=True)
+    # Sort by ESG ascending (worst first)
+    sorted_by_esg = sorted(range(n), key=lambda i: esg_scores[i])
+    # Sort by Sharpe descending
+    sorted_by_sr = sorted(range(n), key=lambda i: ind_sr[i], reverse=True)
+
+    u_val = ep - gamma/2 * sp**2 + lam * esg_bar
+    sharpe_cost = sr_tan_all - sr_tan_esg
+    ret_cost    = ep_tan_all - ep_tan_esg
+    esg_gain    = esg_bar  # portfolio ESG vs unconstrained
+
+    # ── Utility function ──────────────────────────────────────────────────────
+    if any(k in q for k in ["utility", "objective", "maximis", "optimi", "formula", "u ="]):
+        lines = [
+            "The model maximises investor utility defined as:",
+            "",
+            "    U = E[Rp] - (γ/2) × σ²p + λ × ESG_bar",
+            "",
+            f"With your current parameters (γ={gamma}, λ={lam}, rf={rf*100:.1f}%):",
+            f"  • E[Rp] = {ep*100:.2f}% — rewards higher expected return",
+            f"  • -(γ/2)σ² = -{gamma/2:.2f} × {sp**2*100:.4f} — penalises variance; "
+            f"γ={gamma} means moderate{'ly high' if gamma>5 else 'ly low' if gamma<2 else ''} risk aversion",
+            f"  • λ × ESG_bar = {lam} × {esg_bar:.3f} = {lam*esg_bar:.4f} — rewards ESG quality",
+            f"  • Total utility U = {u_val:.5f}",
+            "",
+            "The three terms are in direct tension: chasing higher return increases risk,"
+            " and imposing ESG constraints limits the feasible set. The weights you see are"
+            " the exact combination that resolves this tradeoff optimally given your γ and λ.",
+        ]
+        return "\n".join(lines)
+
+    # ── Weights explanation ───────────────────────────────────────────────────
+    if any(k in q for k in ["weight", "allocation", "holding", "position", "why does my portfolio"]):
+        lines = [
+            "Portfolio weights are determined by maximising U = E[Rp] - (γ/2)σ² + λ×ESG_bar.",
+            "",
+            "Here is why each asset received its weight:",
+            "",
+        ]
+        for i in sorted_by_w:
+            w = w_opt[i]
+            if w < 0.001:
+                reason = (f"excluded — its return/risk profile adds no marginal utility "
+                          f"(E[R]={mu[i]*100:.1f}%, σ={vols[i]*100:.1f}%, "
+                          f"ESG={esg_scores[i]:.1f}/10, individual Sharpe={ind_sr[i]:.3f})")
+            else:
+                drivers = []
+                if ind_sr[i] == max(ind_sr): drivers.append("highest individual Sharpe ratio")
+                if esg_scores[i] == max(esg_scores): drivers.append("highest ESG score")
+                if vols[i] == min(vols): drivers.append("lowest volatility")
+                if mu[i] == max(mu): drivers.append("highest expected return")
+                reason_str = (", ".join(drivers) + " — "
+                              if drivers else "balance of return, risk and ESG — ")
+                reason = (f"{reason_str}E[R]={mu[i]*100:.1f}%, σ={vols[i]*100:.1f}%, "
+                          f"ESG={esg_scores[i]:.1f}/10, Sharpe={ind_sr[i]:.3f}")
+            lines.append(f"  {names[i]} ({w*100:.1f}%): {reason}")
+        lines += [
+            "",
+            f"Risk aversion γ={gamma} {'heavily ' if gamma>6 else ''}penalises variance, "
+            f"so {'low-volatility' if gamma>4 else 'balanced'} assets receive higher weights.",
+            f"ESG preference λ={lam} {'strongly ' if lam>3 else ''}tilts allocations toward "
+            f"higher-ESG assets; portfolio ESG = {esg_bar:.2f}/10.",
+        ]
+        return "\n".join(lines)
+
+    # ── Sharpe ratio ──────────────────────────────────────────────────────────
+    if any(k in q for k in ["sharpe", "risk-adjusted", "risk adjusted"]):
+        best_i = sorted_by_sr[0]
+        lines = [
+            "The Sharpe ratio measures return earned per unit of risk above the risk-free rate:",
+            "",
+            "    SR = (E[Rp] - rf) / σp",
+            "",
+            f"Your optimal portfolio: SR = ({ep*100:.2f}% - {rf*100:.1f}%) / {sp*100:.2f}% = {sr:.3f}",
+            "",
+            f"Benchmark comparisons:",
+            f"  • Unconstrained tangency portfolio:   SR = {sr_tan_all:.3f}",
+            f"  • ESG-constrained tangency portfolio: SR = {sr_tan_esg:.3f}",
+            f"  • Your ESG-optimal portfolio:         SR = {sr:.3f}",
+            "",
+            "Individual asset Sharpe ratios:",
+        ]
+        for i in sorted_by_sr:
+            lines.append(f"  {names[i]}: ({mu[i]*100:.1f}% - {rf*100:.1f}%) / {vols[i]*100:.1f}% = {ind_sr[i]:.3f}")
+        lines += [
+            "",
+            f"Note: your portfolio SR ({sr:.3f}) {'exceeds' if sr > ind_sr[sorted_by_sr[0]] else 'is below'} "
+            f"the best individual asset SR ({ind_sr[sorted_by_sr[0]]:.3f}) because diversification "
+            f"{'reduces portfolio variance below any single asset.' if sr > ind_sr[sorted_by_sr[0]] else 'is constrained by ESG and risk-aversion requirements.'}",
+        ]
+        return "\n".join(lines)
+
+    # ── ESG cost / constraint cost ────────────────────────────────────────────
+    if any(k in q for k in ["cost", "constraint", "penalty", "sacrifice", "tradeoff", "trade-off",
+                              "price of esg", "esg screen", "what is the cost"]):
+        lines = [
+            "The ESG constraint restricts the feasible investment set, which has a measurable cost:",
+            "",
+            "    Sharpe ratio cost of ESG constraint:",
+            f"      Unconstrained tangency SR:   {sr_tan_all:.4f}",
+            f"      ESG-constrained tangency SR: {sr_tan_esg:.4f}",
+            f"      Cost:                        {sharpe_cost:.4f} ({sharpe_cost/sr_tan_all*100:.1f}% reduction)",
+            "",
+            "    Return cost at the tangency level:",
+            f"      Unconstrained E[R]:   {ep_tan_all*100:.2f}%",
+            f"      ESG-constrained E[R]: {ep_tan_esg*100:.2f}%",
+            f"      Cost:                 {ret_cost*100:.2f}% per year",
+            "",
+        ]
+        if esg_thresh > 0:
+            excluded = [names[i] for i in range(n) if not active_mask[i]]
+            if excluded:
+                lines += [
+                    f"    Assets excluded by ESG screen (min score {esg_thresh:.1f}):",
+                    f"      {', '.join(excluded)}",
+                    "",
+                ]
+        lines += [
+            f"    ESG benefit gained:",
+            f"      Portfolio ESG score: {esg_bar:.2f}/10",
+            f"      This is the social/environmental premium the investor accepts lower",
+            f"      financial return to achieve — the ESG-SR frontier quantifies exactly",
+            f"      how much Sharpe ratio is given up at each ESG level.",
+            "",
+            f"With λ={lam}, the utility model values each ESG point at λ×(1/10)={lam/10:.3f} "
+            f"utility units, making the tradeoff {'worthwhile' if lam > 1 else 'marginal'} "
+            f"at the current ESG level.",
+        ]
+        return "\n".join(lines)
+
+    # ── ESG preference lambda ─────────────────────────────────────────────────
+    if any(k in q for k in ["lambda", "λ", "esg preference", "what does the esg", "esg weight",
+                              "esg parameter"]):
+        lines = [
+            f"λ (lambda) = {lam} is the ESG preference parameter in the utility function:",
+            "",
+            "    U = E[Rp] - (γ/2)σ² + λ × ESG_bar",
+            "",
+            f"It scales the ESG term relative to financial return. Concretely:",
+            f"  • λ=0: ESG is completely ignored — pure mean-variance optimisation",
+            f"  • λ={lam}: each 1-point increase in portfolio ESG score (0–10 scale) "
+            f"adds {lam:.2f} to utility, equivalent to ~{lam/10*100:.1f}bps of extra return",
+            f"  • λ=5: maximum setting — strong ESG tilt, significant return sacrifice",
+            "",
+            f"With your λ={lam}:",
+            f"  • ESG contribution to utility: {lam} × {esg_bar:.3f} = {lam*esg_bar:.4f}",
+            f"  • Financial contribution: E[Rp] - (γ/2)σ² = {ep - gamma/2*sp**2:.4f}",
+            f"  • Total utility: {u_val:.4f}",
+            "",
+            "Increasing λ would shift weights toward higher-ESG assets, reducing Sharpe "
+            "but improving the sustainability profile. The sensitivity analysis in the "
+            "expander below the charts shows exactly how each metric changes with λ.",
+        ]
+        return "\n".join(lines)
+
+    # ── Risk aversion gamma ───────────────────────────────────────────────────
+    if any(k in q for k in ["gamma", "γ", "risk aversion", "risk-aversion", "aversion",
+                              "how does increasing risk"]):
+        lines = [
+            f"γ (gamma) = {gamma} is the risk aversion coefficient in the utility function:",
+            "",
+            "    U = E[Rp] - (γ/2) × σ²p + λ × ESG_bar",
+            "",
+            f"The term -(γ/2)σ² penalises portfolio variance. With γ={gamma}:",
+            f"  • Variance penalty = -{gamma/2:.2f} × {sp**2:.6f} = {-gamma/2*sp**2:.5f}",
+            f"  • This represents {abs(gamma/2*sp**2)/ep*100:.1f}% of your expected return, lost to risk",
+            "",
+            "Effect of changing γ on optimal weights:",
+            f"  • γ < {gamma}: less risk averse → higher allocation to high-return/high-risk assets",
+            f"  • γ > {gamma}: more risk averse → higher allocation to low-volatility assets",
+            "",
+            "Highest-volatility assets in your universe:",
+        ]
+        sorted_vol = sorted(range(n), key=lambda i: vols[i], reverse=True)
+        for i in sorted_vol[:3]:
+            lines.append(f"  {names[i]}: σ={vols[i]*100:.1f}%, weight={w_opt[i]*100:.1f}%")
+        lines += [
+            "",
+            f"Lowest-volatility assets (beneficiaries of high γ):",
+        ]
+        for i in sorted(range(n), key=lambda i: vols[i])[:3]:
+            lines.append(f"  {names[i]}: σ={vols[i]*100:.1f}%, weight={w_opt[i]*100:.1f}%")
+        return "\n".join(lines)
+
+    # ── ESG drag ──────────────────────────────────────────────────────────────
+    if any(k in q for k in ["drags", "drag", "worst esg", "lowest esg", "bad esg",
+                              "which asset", "esg score the most"]):
+        worst_i = sorted_by_esg[0]
+        weighted_esg = [(names[i], esg_scores[i], w_opt[i], esg_scores[i]*w_opt[i])
+                        for i in range(n) if w_opt[i] > 0.001]
+        weighted_esg.sort(key=lambda x: x[3])
+        lines = [
+            "Assets ranked by ESG score (lowest first):",
+            "",
+        ]
+        for i in sorted_by_esg:
+            flag = " [excluded from ESG frontier]" if not active_mask[i] else ""
+            lines.append(f"  {names[i]}: ESG={esg_scores[i]:.2f}/10, weight={w_opt[i]*100:.1f}%{flag}")
+        lines += [
+            "",
+            f"Biggest drag on portfolio ESG score (weighted contribution):",
+        ]
+        for name, esg, w, contrib in weighted_esg:
+            lines.append(f"  {name}: {esg:.2f}/10 × {w*100:.1f}% weight = {contrib:.4f} contribution")
+        lines += [
+            "",
+            f"Portfolio weighted ESG = {esg_bar:.3f}/10",
+            f"If {sorted_by_esg[0]} (ESG={esg_scores[sorted_by_esg[0]]:.2f}) were replaced "
+            f"with the highest-ESG asset ({names[sorted_by_esg[-1]]}, ESG={esg_scores[sorted_by_esg[-1]]:.2f}), "
+            f"portfolio ESG would increase significantly.",
+        ]
+        return "\n".join(lines)
+
+    # ── CML / Capital Market Line ─────────────────────────────────────────────
+    if any(k in q for k in ["capital market line", "cml", "market line"]):
+        lines = [
+            "The Capital Market Line (CML) connects the risk-free asset to the tangency portfolio.",
+            "Any point on the CML represents a mix of the risk-free asset and the tangency portfolio.",
+            "",
+            "    E[R]_CML = rf + (E[Rt] - rf) / σt × σ",
+            "",
+            f"CML using all assets (blue dashed line):",
+            f"  rf = {rf*100:.2f}%, Tangency: E[R]={ep_tan_all*100:.2f}%, σ={sp_tan_all*100:.2f}%",
+            f"  Slope (Sharpe of tangency) = {sr_tan_all:.4f}",
+            "",
+            f"CML using ESG-screened assets (green dashed line):",
+            f"  rf = {rf*100:.2f}%, Tangency: E[R]={ep_tan_esg*100:.2f}%, σ={sp_tan_esg*100:.2f}%",
+            f"  Slope (Sharpe of tangency) = {sr_tan_esg:.4f}",
+            "",
+            f"The green CML has a {'lower' if sr_tan_esg < sr_tan_all else 'similar'} slope "
+            f"({sr_tan_esg:.4f} vs {sr_tan_all:.4f}), reflecting the cost of the ESG constraint "
+            f"— fewer assets means a less efficient tangency portfolio.",
+            "",
+            f"Your optimal portfolio (E[R]={ep*100:.2f}%, σ={sp*100:.2f}%) sits "
+            f"{'on' if abs(sr - sr_tan_esg) < 0.01 else 'below'} the green CML because "
+            f"the ESG preference λ={lam} shifts the optimal point away from pure Sharpe maximisation.",
+        ]
+        return "\n".join(lines)
+
+    # ── Green frontier right of blue ──────────────────────────────────────────
+    if any(k in q for k in ["green frontier", "right of blue", "right of the blue",
+                              "frontier sit", "why does the green", "two frontier"]):
+        lines = [
+            "The green frontier lies to the RIGHT of the blue frontier.",
+            "This is a fundamental result of constrained optimisation:",
+            "",
+            "  Blue frontier = mean-variance frontier using ALL assets",
+            "    → the largest feasible set → lowest possible risk at each return level",
+            "",
+            "  Green frontier = mean-variance frontier using only ESG-screened assets",
+            f"    → restricted to assets with ESG ≥ {esg_thresh:.1f}/10",
+            "    → smaller feasible set → higher risk for the same expected return",
+            "",
+            "Mathematically: adding constraints can only reduce or maintain portfolio efficiency,"
+            " never improve it. The distance between the curves is the ESG constraint cost.",
+            "",
+        ]
+        if esg_thresh > 0:
+            excluded = [names[i] for i in range(n) if not active_mask[i]]
+            if excluded:
+                lines.append(f"Assets excluded by your ESG screen (ESG < {esg_thresh:.1f}):")
+                for name in excluded:
+                    i = names.index(name)
+                    lines.append(f"  {name}: ESG={esg_scores[i]:.2f}/10, E[R]={mu[i]*100:.1f}%, σ={vols[i]*100:.1f}%")
+                lines.append("")
+        lines += [
+            f"The Sharpe ratio cost of this restriction:",
+            f"  Blue tangency SR:  {sr_tan_all:.4f}",
+            f"  Green tangency SR: {sr_tan_esg:.4f}",
+            f"  Reduction:         {sharpe_cost:.4f} ({sharpe_cost/max(sr_tan_all,0.001)*100:.1f}%)",
+        ]
+        return "\n".join(lines)
+
+    # ── Best individual Sharpe ────────────────────────────────────────────────
+    if any(k in q for k in ["best individual", "best asset", "individual sharpe",
+                              "which asset has the best"]):
+        best_i = sorted_by_sr[0]
+        lines = [
+            "Individual Sharpe ratios (best to worst):",
+            "",
+        ]
+        for i in sorted_by_sr:
+            lines.append(
+                f"  {names[i]}: E[R]={mu[i]*100:.1f}%, σ={vols[i]*100:.1f}%, "
+                f"ESG={esg_scores[i]:.1f}/10 → SR = {ind_sr[i]:.3f}"
+            )
+        lines += [
+            "",
+            f"Best: {names[best_i]} with SR={ind_sr[best_i]:.3f}",
+            f"Portfolio SR = {sr:.3f} — {'higher than any individual asset due to diversification benefits.'if sr > max(ind_sr) else 'lower than the best individual asset, constrained by ESG and risk-aversion requirements.'}",
+        ]
+        return "\n".join(lines)
+
+    # ── Tangency portfolio ────────────────────────────────────────────────────
+    if any(k in q for k in ["tangency", "tangent", "market portfolio", "why is the tangency"]):
+        lines = [
+            "The tangency portfolio is the portfolio with the highest Sharpe ratio.",
+            "It is found by maximising SR = (E[Rp] - rf) / σp subject to weights summing to 1.",
+            "It sits at the point where the Capital Market Line touches the efficient frontier.",
+            "",
+            f"Tangency portfolio (all assets, unconstrained):",
+            f"  E[R] = {ep_tan_all*100:.2f}%",
+            f"  σ    = {sp_tan_all*100:.2f}%",
+            f"  SR   = {sr_tan_all:.4f}",
+            "",
+            f"Tangency portfolio (ESG-screened assets only):",
+            f"  E[R] = {ep_tan_esg*100:.2f}%",
+            f"  σ    = {sp_tan_esg*100:.2f}%",
+            f"  SR   = {sr_tan_esg:.4f}",
+            "",
+            f"Your ESG-optimal portfolio has SR = {sr:.4f}. It differs from the ESG tangency "
+            f"because λ={lam} introduces an ESG term into the objective, shifting weights "
+            f"toward higher-ESG assets even when that reduces Sharpe.",
+            "",
+            "In classic mean-variance theory a rational investor holds a mix of the risk-free "
+            "asset and the tangency portfolio. Here, the ESG utility term means the investor "
+            "accepts a lower Sharpe in exchange for a higher ESG score.",
+        ]
+        return "\n".join(lines)
+
+    # ── Remove ESG screen ─────────────────────────────────────────────────────
+    if any(k in q for k in ["remove", "without esg", "no esg", "ignore esg", "esg screen off"]):
+        lines = [
+            "If the ESG screen were removed (λ=0, no minimum ESG threshold):",
+            "",
+            f"  Unconstrained tangency portfolio achieves SR = {sr_tan_all:.4f}",
+            f"  vs current ESG-constrained tangency SR = {sr_tan_esg:.4f}",
+            f"  Gain from removing ESG: +{sharpe_cost:.4f} Sharpe ratio points",
+            "",
+            f"  Return: {ep_tan_all*100:.2f}% vs {ep_tan_esg*100:.2f}% (gain of {ret_cost*100:.2f}%)",
+            "",
+            "However, removing ESG would:",
+        ]
+        excluded = [names[i] for i in range(n) if not active_mask[i]]
+        if excluded:
+            lines.append(f"  • Allow excluded assets back in: {', '.join(excluded)}")
+        lines += [
+            f"  • Reduce portfolio ESG score from {esg_bar:.2f}/10",
+            f"  • Set λ contribution to zero (currently λ×ESG = {lam*esg_bar:.4f} utility units)",
+            "",
+            "The ESG-SR frontier chart shows the full Sharpe/ESG tradeoff curve — "
+            "you can read off exactly how much Sharpe is sacrificed at any ESG level.",
+        ]
+        return "\n".join(lines)
+
+    # ── Default / fallback ────────────────────────────────────────────────────
+    lines = [
+        f"Your portfolio summary:",
+        f"  Assets: {', '.join(f'{names[i]} ({w_opt[i]*100:.1f}%)' for i in range(n) if w_opt[i]>0.001)}",
+        f"  Expected return: {ep*100:.2f}%  |  Volatility: {sp*100:.2f}%  |  Sharpe: {sr:.3f}",
+        f"  ESG score: {esg_bar:.2f}/10  |  Utility: {u_val:.4f}",
+        f"  Parameters: γ={gamma}, λ={lam}, rf={rf*100:.1f}%",
+        "",
+        "Try one of the suggested questions above, or ask about:",
+        "weights, Sharpe ratio, ESG scores, the utility function, the frontier,"
+        " the Capital Market Line, risk aversion, or the cost of the ESG constraint.",
+    ]
+    return "\n".join(lines)
+
+
+def answer_question(question: str) -> str:
+    """Route a user question to the simulated chatbot engine."""
+    d = st.session_state.get("chat_data")
+    if d is None:
+        return "Please run the portfolio optimiser first by clicking Optimise Portfolio."
+    return _portfolio_answer(question, d)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -769,16 +1200,19 @@ if run:
     st.markdown("---")
     st.markdown('<div class="section-header">Optimal Portfolio</div>', unsafe_allow_html=True)
     m1,m2,m3,m4 = st.columns(4)
-    for col,label,val,unit in [
-        (m1,"Expected Return",f"{ep*100:.2f}","%"),
-        (m2,"Volatility (σ)", f"{sp*100:.2f}","%"),
-        (m3,"Sharpe Ratio",   f"{sr:.3f}",    ""),
-        (m4,"ESG Score",      f"{esg_bar:.2f}","/ 10"),
-    ]:
+    metric_data = [
+        (m1, "Expected Return", f"{ep*100:.2f}",  "%",    "metric-pos"),
+        (m2, "Volatility",      f"{sp*100:.2f}",  "%",    ""),
+        (m3, "Sharpe Ratio",    f"{sr:.3f}",       "",     "metric-pos" if sr > 0 else "metric-neg"),
+        (m4, "ESG Score",       f"{esg_bar:.2f}", "/ 10", "metric-pos" if esg_bar >= 5 else ""),
+    ]
+    for col, label, val, unit, cls in metric_data:
         with col:
-            st.markdown(f'<div class="metric-card"><div class="metric-label">{label}</div>'
-                        f'<div class="metric-value">{val}<span class="metric-unit">{unit}</span>'
-                        f'</div></div>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="metric-card">'
+                f'<div class="metric-label">{label}</div>'
+                f'<div class="metric-value {cls}">{val}<span class="metric-unit">{unit}</span></div>'
+                f'</div>', unsafe_allow_html=True)
 
     u_val = ep - gamma/2*sp**2 + lam*esg_bar
     st.markdown(
@@ -808,11 +1242,11 @@ if run:
     # ══════════════════════════════════════════════════════════════════════════
     # CHARTS
     # ══════════════════════════════════════════════════════════════════════════
-    BG     = '#f5f2ec'
-    BLUE   = '#1a66cc'
-    GREEN  = '#2d8a2d'
-    ORANGE = '#c76b2f'
-    GREY   = '#777777'
+    BG     = '#0f0f1a'
+    BLUE   = '#3b82f6'
+    GREEN  = '#00d4aa'
+    ORANGE = '#f59e0b'
+    GREY   = '#5a5f78'
 
     st.markdown('<div class="section-header">ESG-Efficient Frontier</div>', unsafe_allow_html=True)
     c1, c2 = st.columns(2)
@@ -880,18 +1314,18 @@ if run:
                        edgecolors='white', lw=0.8, alpha=0.85)
             ax.annotate(names[i], (vols[i]*100, mu[i]*100),
                         textcoords="offset points", xytext=(4,3),
-                        fontsize=7, color='#2d4a2d')
+                        fontsize=7, color='#9094a8')
 
-        ax.set_xlabel("Std (%)", fontsize=9, color='#2d4a2d')
-        ax.set_ylabel("Expected Return (%)", fontsize=9, color='#2d4a2d')
+        ax.set_xlabel("Std (%)", fontsize=9, color='#9094a8')
+        ax.set_ylabel("Expected Return (%)", fontsize=9, color='#9094a8')
         ax.set_title("Mean-Variance Frontier", fontsize=11, fontweight='bold',
-                     color='#1a2e1a', pad=10)
+                     color='#e8eaf0', pad=10)
         ax.set_xlim(left=0)
-        ax.tick_params(colors='#5a7a5a', labelsize=8)
-        for sp_ in ax.spines.values(): sp_.set_color('#c8d8b8')
-        ax.legend(fontsize=7, framealpha=0.92, facecolor=BG, edgecolor='#c8d8b8',
+        ax.tick_params(colors='#5a5f78', labelsize=8)
+        for sp_ in ax.spines.values(): sp_.set_color('#1e1e2e')
+        ax.legend(fontsize=7, framealpha=0.92, facecolor='#161622', edgecolor='#c8d8b8',
                   loc='upper left')
-        ax.grid(True, alpha=0.3, color='#c8d8b8', linestyle='--')
+        ax.grid(True, alpha=0.3, color='#252535', linestyle='--')
         fig.tight_layout(); st.pyplot(fig); plt.close()
 
     # ── Chart 2: ESG-SR Frontier — matching the lecture slide ──────────────────
@@ -982,7 +1416,7 @@ if run:
                       color="#1a2e1a", pad=10)
         ax2.tick_params(colors="#5a7a5a", labelsize=8)
         for sp_ in ax2.spines.values(): sp_.set_color("#c8d8b8")
-        ax2.legend(fontsize=8, framealpha=0.9, facecolor=BG, edgecolor="#c8d8b8")
+        ax2.legend(fontsize=8, framealpha=0.9, facecolor='#161622', edgecolor="#c8d8b8")
         ax2.grid(True, alpha=0.3, color="#c8d8b8", linestyle="--")
         fig2.tight_layout(); st.pyplot(fig2); plt.close()
 
@@ -998,7 +1432,7 @@ if run:
             f3,a3 = plt.subplots(figsize=(5,4))
             f3.patch.set_facecolor(BG); a3.set_facecolor(BG)
             a3.pie(pvals,labels=plabels,autopct='%1.1f%%',colors=greens[:len(pvals)],
-                   startangle=140,textprops={'fontsize':8,'color':'#1a2e1a'},
+                   startangle=140,textprops={'fontsize':8,'color':'#e8eaf0'},
                    wedgeprops={'edgecolor':'white','linewidth':1.5})
             a3.set_title("Weight Allocation",fontsize=11,fontweight='bold',color='#1a2e1a',pad=10)
             f3.tight_layout(); st.pyplot(f3); plt.close()
@@ -1009,11 +1443,11 @@ if run:
             bars  = a4.barh(plabels,[v*100 for v in pvals],color=bcols,edgecolor='white',height=0.6)
             for bar,ev in zip(bars,pesg):
                 a4.text(bar.get_width()+0.3,bar.get_y()+bar.get_height()/2,
-                        f'ESG {ev:.1f}',va='center',fontsize=7.5,color='#2d4a2d')
-            a4.set_xlabel("Weight (%)",fontsize=9,color='#2d4a2d')
+                        f'ESG {ev:.1f}',va='center',fontsize=7.5,color='#9094a8')
+            a4.set_xlabel("Weight (%)",fontsize=9,color='#9094a8')
             a4.set_title("Weights with ESG Scores",fontsize=11,fontweight='bold',color='#1a2e1a',pad=10)
             a4.tick_params(colors='#5a7a5a',labelsize=8)
-            for sp_ in a4.spines.values(): sp_.set_color('#c8d8b8')
+            for sp_ in a4.spines.values(): sp_.set_color('#1e1e2e')
             a4.grid(True,alpha=0.3,color='#c8d8b8',axis='x',linestyle='--')
             f4.tight_layout(); st.pyplot(f4); plt.close()
 
@@ -1036,16 +1470,16 @@ if run:
             ax_.set_title(tl_,fontsize=10,color='#1a2e1a')
             ax_.set_xlabel("λ",fontsize=9); ax_.set_ylabel(yl_,fontsize=9)
             ax_.tick_params(colors='#5a7a5a',labelsize=8)
-            for sp_ in ax_.spines.values(): sp_.set_color('#c8d8b8')
+            for sp_ in ax_.spines.values(): sp_.set_color('#1e1e2e')
             ax_.grid(True,alpha=0.3,color='#c8d8b8',linestyle='--')
         axes[2].set_facecolor(BG)
-        axes[2].plot(sens_df["λ"],sens_df["E[R](%)"],color='#6aaa5a',lw=2,label='E[R]')
-        axes[2].plot(sens_df["λ"],sens_df["σ(%)"],color=ORANGE,lw=2,linestyle='--',label='σ')
+        axes[2].plot(sens_df["λ"],sens_df["E[R](%)"],color='#00d4aa',lw=2,label='E[R]')
+        axes[2].plot(sens_df["λ"],sens_df["σ(%)"],color='#f59e0b',lw=2,linestyle='--',label='σ')
         axes[2].set_title("Return & Risk vs λ",fontsize=10,color='#1a2e1a')
         axes[2].set_xlabel("λ",fontsize=9); axes[2].set_ylabel("%",fontsize=9)
-        axes[2].legend(fontsize=8,facecolor=BG,edgecolor='#c8d8b8')
+        axes[2].legend(fontsize=8,facecolor='#161622',edgecolor='#c8d8b8')
         axes[2].tick_params(colors='#5a7a5a',labelsize=8)
-        for sp_ in axes[2].spines.values(): sp_.set_color('#c8d8b8')
+        for sp_ in axes[2].spines.values(): sp_.set_color('#1e1e2e')
         axes[2].grid(True,alpha=0.3,color='#c8d8b8',linestyle='--')
         f5.tight_layout(); st.pyplot(f5); plt.close()
         st.dataframe(sens_df,use_container_width=True,hide_index=True)
@@ -1062,14 +1496,31 @@ if run:
         'scaled 0–1 → 0–10 (higher = better).</div>',
         unsafe_allow_html=True)
 
-    # Store portfolio context in session state for the chatbot (rendered below)
-    st.session_state["portfolio_ctx"] = build_portfolio_context(
-        names, mu, vols, esg_scores, w_opt,
-        ep, sp, sr, esg_bar, gamma, lam, rf,
-        ep_tan_all, sp_tan_all, sr_tan_all,
-        ep_tan_esg, sp_tan_esg, sr_tan_esg,
-        active_mask, esg_thresh,
-    )
+    # Store all portfolio data for the simulated chatbot engine
+    st.session_state["chat_data"] = {
+        "names":      names,
+        "mu":         mu,
+        "vols":       vols,
+        "esg_scores": esg_scores,
+        "w_opt":      w_opt,
+        "ep":         ep,
+        "sp":         sp,
+        "sr":         sr,
+        "esg_bar":    esg_bar,
+        "gamma":      gamma,
+        "lam":        lam,
+        "rf":         rf,
+        "ep_tan_all": ep_tan_all,
+        "sp_tan_all": sp_tan_all,
+        "sr_tan_all": sr_tan_all,
+        "ep_tan_esg": ep_tan_esg,
+        "sp_tan_esg": sp_tan_esg,
+        "sr_tan_esg": sr_tan_esg,
+        "active_mask":active_mask,
+        "esg_thresh": esg_thresh,
+        "cov":        cov,
+        "n":          n,
+    }
     # Reset chat history each time a new optimisation runs
     st.session_state["chat_history"] = []
 
@@ -1100,27 +1551,15 @@ Scores come from the uploaded LSEG ESGCombinedScore CSV. The `valuescore` column
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PORTFOLIO EXPLAINER CHATBOT
-# Rendered outside if run: so it persists across Streamlit reruns triggered
-# by chat interactions. Portfolio context is read from session_state.
+# Fully simulated — no API key needed. All answers computed from portfolio data.
 # ══════════════════════════════════════════════════════════════════════════════
 
-if "portfolio_ctx" in st.session_state:
+if "chat_data" in st.session_state:
     st.markdown("---")
     st.markdown('<div class="section-header">Portfolio Explainer</div>', unsafe_allow_html=True)
 
     if "chat_history" not in st.session_state:
         st.session_state["chat_history"] = []
-
-    _SYSTEM_PROMPT = (
-        "You are GreenPort's portfolio explainer — a knowledgeable assistant embedded inside "
-        "an ESG portfolio optimisation tool built for a university sustainable finance course "
-        "(ECN316). Your only job is to explain this specific portfolio and the model behind it. "
-        "Always refer to the actual numbers in the portfolio summary below. "
-        "Be concise (2–4 short paragraphs), use plain English, and never give personalised "
-        "financial advice. When helpful, write equations inline (e.g. U = E[Rp] - (γ/2)σ² + λs̄). "
-        "If a question is unrelated to this portfolio or model, politely redirect the user.\n\n"
-        + st.session_state["portfolio_ctx"]
-    )
 
     # Header
     st.markdown(
@@ -1128,7 +1567,7 @@ if "portfolio_ctx" in st.session_state:
   <div class="chat-header">
     <div>
       <p class="chat-header-title">GreenPort Portfolio Explainer</p>
-      <p class="chat-header-sub">Ask anything about your portfolio — weights, ESG scores, frontiers, or the model</p>
+      <p class="chat-header-sub">Ask anything about your portfolio — weights, ESG scores, the frontier, or the model. All answers are computed directly from your results.</p>
     </div>
   </div>
   <div class="chat-body">''',
@@ -1140,20 +1579,21 @@ if "portfolio_ctx" in st.session_state:
     for idx, q in enumerate(SUGGESTED_QUESTIONS):
         with pill_cols[idx % 4]:
             if st.button(q, key=f"pill_{idx}", use_container_width=True):
-                st.session_state["chat_history"].append({"role": "user", "content": q})
-                with st.spinner("Thinking..."):
-                    reply = call_claude(_SYSTEM_PROMPT, st.session_state["chat_history"])
+                reply = answer_question(q)
+                st.session_state["chat_history"].append({"role": "user",      "content": q})
                 st.session_state["chat_history"].append({"role": "assistant", "content": reply})
+                st.rerun()
 
     # Conversation history
     for msg in st.session_state["chat_history"]:
         css_class = "chat-msg-user" if msg["role"] == "user" else "chat-msg-assistant"
-        st.markdown(f'<div class="{css_class}">{msg["content"]}</div>',
-                    unsafe_allow_html=True)
+        # Render newlines as <br> so multi-line answers display correctly
+        content = msg["content"].replace("\n", "<br>")
+        st.markdown(f'<div class="{css_class}">{content}</div>', unsafe_allow_html=True)
 
     st.markdown("</div></div>", unsafe_allow_html=True)
 
-    # Free-text input — use a form so Enter key submits without rerun loop
+    # Free-text input
     with st.form(key="chat_form", clear_on_submit=True):
         fi_col, fb_col = st.columns([5, 1])
         user_input = fi_col.text_input(
@@ -1164,9 +1604,8 @@ if "portfolio_ctx" in st.session_state:
         submitted = fb_col.form_submit_button("Send", use_container_width=True)
 
     if submitted and user_input.strip():
-        st.session_state["chat_history"].append({"role": "user", "content": user_input.strip()})
-        with st.spinner("Thinking..."):
-            reply = call_claude(_SYSTEM_PROMPT, st.session_state["chat_history"])
+        reply = answer_question(user_input.strip())
+        st.session_state["chat_history"].append({"role": "user",      "content": user_input.strip()})
         st.session_state["chat_history"].append({"role": "assistant", "content": reply})
         st.rerun()
 
