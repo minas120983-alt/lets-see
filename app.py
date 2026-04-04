@@ -154,7 +154,11 @@ div[data-testid="stHorizontalBlock"]:first-of-type {
   align-items: center !important;
 }
 
-/* Nav buttons (ghost style) */
+/* Nav buttons (ghost style — never fill full column width) */
+div[data-testid="stHorizontalBlock"]:first-of-type div.stButton {
+  display: flex !important;
+  justify-content: flex-end !important;
+}
 div[data-testid="stHorizontalBlock"]:first-of-type div.stButton > button {
   background: transparent !important;
   color: var(--text-2) !important;
@@ -162,10 +166,10 @@ div[data-testid="stHorizontalBlock"]:first-of-type div.stButton > button {
   border-radius: var(--r-sm) !important;
   font-size: 0.78rem !important;
   font-weight: 600 !important;
-  letter-spacing: 0.03em !important;
-  padding: 0.38rem 0.9rem !important;
-  transition: border-color 0.15s, color 0.15s !important;
+  letter-spacing: 0.02em !important;
+  padding: 0.38rem 1rem !important;
   width: auto !important;
+  white-space: nowrap !important;
 }
 div[data-testid="stHorizontalBlock"]:first-of-type div.stButton > button:hover {
   border-color: var(--sep-strong) !important;
@@ -442,7 +446,65 @@ tbody tr:hover td { background: var(--bg-elevated) !important; }
   background: var(--bg-card) !important;
   margin-bottom: 0.75rem !important;
 }
-[data-testid="stExpander"] summary { color: var(--text-2) !important; font-size: 0.88rem !important; font-weight: 500 !important; font-family: var(--font) !important; }
+/* Expander summary text */
+[data-testid="stExpander"] summary {
+  color: var(--text-2) !important;
+  font-size: 0.88rem !important;
+  font-weight: 500 !important;
+  font-family: var(--font) !important;
+}
+/* Hide the icon label that renders as "arrowdown"/"arrowup" text in some Streamlit builds */
+[data-testid="stExpander"] summary svg { display: none !important; }
+[data-testid="stExpander"] summary [data-testid="stExpanderToggleIcon"] { display: none !important; }
+[data-testid="stExpander"] summary > div > div:first-child:not(:only-child) {
+  display: none !important;
+}
+
+/* ── Transitions & animations ── */
+@keyframes gpFadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes gpFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.gp-hero       { animation: gpFadeUp 0.45s var(--ease-out) both; }
+.gp-label      { animation: gpFadeIn 0.35s var(--ease-out) 0.05s both; }
+.results-hero  { animation: gpFadeUp 0.40s var(--ease-out) both; }
+.gp-card       { animation: gpFadeUp 0.35s var(--ease-out) both; }
+.gp-eyebrow    { animation: gpFadeIn 0.3s var(--ease-out) both; }
+
+/* Stagger metric cards */
+.metric-card { animation: gpFadeUp 0.4s var(--ease-out) both; }
+.metric-card.card-ret { animation-delay: 0.05s; }
+.metric-card.card-vol { animation-delay: 0.10s; }
+.metric-card.card-sr  { animation-delay: 0.15s; }
+.metric-card.card-esg { animation-delay: 0.20s; }
+
+/* Section headers fade in */
+.section-header { animation: gpFadeIn 0.3s var(--ease-out) 0.1s both; }
+
+/* Status boxes */
+.info-box, .warn-box, .error-box {
+  transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
+}
+
+/* Smooth theme transition on everything */
+*, *::before, *::after {
+  transition: background-color 0.25s var(--ease),
+              border-color 0.25s var(--ease),
+              color 0.18s var(--ease) !important;
+}
+/* But keep motion transitions fast */
+div.stButton > button, .metric-card, .gp-card, .chat-page {
+  transition: background-color 0.25s var(--ease),
+              border-color 0.25s var(--ease),
+              color 0.18s var(--ease),
+              transform 0.15s var(--ease),
+              box-shadow 0.15s var(--ease) !important;
+}
 
 /* ── Divider ── */
 hr { border: none !important; border-top: 1px solid var(--sep) !important; margin: 2rem 0 !important; }
@@ -1205,7 +1267,7 @@ if _page == "input":
 # ════════════════════════════════════════════════════════════════════════════
 # NAVBAR
 # ════════════════════════════════════════════════════════════════════════════
-_n_logo, _n_spacer, _n_back, _n_theme = st.columns([5, 3, 1.8, 1.4])
+_n_logo, _n_spacer, _n_back, _n_theme = st.columns([5, 2.5, 2.2, 1.8])
 
 with _n_logo:
     st.markdown("""
@@ -1229,7 +1291,7 @@ with _n_back:
             st.rerun()
 
 with _n_theme:
-    _theme_label = "Day" if _dark else "Night"
+    _theme_label = "Light Mode" if _dark else "Dark Mode"
     if st.button(_theme_label, key="nav_theme"):
         st.session_state["dark"] = not _dark
         st.rerun()
@@ -1724,33 +1786,90 @@ elif _page == "results":
         _style_ax(ax, "Mean-Variance Frontier")
         fig.tight_layout(); st.pyplot(fig); plt.close()
 
-    # Chart 2: ESG-SR Frontier
+    # Chart 2: ESG-SR Frontier — matches lecture diagram exactly
+    # X-axis = portfolio ESG score achieved at each constraint level
+    # Y-axis = highest attainable Sharpe ratio at that ESG constraint
+    # Individual assets plotted as dots at (their ESG score, their individual Sharpe)
     with _c2:
-        esg_levels  = np.linspace(0, min(esg_scores.max(), 9.5), 40)
-        sr_frontier = []; feasible_esg = []
-        for esg_min in esg_levels:
-            mask = esg_scores >= esg_min
-            idx  = np.where(mask)[0]
-            if len(idx) < 2: break
+        _esg_constraints = np.linspace(0, max(esg_scores) * 0.97, 60)
+        _sr_curve  = []; _esg_x_curve = []
+
+        for _esg_min in _esg_constraints:
+            _mask = esg_scores >= _esg_min
+            if _mask.sum() < 2: break
+            _bnds = [(0., 1.) if _mask[i] else (0., 0.) for i in range(n)]
             try:
-                w_, ep_, sp_, sr_ = find_tangency(mu, cov, rf,
-                    bounds=[(0.,1.) if mask[i] else (0.,0.) for i in range(n)])
-                if sp_ > 1e-9: sr_frontier.append(sr_); feasible_esg.append(esg_min)
-            except Exception: break
+                _w_, _ep_, _sp_, _sr_ = find_tangency(mu, cov, rf, bounds=_bnds)
+                if _sp_ > 1e-9:
+                    # x = ESG score of the resulting tangency portfolio
+                    _port_esg = float(np.dot(_w_, esg_scores))
+                    _sr_curve.append(_sr_)
+                    _esg_x_curve.append(_port_esg)
+            except Exception:
+                break
+
+        # Sort curve by portfolio ESG score (x) for clean plotting
+        if _esg_x_curve:
+            _sorted = sorted(zip(_esg_x_curve, _sr_curve))
+            _esg_x_sorted = [p[0] for p in _sorted]
+            _sr_sorted     = [p[1] for p in _sorted]
+        else:
+            _esg_x_sorted = []; _sr_sorted = []
+
+        # Unconstrained tangency (ignoring ESG)
+        _w_unc, _ep_unc, _sp_unc, _sr_unc = find_tangency(mu, cov, rf)
+        _esg_unc = float(np.dot(_w_unc, esg_scores))
+
+        # ESG-aware tangency (current screen)
+        _bounds_cur = [(0., 1.) if active_mask[i] else (0., 0.) for i in range(n)]
+        _w_esg, _ep_esg, _sp_esg, _sr_esg = find_tangency(mu, cov, rf, bounds=_bounds_cur)
+        _esg_esg_pt = float(np.dot(_w_esg, esg_scores))
+
+        # Individual asset Sharpe ratios
+        _indiv_sr  = (mu - rf) / vols
+        _indiv_esg = esg_scores  # 0–10 scale
 
         fig2, ax2 = plt.subplots(figsize=(6.5, 5.5))
         fig2.patch.set_facecolor(CHART_BG)
-        if feasible_esg:
-            ax2.plot(feasible_esg, sr_frontier, color=GREEN, lw=2.4, zorder=4)
-            ax2.fill_between(feasible_esg, sr_frontier, alpha=0.08, color=GREEN)
-            _curr_idx = next((i for i, e in enumerate(feasible_esg) if e >= esg_thresh), 0)
-            ax2.scatter(feasible_esg[_curr_idx], sr_frontier[_curr_idx],
-                        color=ORANGE, s=160, zorder=8, edgecolors="white", lw=2, marker="*",
-                        label=f"Current screen (ESG \u2265 {esg_thresh:.1f})")
-        ax2.set_xlabel("Min ESG Score", fontsize=9, color=GREY)
-        ax2.set_ylabel("Tangency Sharpe Ratio", fontsize=9, color=GREY)
-        ax2.legend(fontsize=7, framealpha=0.9, facecolor=LEG_BG, edgecolor=LEG_ED, labelcolor=LABEL_C)
-        _style_ax(ax2, "ESG–Sharpe Trade-off Frontier")
+
+        # Frontier curve
+        if _esg_x_sorted:
+            ax2.plot(_esg_x_sorted, _sr_sorted, color=GREEN, lw=2.4, zorder=4,
+                     label="ESG-SR frontier")
+            ax2.fill_between(_esg_x_sorted, _sr_sorted, alpha=0.07, color=GREEN)
+
+        # Individual assets
+        for _i in range(n):
+            _col_i = GREEN if active_mask[_i] else BLUE
+            ax2.scatter(_indiv_esg[_i], _indiv_sr[_i], color=_col_i,
+                        s=55, zorder=6, edgecolors="white", lw=0.8, alpha=0.85)
+            ax2.annotate(names[_i], (_indiv_esg[_i], _indiv_sr[_i]),
+                         textcoords="offset points", xytext=(5, 2),
+                         fontsize=7, color=GREY)
+
+        # Unconstrained tangency (ignoring ESG)
+        if _sp_unc > 1e-9:
+            ax2.scatter(_esg_unc, _sr_unc, color=BLUE, s=130, zorder=9,
+                        edgecolors="white", lw=1.5, marker="o",
+                        label="Tangency — ignoring ESG")
+            ax2.annotate("Tangency\n(ignoring ESG)", (_esg_unc, _sr_unc),
+                         textcoords="offset points", xytext=(6, -22),
+                         fontsize=7, color=BLUE, fontstyle="italic")
+
+        # ESG-aware tangency
+        if _sp_esg > 1e-9:
+            ax2.scatter(_esg_esg_pt, _sr_esg, color=GREEN, s=160, zorder=10,
+                        edgecolors="white", lw=2, marker="*",
+                        label="Tangency — using ESG")
+            ax2.annotate("Tangency\n(using ESG)", (_esg_esg_pt, _sr_esg),
+                         textcoords="offset points", xytext=(6, 4),
+                         fontsize=7, color=GREEN, fontstyle="italic")
+
+        ax2.set_xlabel("Portfolio ESG Score (0–10)", fontsize=9, color=GREY)
+        ax2.set_ylabel("Sharpe Ratio", fontsize=9, color=GREY)
+        ax2.legend(fontsize=7, framealpha=0.9, facecolor=LEG_BG,
+                   edgecolor=LEG_ED, labelcolor=LABEL_C, loc="lower left")
+        _style_ax(ax2, "ESG–Sharpe Frontier")
         fig2.tight_layout(); st.pyplot(fig2); plt.close()
 
     # Chart 3 & 4: Allocation + Risk decomposition
