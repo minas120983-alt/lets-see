@@ -881,11 +881,9 @@ def fetch_market_data(tickers, period="3y"):
 # ════════════════════════════════════════════════════════════════════════════
 # STATE
 # ════════════════════════════════════════════════════════════════════════════
-if "dark"         not in st.session_state: st.session_state["dark"]         = True
 if "page"         not in st.session_state: st.session_state["page"]         = "home"
 if "chat_history" not in st.session_state: st.session_state["chat_history"] = []
 
-_dark = st.session_state["dark"]
 _page = st.session_state["page"]
 
 # ── Handle home page "Enter" button via query param ──────────────────────────
@@ -1145,41 +1143,6 @@ draw();
 
     st.stop()
 
-# ── Light-mode CSS override ───────────────────────────────────────────────────
-if not _dark:
-    st.markdown("""<style>
-:root {
-  --bg:          #f8f8f8;
-  --bg-card:     #ffffff;
-  --bg-elevated: #f0f0f0;
-  --bg-3:        #e8e8e8;
-  --bg-input:    rgba(0,0,0,0.05);
-  --text-1:      #0a0a0a;
-  --text-2:      rgba(10,10,10,0.62);
-  --text-3:      rgba(10,10,10,0.40);
-  --accent:       #16a34a;
-  --accent-hover: #15803d;
-  --accent-light: rgba(22,163,74,0.12);
-  --accent-dark:  rgba(22,163,74,0.06);
-  --accent-on:    #ffffff;
-  --sys-red:    #dc2626;
-  --sys-orange: #ea580c;
-  --sys-indigo: #4f46e5;
-  --sep:        rgba(0,0,0,0.09);
-  --sep-strong: rgba(0,0,0,0.18);
-  --border:     rgba(0,0,0,0.06);
-  --chat-bg:          #ffffff;
-  --chat-header-bg:   #f8f8f8;
-  --chat-chip-bg:     #efefef;
-  --chat-chip-color:  #16a34a;
-  --bubble-user-bg:   #16a34a;
-  --bubble-user-text: #ffffff;
-  --bubble-bot-bg:    #efefef;
-  --bubble-bot-text:  #0a0a0a;
-  --input-bar-bg:     #f8f8f8;
-}
-.stApp { background: #f8f8f8 !important; }
-</style>""", unsafe_allow_html=True)
 
 if _page == "input":
     st.markdown("""<style>
@@ -1344,7 +1307,7 @@ canvas{display:block;width:100%;height:100%}
 # ════════════════════════════════════════════════════════════════════════════
 # NAVBAR
 # ════════════════════════════════════════════════════════════════════════════
-_n_logo, _n_rot, _n_gap, _n_back, _n_theme = st.columns([3.2, 3.8, 0.3, 2.2, 1.8])
+_n_logo, _n_rot, _n_gap, _n_back = st.columns([3.2, 3.8, 0.3, 4.0])
 with _n_logo:
     st.markdown("""
 <div class="gp-nav">
@@ -1373,11 +1336,6 @@ with _n_back:
         if st.button("Back to Setup", key="nav_back"):
             st.session_state["page"] = "input"
             st.rerun()
-with _n_theme:
-    _theme_label = "Light Mode" if _dark else "Dark Mode"
-    if st.button(_theme_label, key="nav_theme"):
-        st.session_state["dark"] = not _dark
-        st.rerun()
 
 # ════════════════════════════════════════════════════════════════════════════
 # PAGE: INPUT
@@ -1697,19 +1655,18 @@ elif _page == "results":
     mu_a        = mu[active_idx];   cov_a   = cov[np.ix_(active_idx, active_idx)]
     esg_a       = esg_scores[active_idx]
 
-    _dark_now = st.session_state.get("dark", True)
-    CHART_BG  = "#080808" if _dark_now else "#ffffff"
-    CHART_BG2 = "#111111" if _dark_now else "#f8f8f8"
-    BLUE      = "#3b82f6" if _dark_now else "#2563eb"
-    GREEN     = "#22c55e" if _dark_now else "#16a34a"
-    ORANGE    = "#fb923c" if _dark_now else "#ea580c"
-    GREY      = "#6b7280" if _dark_now else "#9ca3af"
-    LABEL_C   = "#f2f2f2" if _dark_now else "#0a0a0a"
-    LEG_BG    = "#111111" if _dark_now else "#f8f8f8"
-    LEG_ED    = "#222222" if _dark_now else "#e0e0e0"
+    CHART_BG  = "#080808"
+    CHART_BG2 = "#111111"
+    BLUE      = "#3b82f6"
+    GREEN     = "#22c55e"
+    ORANGE    = "#fb923c"
+    GREY      = "#6b7280"
+    LABEL_C   = "#f2f2f2"
+    LEG_BG    = "#111111"
+    LEG_ED    = "#222222"
     TICK_C    = "#6b7280"
-    SPINE_C   = "#222222" if _dark_now else "#e0e0e0"
-    GRID_C    = "#1a1a1a" if _dark_now else "#f0f0f0"
+    SPINE_C   = "#222222"
+    GRID_C    = "#1a1a1a"
 
     u_val = ep - gamma/2*sp**2 + lam*esg_bar
 
@@ -2146,8 +2103,7 @@ Green frontier: restricted to assets passing the ESG screen. ESG data: LSEG ESGC
     st.markdown('<div class="section-header">Portfolio Explainer</div>', unsafe_allow_html=True)
     if "chat_history" not in st.session_state:
         st.session_state["chat_history"] = []
-    _d = st.session_state.get("dark", True)
-    _t1_c = "#f2f2f2" if _d else "#0a0a0a"
+    _t1_c = "#f2f2f2"
 
     if not st.session_state["chat_history"]:
         msgs_html = '<div class="chat-empty">Ask about weights, the Sharpe ratio, ESG scores,<br>the utility function, or any part of your portfolio.</div>'
