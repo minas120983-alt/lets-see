@@ -1166,13 +1166,6 @@ if _page != "home":
     [data-testid="stVerticalBlockBorderWrapper"] {
         background: transparent !important;
     }
-    /* Hide the GpNavHome trigger button that GooeyNav clicks programmatically.
-       It's the stButton immediately following the navbar stHorizontalBlock. */
-    [data-testid="stHorizontalBlock"] + div [data-testid="stButton"] button {
-        position: absolute !important; left: -9999px !important;
-        opacity: 0 !important; pointer-events: none !important;
-        width: 1px !important; height: 1px !important; overflow: hidden !important;
-    }
     </style>""", unsafe_allow_html=True)
 
     components.html("""<!DOCTYPE html>
@@ -1400,11 +1393,12 @@ html,body{background:transparent;overflow:hidden;width:100%;height:100%}
     btn.textContent = 'Home';
     btn.style.cssText =
       'background:#22c55e;color:#000000;border:none;' +
-      'border-radius:50px;padding:9px 22px;' +
-      'font-size:0.82rem;font-weight:700;letter-spacing:-0.01em;' +
-      'font-family:"Plus Jakarta Sans",system-ui,sans-serif;' +
+      'border-radius:50px;padding:10px 26px;' +
+      'font-size:0.88rem;font-weight:800;letter-spacing:-0.01em;' +
+      'font-family:"Plus Jakarta Sans",ui-sans-serif,system-ui,sans-serif;' +
       'cursor:pointer;position:relative;z-index:2;' +
-      'transition:background 0.18s;white-space:nowrap;';
+      'line-height:1.2;display:inline-flex;align-items:center;' +
+      'transition:background 0.18s;white-space:nowrap;min-width:72px;justify-content:center;';
 
     /* ── Particle layer (SVG, sits behind button inside goo filter) ── */
     var psvg = pd.createElementNS(svgNS,'svg');
@@ -1477,6 +1471,33 @@ html,body{background:transparent;overflow:hidden;width:100%;height:100%}
       }
       requestAnimationFrame(tick);
     }
+
+    /* ── Hide the GpNavHome Streamlit trigger button via JS ──────────────
+       CSS selectors can't match by text content; JS can. We hide the
+       button's entire stButton wrapper so it takes no layout space,
+       and use a MutationObserver to re-hide it on every Streamlit rerender. */
+    function hideGpNavHome() {
+      var btns = pd.querySelectorAll('button');
+      for (var i = 0; i < btns.length; i++) {
+        var txt = (btns[i].innerText || btns[i].textContent || '').trim();
+        if (txt === 'GpNavHome') {
+          /* Walk up to the stButton container and hide it entirely */
+          var el = btns[i];
+          while (el && el !== pd.body) {
+            if (el.getAttribute && el.getAttribute('data-testid') === 'stButton') {
+              el.style.cssText =
+                'position:absolute!important;left:-9999px!important;' +
+                'width:1px!important;height:1px!important;overflow:hidden!important;';
+              break;
+            }
+            el = el.parentElement;
+          }
+        }
+      }
+    }
+    hideGpNavHome();
+    var _hideMO = new MutationObserver(hideGpNavHome);
+    _hideMO.observe(pd.body, { childList: true, subtree: true });
 
     /* ── Hover states ── */
     btn.addEventListener('mouseenter', function(){
