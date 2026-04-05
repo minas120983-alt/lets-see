@@ -927,25 +927,17 @@ if _page == "home":
         padding: 0.6rem 0 1.4rem !important;
         margin: 0 !important;
     }
-    /* Home-page enter button: white pill */
+    /* Native button is invisible — the white HTML canvas button triggers it
+       programmatically via window.parent.document click(). We keep it in the
+       DOM so Streamlit's React event system can still handle the state update. */
     div[data-testid="stButton"] > button {
-        background: rgba(255,255,255,0.95) !important;
-        color: #080808 !important;
-        border: none !important; border-radius: 12px !important;
-        padding: 0.84rem 0 !important;
-        font-size: 1rem !important; font-weight: 700 !important;
-        letter-spacing: -0.01em !important;
-        box-shadow: 0 4px 32px rgba(0,0,0,0.40) !important;
-        width: 100% !important;
-        transition: transform 0.18s ease, background 0.18s ease,
-                    box-shadow 0.18s ease !important;
-    }
-    div[data-testid="stButton"] > button:hover {
-        background: #ffffff !important; transform: translateY(-2px) !important;
-        box-shadow: 0 8px 44px rgba(0,0,0,0.55) !important;
-    }
-    div[data-testid="stButton"] > button:active {
-        transform: translateY(0) scale(0.98) !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        position: absolute !important;
+        left: -9999px !important;
+        height: 1px !important; width: 1px !important;
+        padding: 0 !important; margin: 0 !important;
+        overflow: hidden !important;
     }
     </style>""", unsafe_allow_html=True)
 
@@ -1021,7 +1013,18 @@ canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display
   <div class="badge">ECN316 &nbsp;&middot;&nbsp; Sustainable Finance &nbsp;&middot;&nbsp; 2026</div>
   <h1 class="title">Green<span class="dim">Port</span></h1>
   <p class="subtitle">ESG-integrated portfolio optimisation. Build and analyse sustainable investments with live LSEG data and mean-variance theory.</p>
-  <!-- Enter button is rendered as a native Streamlit button below the canvas -->
+  <button class="enter-btn" onclick="
+    try {
+      var btns = window.parent.document.querySelectorAll('button');
+      for (var i = 0; i < btns.length; i++) {
+        var txt = btns[i].innerText || btns[i].textContent || '';
+        if (txt.trim().indexOf('Enter GreenPort') !== -1) {
+          btns[i].click();
+          break;
+        }
+      }
+    } catch(e) { console.warn('GP enter:', e); }
+  ">Enter GreenPort &rarr;</button>
 </div>
 <script>
 var canvas = document.getElementById('canvas');
@@ -1605,87 +1608,104 @@ elif _page == "results":
                 st.dataframe(pd.DataFrame(corr_np, index=names, columns=names).round(3),
                              use_container_width=True)
 
-    # ── Scroll-stack reveal CSS + IntersectionObserver ────────────────────────
-    # Each chart section becomes a "stack card" that slides in from below as it
-    # enters the viewport, matching the reactbits scroll-stack aesthetic.
+    # ── ReactBits-style ScrollStack injected into parent window ───────────────
+    # Cards become position:sticky with staggered top offsets — each new card
+    # slides in and stacks on top of the previous ones, exactly like the
+    # ReactBits <ScrollStack> component.  Everything runs in the parent window
+    # context via an injected <script> tag (cross-document IO won't work).
     components.html("""
 <script>
 (function(){
-  /* ── Inject everything into the PARENT window context via a <script> tag ──
-     IntersectionObserver must live in the same window as the elements it
-     observes. Creating it inside the iframe and passing parent-document nodes
-     is cross-document and silently fails. Injecting a <script> into pd.head
-     executes in the parent window, bypassing that restriction.          */
   try {
     var pd = window.parent.document;
+    if (pd.getElementById('gp-stack-script')) return; /* idempotent */
 
-    /* Idempotent: only inject once per page load */
-    if (pd.getElementById('gp-scroll-stack-script')) return;
+    /* ── 1. CSS: card base styles (sticky + transition) ── */
+    var css = pd.createElement('style');
+    css.id = 'gp-stack-css';
+    css.textContent =
+      '.gp-scroll-item{' +
+        'position:sticky;' +
+        'border-radius:18px;' +
+        'padding:1.1rem 1.1rem 0.7rem;' +
+        'margin-bottom:1.6rem;' +
+        'background:#111;' +
+        'border:1px solid rgba(255,255,255,0.07);' +
+        'box-shadow:0 8px 40px rgba(0,0,0,0.5);' +
+        'transition:transform 0.35s cubic-bezier(0.16,1,0.3,1),' +
+                   'opacity  0.35s cubic-bezier(0.16,1,0.3,1);' +
+        'transform-origin:top center;' +
+        'will-change:transform,opacity;' +
+      '}';
+    pd.head.appendChild(css);
 
-    /* 1. Inject CSS for the scroll-stack cards */
-    var ps = pd.createElement('style');
-    ps.id = 'gp-scroll-stack-styles';
-    ps.textContent = [
-      '.gp-stack-card {',
-      '  background: #111111;',
-      '  border: 1px solid rgba(255,255,255,0.07);',
-      '  border-radius: 16px;',
-      '  padding: 1.2rem 1.2rem 0.8rem;',
-      '  margin-bottom: 1.8rem;',
-      '  opacity: 0;',
-      '  transform: translateY(36px) scale(0.975);',
-      '  transition: opacity 0.60s cubic-bezier(0.16,1,0.3,1),',
-      '              transform 0.60s cubic-bezier(0.16,1,0.3,1);',
-      '  will-change: transform, opacity;',
-      '  box-shadow: 0 8px 40px rgba(0,0,0,0.45);',
-      '}',
-      '.gp-stack-card.gp-visible {',
-      '  opacity: 1 !important;',
-      '  transform: translateY(0) scale(1) !important;',
-      '}'
-    ].join('\\n');
-    pd.head.appendChild(ps);
-
-    /* 2. Inject the observer logic as a <script> that runs in parent window */
+    /* ── 2. Script that runs in parent window context ── */
     var sc = pd.createElement('script');
-    sc.id = 'gp-scroll-stack-script';
-    sc.textContent = '(' + function() {
-      function wrapAndObserve() {
-        /* Target stHorizontalBlock rows that contain stImage (chart rows) */
-        var rows = document.querySelectorAll(
-          '[data-testid="stHorizontalBlock"]:not(.gp-wrapped)'
-        );
-        rows.forEach(function(row) {
-          if (!row.querySelector('[data-testid="stImage"]')) return;
-          row.classList.add('gp-wrapped', 'gp-stack-card');
-        });
+    sc.id = 'gp-stack-script';
+    /* Build the function body as a string so it executes in parent scope */
+    sc.textContent = '(' + (function gpStack(){
+      var CARD_TOP_PX = 14;   /* px gap between stacked card tops */
 
-        if (!window._gpObserver) {
-          window._gpObserver = new IntersectionObserver(function(entries) {
-            entries.forEach(function(e) {
-              if (e.isIntersecting) e.target.classList.add('gp-visible');
-            });
-          }, { threshold: 0.10 });
-        }
-        document.querySelectorAll('.gp-stack-card:not(.gp-observed)').forEach(function(el) {
-          el.classList.add('gp-observed');
-          window._gpObserver.observe(el);
-          /* Cards already in view should appear immediately */
-          var r = el.getBoundingClientRect();
-          if (r.top < window.innerHeight && r.bottom > 0) {
-            el.classList.add('gp-visible');
-          }
+      function getCards() {
+        /* Chart rows = stHorizontalBlock containing at least one stImage */
+        return Array.prototype.slice.call(
+          document.querySelectorAll('[data-testid="stHorizontalBlock"]')
+        ).filter(function(el){
+          return el.querySelector('[data-testid="stImage"]');
         });
       }
 
-      /* Run now and re-run on every Streamlit DOM mutation */
-      wrapAndObserve();
-      var _mo = new MutationObserver(wrapAndObserve);
-      _mo.observe(document.body, { childList: true, subtree: true });
-    }.toString() + ')();';
-    pd.head.appendChild(sc);
+      function applyStack(cards) {
+        cards.forEach(function(card, i){
+          if (!card.classList.contains('gp-scroll-item')) {
+            card.classList.add('gp-scroll-item');
+          }
+          /* Each card sticks at its own offset so they layer visually */
+          card.style.top = (i * CARD_TOP_PX) + 'px';
+          card.style.zIndex = 10 + i;
+        });
+      }
 
-  } catch(e) { /* cross-origin guard — silent fail */ }
+      function updateScales(cards) {
+        /* Scale down earlier cards as later ones stack on top of them */
+        cards.forEach(function(card, i){
+          var rect  = card.getBoundingClientRect();
+          var stuck = rect.top <= (i * CARD_TOP_PX) + 2;
+          /* Count how many cards are stacked above this one */
+          var above = 0;
+          for (var j = i + 1; j < cards.length; j++){
+            var r2 = cards[j].getBoundingClientRect();
+            if (r2.top <= (j * CARD_TOP_PX) + 2) above++;
+          }
+          var sc = Math.max(1 - above * 0.035, 0.86);
+          var op = Math.max(1 - above * 0.12,  0.60);
+          card.style.transform = 'scale(' + sc + ')';
+          card.style.opacity   = op;
+        });
+      }
+
+      var _cards = [];
+
+      function init(){
+        var found = getCards();
+        if (found.length === _cards.length) return;
+        _cards = found;
+        applyStack(_cards);
+      }
+
+      /* Scroll handler */
+      window.addEventListener('scroll', function(){
+        updateScales(_cards);
+      }, { passive: true });
+
+      /* MutationObserver re-runs init when Streamlit re-renders */
+      init();
+      var mo = new MutationObserver(function(){ init(); updateScales(_cards); });
+      mo.observe(document.body, { childList: true, subtree: true });
+    }).toString() + ')();';
+
+    pd.head.appendChild(sc);
+  } catch(e) { /* cross-origin guard */ }
 })();
 </script>
 """, height=0, scrolling=False)
@@ -1741,32 +1761,44 @@ elif _page == "results":
         fig.tight_layout(); st.pyplot(fig); plt.close()
 
     with _c2:
-        # ── Build ESG-SR frontier by sweeping the ESG exclusion threshold ──
-        # Use unique ESG-floor values: one step just above each distinct score
-        # so we see exactly one tangency portfolio per asset-subset change.
-        _thresholds = sorted(set([0.0] +
-                                  [s + 1e-6 for s in esg_scores] +
-                                  list(np.linspace(0, float(np.max(esg_scores))*0.97, 60))))
-        _sr_curve = []; _esg_x_curve = []; _seen = set()
-        for _esg_min in _thresholds:
-            _mask = esg_scores >= _esg_min
-            if _mask.sum() < 2:
-                continue
-            _key = tuple(sorted(np.where(_mask)[0]))   # which assets are included
-            if _key in _seen:
-                continue                                # already computed this subset
-            _seen.add(_key)
-            _bnds = [(0., 1.) if _mask[i] else (0., 0.) for i in range(n)]
+        # ── Build ESG-SR frontier via continuous ESG constraint sweep ──────
+        # For each ESG floor τ we solve: max Sharpe s.t. w·ESG ≥ τ, Σw=1, w≥0
+        # This yields a smooth curve (one point per τ) rather than a few
+        # per-asset-subset jumps.  We also include the unconstrained tangency
+        # as the left-most anchor (τ = achievable minimum).
+        _uncw0 = np.ones(n) / n
+        _unc_res = minimize(
+            lambda w: -port_sr(w, mu, cov, rf), _uncw0, method="SLSQP",
+            bounds=[(0., 1.)] * n,
+            constraints=[{"type": "eq", "fun": lambda w: np.sum(w) - 1}],
+            options={"ftol": 1e-10, "maxiter": 800})
+        _unc_w = _unc_res.x if _unc_res.success else _uncw0
+        _esg_lo = float(np.dot(_unc_w, esg_scores))          # unconstrained ESG
+        _esg_hi = float(np.max(esg_scores)) * 0.999          # hard upper limit
+
+        _sr_curve = []; _esg_x_curve = []
+        for _tau in np.linspace(_esg_lo, _esg_hi, 60):
             try:
-                _w_, _ep_, _sp_, _sr_ = find_tangency(mu, cov, rf, bounds=_bnds)
-                if _sp_ > 1e-9:
-                    _sr_curve.append(_sr_)
-                    _esg_x_curve.append(float(np.dot(_w_, esg_scores)))
+                _r = minimize(
+                    lambda w: -port_sr(w, mu, cov, rf),
+                    _uncw0,
+                    method="SLSQP",
+                    bounds=[(0., 1.)] * n,
+                    constraints=[
+                        {"type": "eq",   "fun": lambda w: np.sum(w) - 1},
+                        {"type": "ineq", "fun": lambda w, t=_tau: float(np.dot(w, esg_scores)) - t},
+                    ],
+                    options={"ftol": 1e-9, "maxiter": 600})
+                if _r.success and port_sd(_r.x, cov) > 1e-9:
+                    _esg_x_curve.append(float(np.dot(_r.x, esg_scores)))
+                    _sr_curve.append(port_sr(_r.x, mu, cov, rf))
             except Exception:
                 continue
-        # Sort by ESG score so the curve draws left → right
+
+        # Sort left → right and deduplicate close points
         if _esg_x_curve:
-            _pts = sorted(zip(_esg_x_curve, _sr_curve))
+            _pts = sorted(set(zip([round(x, 4) for x in _esg_x_curve],
+                                   [round(s, 5) for s in _sr_curve])))
             _esg_x_sorted = [p[0] for p in _pts]
             _sr_sorted     = [p[1] for p in _pts]
         else:
