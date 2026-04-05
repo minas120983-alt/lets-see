@@ -1122,12 +1122,31 @@ draw();
 
     components.html(_HOME_HTML, height=620, scrolling=False)
 
-    _, _btn_col, _ = st.columns([3, 4, 3])
-    with _btn_col:
-        if st.button("Enter GreenPort →", type="primary",
-                     use_container_width=True, key="home_enter"):
-            st.session_state["page"] = "input"
-            st.rerun()
+    st.markdown("""
+<div style="display:flex;justify-content:center;margin-top:1.6rem;">
+  <a href="?enter=1" style="
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #22c55e;
+    color: #000000;
+    font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    text-decoration: none;
+    border-radius: 50px;
+    padding: 0.7rem 2.4rem;
+    min-width: 210px;
+    text-align: center;
+    transition: background 0.18s;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.08);
+  " onmouseover="this.style.background='#4ade80'"
+     onmouseout="this.style.background='#22c55e'">
+    Enter GreenPort →
+  </a>
+</div>
+""", unsafe_allow_html=True)
 
     st.stop()
 
