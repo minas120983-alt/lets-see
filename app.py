@@ -1240,11 +1240,11 @@ canvas{display:block;width:100%;height:100%}
   var DOT_R    = 2.5;   /* dotSize/2           */
   var GAP      = 15;    /* gap                 */
   var BASE_HEX = '#271E37';
-  var ACT_HEX  = '#77bb41';
+  var ACT_HEX  = '#22c55e';
   var PROX     = 120;   /* proximity           */
-  var SPD_TRIG = 100;   /* speedTrigger        */
-  var SHK_R    = 250;   /* shockRadius         */
-  var SHK_STR  = 5;     /* shockStrength       */
+  var SPD_TRIG = 160;   /* speedTrigger — higher = needs faster swipe */
+  var SHK_R    = 180;   /* shockRadius  — tighter ripple             */
+  var SHK_STR  = 1.2;  /* shockStrength — subtle, not a gap-blaster */
   var MAX_SPD  = 5000;  /* maxSpeed            */
   var DAMP     = 0.88;  /* resistance (as multiplier per frame) */
   var SPRING   = 0.045; /* returnDuration → spring constant     */
@@ -1309,12 +1309,13 @@ canvas{display:block;width:100%;height:100%}
     /* Update + draw dots */
     for(var i=0;i<dots.length;i++){
       var d=dots[i];
-      /* Proximity push */
-      var px=d.x-mx, py=d.y-my;
-      var pd=Math.sqrt(px*px+py*py);
-      if(pd<PROX&&pd>0){
-        var push=(1-pd/PROX)*2.5;
-        d.vx+=(px/pd)*push; d.vy+=(py/pd)*push;
+      /* Proximity push — measure from ORIGIN so displaced dots keep the
+         same push direction and the cluster stays circular, not blown apart */
+      var ox2mx=d.ox-mx, oy2my=d.oy-my;
+      var od=Math.sqrt(ox2mx*ox2mx+oy2my*oy2my);
+      if(od<PROX&&od>0){
+        var push=(1-od/PROX)*0.55; /* gentle — dome not a void */
+        d.vx+=(ox2mx/od)*push; d.vy+=(oy2my/od)*push;
       }
       /* Spring + damp */
       d.vx+=(d.ox-d.x)*SPRING; d.vy+=(d.oy-d.y)*SPRING;
