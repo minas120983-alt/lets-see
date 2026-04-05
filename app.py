@@ -921,27 +921,11 @@ if _page == "home":
         margin-bottom: 0 !important;
         padding-bottom: 0 !important;
     }
-    /* Centre the button row using fixed-width centre column */
+    /* Centre the button row — all three columns flex-centred, no zero tricks */
     div[data-testid="stHorizontalBlock"] {
-        display: flex !important;
-        justify-content: center !important;
         background: #000 !important;
-        padding: 0 !important; margin: 0 !important;
-    }
-    /* Zero out the two spacer columns */
-    div[data-testid="stHorizontalBlock"]
-      > div[data-testid="column"]:first-child,
-    div[data-testid="stHorizontalBlock"]
-      > div[data-testid="column"]:last-child {
-        flex: 0 0 0 !important; min-width: 0 !important;
-        max-width: 0 !important; overflow: hidden !important;
-        padding: 0 !important;
-    }
-    /* Fix the centre column to a comfortable button width */
-    div[data-testid="stHorizontalBlock"]
-      > div[data-testid="column"]:nth-child(2) {
-        flex: 0 0 240px !important;
-        min-width: 240px !important; max-width: 240px !important;
+        padding: 0.6rem 0 1.4rem !important;
+        margin: 0 !important;
     }
     /* Home-page enter button: white pill */
     div[data-testid="stButton"] > button {
@@ -1037,10 +1021,7 @@ canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display
   <div class="badge">ECN316 &nbsp;&middot;&nbsp; Sustainable Finance &nbsp;&middot;&nbsp; 2026</div>
   <h1 class="title">Green<span class="dim">Port</span></h1>
   <p class="subtitle">ESG-integrated portfolio optimisation. Build and analyse sustainable investments with live LSEG data and mean-variance theory.</p>
-  <button class="enter-btn" onclick="
-    try { window.parent.location.href = window.parent.location.href.split('?')[0] + '?enter=1'; }
-    catch(e) { window.location.href = window.location.href.split('?')[0] + '?enter=1'; }
-  ">Enter GreenPort &rarr;</button>
+  <!-- Enter button is rendered as a native Streamlit button below the canvas -->
 </div>
 <script>
 var canvas = document.getElementById('canvas');
@@ -1151,8 +1132,8 @@ draw();
 
     components.html(_HOME_HTML, height=620, scrolling=False)
 
-    # Native Streamlit button — CSS above zeros the spacers and fixes centre column to 240px
-    _, _btn_col, _ = st.columns([1, 1, 1])
+    # Native Streamlit button — centre column is 2/10 of page width ≈ 240 px at 1200 px
+    _, _btn_col, _ = st.columns([4, 2, 4])
     with _btn_col:
         if st.button("Enter GreenPort →", use_container_width=True, key="home_enter"):
             st.session_state["page"] = "input"
@@ -1630,81 +1611,81 @@ elif _page == "results":
     components.html("""
 <script>
 (function(){
-  var style = document.createElement('style');
-  style.textContent = `
-    /* Target chart rows injected into the parent Streamlit frame */
-    /* We style via a MutationObserver on the parent document    */
-  `;
-  document.head.appendChild(style);
-
-  /* Inject styles + observer into the parent Streamlit page */
+  /* ── Inject everything into the PARENT window context via a <script> tag ──
+     IntersectionObserver must live in the same window as the elements it
+     observes. Creating it inside the iframe and passing parent-document nodes
+     is cross-document and silently fails. Injecting a <script> into pd.head
+     executes in the parent window, bypassing that restriction.          */
   try {
     var pd = window.parent.document;
 
-    /* Scroll-stack card styles */
+    /* Idempotent: only inject once per page load */
+    if (pd.getElementById('gp-scroll-stack-script')) return;
+
+    /* 1. Inject CSS for the scroll-stack cards */
     var ps = pd.createElement('style');
     ps.id = 'gp-scroll-stack-styles';
-    if (!pd.getElementById('gp-scroll-stack-styles')) {
-      ps.textContent = `
-        .gp-stack-card {
-          background: var(--bg-card, #111);
-          border: 1px solid rgba(255,255,255,0.07);
-          border-radius: 16px;
-          padding: 1.2rem 1.2rem 0.8rem;
-          margin-bottom: 1.5rem;
-          position: sticky;
-          top: 0px;
-          opacity: 0;
-          transform: translateY(40px) scale(0.97);
-          transition: opacity 0.55s cubic-bezier(0.16,1,0.3,1),
-                      transform 0.55s cubic-bezier(0.16,1,0.3,1);
-          will-change: transform, opacity;
-          z-index: 1;
-          box-shadow: 0 8px 40px rgba(0,0,0,0.45);
-        }
-        .gp-stack-card.visible {
-          opacity: 1 !important;
-          transform: translateY(0) scale(1) !important;
-        }
-        .gp-stack-card:nth-child(1) { top: 12px;  z-index: 4; transition-delay: 0.00s; }
-        .gp-stack-card:nth-child(2) { top: 20px;  z-index: 3; transition-delay: 0.08s; }
-        .gp-stack-card:nth-child(3) { top: 28px;  z-index: 2; transition-delay: 0.16s; }
-        .gp-stack-card:nth-child(4) { top: 36px;  z-index: 1; transition-delay: 0.24s; }
-      `;
-      pd.head.appendChild(ps);
-    }
+    ps.textContent = [
+      '.gp-stack-card {',
+      '  background: #111111;',
+      '  border: 1px solid rgba(255,255,255,0.07);',
+      '  border-radius: 16px;',
+      '  padding: 1.2rem 1.2rem 0.8rem;',
+      '  margin-bottom: 1.8rem;',
+      '  opacity: 0;',
+      '  transform: translateY(36px) scale(0.975);',
+      '  transition: opacity 0.60s cubic-bezier(0.16,1,0.3,1),',
+      '              transform 0.60s cubic-bezier(0.16,1,0.3,1);',
+      '  will-change: transform, opacity;',
+      '  box-shadow: 0 8px 40px rgba(0,0,0,0.45);',
+      '}',
+      '.gp-stack-card.gp-visible {',
+      '  opacity: 1 !important;',
+      '  transform: translateY(0) scale(1) !important;',
+      '}'
+    ].join('\\n');
+    pd.head.appendChild(ps);
 
-    /* Wrap chart rows in .gp-stack-card divs then observe them */
-    function wrapCharts() {
-      /* Chart rows are horizontal blocks that contain stImage elements */
-      var rows = pd.querySelectorAll('[data-testid="stHorizontalBlock"]:not(.gp-wrapped)');
-      rows.forEach(function(row) {
-        var imgs = row.querySelectorAll('[data-testid="stImage"]');
-        if (imgs.length === 0) return;
-        row.classList.add('gp-wrapped', 'gp-stack-card');
-      });
+    /* 2. Inject the observer logic as a <script> that runs in parent window */
+    var sc = pd.createElement('script');
+    sc.id = 'gp-scroll-stack-script';
+    sc.textContent = '(' + function() {
+      function wrapAndObserve() {
+        /* Target stHorizontalBlock rows that contain stImage (chart rows) */
+        var rows = document.querySelectorAll(
+          '[data-testid="stHorizontalBlock"]:not(.gp-wrapped)'
+        );
+        rows.forEach(function(row) {
+          if (!row.querySelector('[data-testid="stImage"]')) return;
+          row.classList.add('gp-wrapped', 'gp-stack-card');
+        });
 
-      /* Set up IntersectionObserver */
-      if (!window._gpObserver) {
-        window._gpObserver = new IntersectionObserver(function(entries) {
-          entries.forEach(function(e) {
-            if (e.isIntersecting) {
-              e.target.classList.add('visible');
-            }
-          });
-        }, { threshold: 0.12 });
+        if (!window._gpObserver) {
+          window._gpObserver = new IntersectionObserver(function(entries) {
+            entries.forEach(function(e) {
+              if (e.isIntersecting) e.target.classList.add('gp-visible');
+            });
+          }, { threshold: 0.10 });
+        }
+        document.querySelectorAll('.gp-stack-card:not(.gp-observed)').forEach(function(el) {
+          el.classList.add('gp-observed');
+          window._gpObserver.observe(el);
+          /* Cards already in view should appear immediately */
+          var r = el.getBoundingClientRect();
+          if (r.top < window.innerHeight && r.bottom > 0) {
+            el.classList.add('gp-visible');
+          }
+        });
       }
-      pd.querySelectorAll('.gp-stack-card:not(.observed)').forEach(function(el) {
-        el.classList.add('observed');
-        window._gpObserver.observe(el);
-      });
-    }
 
-    /* Run once now and watch for Streamlit re-renders */
-    wrapCharts();
-    var mo = new MutationObserver(wrapCharts);
-    mo.observe(pd.body, { childList: true, subtree: true });
-  } catch(e) { /* cross-origin — silent fail */ }
+      /* Run now and re-run on every Streamlit DOM mutation */
+      wrapAndObserve();
+      var _mo = new MutationObserver(wrapAndObserve);
+      _mo.observe(document.body, { childList: true, subtree: true });
+    }.toString() + ')();';
+    pd.head.appendChild(sc);
+
+  } catch(e) { /* cross-origin guard — silent fail */ }
 })();
 </script>
 """, height=0, scrolling=False)
@@ -1761,12 +1742,20 @@ elif _page == "results":
 
     with _c2:
         # ── Build ESG-SR frontier by sweeping the ESG exclusion threshold ──
-        _esg_constraints = np.linspace(0, float(np.max(esg_scores)) * 0.97, 100)
-        _sr_curve = []; _esg_x_curve = []
-        for _esg_min in _esg_constraints:
+        # Use unique ESG-floor values: one step just above each distinct score
+        # so we see exactly one tangency portfolio per asset-subset change.
+        _thresholds = sorted(set([0.0] +
+                                  [s + 1e-6 for s in esg_scores] +
+                                  list(np.linspace(0, float(np.max(esg_scores))*0.97, 60))))
+        _sr_curve = []; _esg_x_curve = []; _seen = set()
+        for _esg_min in _thresholds:
             _mask = esg_scores >= _esg_min
             if _mask.sum() < 2:
                 continue
+            _key = tuple(sorted(np.where(_mask)[0]))   # which assets are included
+            if _key in _seen:
+                continue                                # already computed this subset
+            _seen.add(_key)
             _bnds = [(0., 1.) if _mask[i] else (0., 0.) for i in range(n)]
             try:
                 _w_, _ep_, _sp_, _sr_ = find_tangency(mu, cov, rf, bounds=_bnds)
@@ -1775,13 +1764,9 @@ elif _page == "results":
                     _esg_x_curve.append(float(np.dot(_w_, esg_scores)))
             except Exception:
                 continue
-        # Deduplicate near-identical points (happens when many thresholds
-        # exclude the same assets) and sort left→right
+        # Sort by ESG score so the curve draws left → right
         if _esg_x_curve:
-            _pts = sorted(set(zip(
-                [round(x, 4) for x in _esg_x_curve],
-                [round(s, 4) for s in _sr_curve]
-            )))
+            _pts = sorted(zip(_esg_x_curve, _sr_curve))
             _esg_x_sorted = [p[0] for p in _pts]
             _sr_sorted     = [p[1] for p in _pts]
         else:
@@ -1808,7 +1793,7 @@ elif _page == "results":
         ax2.set_facecolor(CHART_BG)
 
         # ── Frontier curve ─────────────────────────────────────────────────
-        if len(_esg_x_sorted) > 2:
+        if len(_esg_x_sorted) >= 2:
             ax2.plot(_esg_x_sorted, _sr_sorted, color=GREEN, lw=2.4,
                      zorder=4, label="ESG–SR frontier")
             _y_fill = max(min(_sr_sorted) * 0.88, 0)
