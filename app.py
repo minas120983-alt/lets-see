@@ -1122,34 +1122,10 @@ draw();
 
     components.html(_HOME_HTML, height=620, scrolling=False)
 
-    # Centred "Enter GreenPort" button — uses a CSS trick to truly centre it
-    st.markdown("""
-<style>
-/* Force the home-enter button to appear centred regardless of column ratio */
-div[data-testid="stButton"]:has(button[key="home_enter"]) {
-  display: flex !important;
-  justify-content: center !important;
-}
-div[data-testid="stButton"]:has(button[key="home_enter"]) button {
-  background: #22c55e !important;
-  color: #000000 !important;
-  border: none !important;
-  border-radius: 50px !important;
-  padding: 0.65rem 2.2rem !important;
-  font-size: 0.95rem !important;
-  font-weight: 700 !important;
-  letter-spacing: -0.01em !important;
-  min-width: 200px !important;
-  transition: background 0.18s !important;
-}
-div[data-testid="stButton"]:has(button[key="home_enter"]) button:hover {
-  background: #4ade80 !important;
-}
-</style>
-""", unsafe_allow_html=True)
     _, _btn_col, _ = st.columns([3, 4, 3])
     with _btn_col:
-        if st.button("Enter GreenPort →", use_container_width=True, key="home_enter"):
+        if st.button("Enter GreenPort →", type="primary",
+                     use_container_width=True, key="home_enter"):
             st.session_state["page"] = "input"
             st.rerun()
 
@@ -1344,19 +1320,20 @@ with _n_rot:
 </div>
 """, unsafe_allow_html=True)
 with _n_back:
-    # Right-aligned nav buttons
-    _nb_cols = st.columns([1, 1]) if _page == "results" else st.columns([2, 1])
     if _page == "results":
-        with _nb_cols[0]:
-            if st.button("Back to Setup", key="nav_back", use_container_width=True):
+        _nb_c1, _nb_c2 = st.columns(2)
+        with _nb_c1:
+            if st.button("← Setup", key="nav_back", use_container_width=True):
                 st.session_state["page"] = "input"
                 st.rerun()
-        with _nb_cols[1]:
+        with _nb_c2:
             if st.button("Home", key="nav_home", type="primary", use_container_width=True):
                 st.session_state["page"] = "home"
                 st.rerun()
     else:
-        with _nb_cols[1]:
+        # input page — just Home on the far right
+        _, _nb_c2 = st.columns([3, 1])
+        with _nb_c2:
             if st.button("Home", key="nav_home", type="primary", use_container_width=True):
                 st.session_state["page"] = "home"
                 st.rerun()
