@@ -1166,6 +1166,13 @@ if _page != "home":
     [data-testid="stVerticalBlockBorderWrapper"] {
         background: transparent !important;
     }
+    /* Hide the GpNavHome trigger button that GooeyNav clicks programmatically.
+       It's the stButton immediately following the navbar stHorizontalBlock. */
+    [data-testid="stHorizontalBlock"] + div [data-testid="stButton"] button {
+        position: absolute !important; left: -9999px !important;
+        opacity: 0 !important; pointer-events: none !important;
+        width: 1px !important; height: 1px !important; overflow: hidden !important;
+    }
     </style>""", unsafe_allow_html=True)
 
     components.html("""<!DOCTYPE html>
@@ -1336,6 +1343,168 @@ with _n_back:
         if st.button("Back to Setup", key="nav_back"):
             st.session_state["page"] = "input"
             st.rerun()
+
+# Hidden home trigger — GooeyNav clicks this programmatically.
+# CSS below hides it visually using the adjacent-sibling selector off the navbar.
+if st.button("GpNavHome", key="nav_home"):
+    st.session_state["page"] = "home"
+    st.rerun()
+
+# ── GooeyNav (top-right fixed) ─────────────────────────────────────────────
+components.html("""<!DOCTYPE html><html><head>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:transparent;overflow:hidden;width:100%;height:100%}
+</style>
+</head><body>
+<script>
+(function(){
+  try {
+    var pd = window.parent.document;
+    if (pd.getElementById('gp-gooey-nav')) return; /* idempotent */
+
+    /* ── SVG gooey filter (appended to body, display:none) ── */
+    var svgNS = 'http://www.w3.org/2000/svg';
+    var svg = pd.createElementNS(svgNS,'svg');
+    svg.setAttribute('style','position:absolute;width:0;height:0;overflow:hidden');
+    var defs = pd.createElementNS(svgNS,'defs');
+    var filt = pd.createElementNS(svgNS,'filter');
+    filt.setAttribute('id','gp-goo');
+    var blur = pd.createElementNS(svgNS,'feGaussianBlur');
+    blur.setAttribute('in','SourceGraphic');
+    blur.setAttribute('stdDeviation','7');
+    blur.setAttribute('result','blur');
+    var mat = pd.createElementNS(svgNS,'feColorMatrix');
+    mat.setAttribute('in','blur');
+    mat.setAttribute('mode','matrix');
+    mat.setAttribute('values','1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9');
+    filt.appendChild(blur); filt.appendChild(mat);
+    defs.appendChild(filt); svg.appendChild(defs);
+    pd.body.appendChild(svg);
+
+    /* ── Outer wrapper: fixed top-right ── */
+    var wrap = pd.createElement('div');
+    wrap.id = 'gp-gooey-nav';
+    wrap.style.cssText =
+      'position:fixed;top:14px;right:20px;z-index:99999;' +
+      'pointer-events:auto;user-select:none;';
+
+    /* ── Gooey filter container ── */
+    var goo = pd.createElement('div');
+    goo.style.cssText =
+      'position:relative;display:inline-flex;align-items:center;' +
+      'filter:url(#gp-goo);';
+
+    /* ── The Home pill ── */
+    var btn = pd.createElement('button');
+    btn.textContent = 'Home';
+    btn.style.cssText =
+      'background:#22c55e;color:#000000;border:none;' +
+      'border-radius:50px;padding:9px 22px;' +
+      'font-size:0.82rem;font-weight:700;letter-spacing:-0.01em;' +
+      'font-family:"Plus Jakarta Sans",system-ui,sans-serif;' +
+      'cursor:pointer;position:relative;z-index:2;' +
+      'transition:background 0.18s;white-space:nowrap;';
+
+    /* ── Particle layer (SVG, sits behind button inside goo filter) ── */
+    var psvg = pd.createElementNS(svgNS,'svg');
+    psvg.setAttribute('width','200'); psvg.setAttribute('height','60');
+    psvg.style.cssText =
+      'position:absolute;left:50%;top:50%;' +
+      'transform:translate(-50%,-50%);' +
+      'pointer-events:none;overflow:visible;';
+
+    goo.appendChild(psvg);
+    goo.appendChild(btn);
+    wrap.appendChild(goo);
+    pd.body.appendChild(wrap);
+
+    /* ── Colours matching the app palette ── */
+    var COLORS = ['#22c55e','#4ade80','#16a34a','#86efac','#22c55e','#4ade80','#bbf7d0','#22c55e'];
+
+    /* ── Fire gooey particles ── */
+    function fireParticles() {
+      var N   = 15;
+      var R   = 8;   /* particle radius */
+      var DUR = 600; /* ms */
+      var particles = [];
+      for (var i = 0; i < N; i++) {
+        var c = pd.createElementNS(svgNS,'circle');
+        var angle  = (Math.random() * 2 * Math.PI);
+        var dist1  = 20 + Math.random() * 70;   /* spread inner 90 */
+        var dist2  = 4  + Math.random() * 8;    /* pull-back 10    */
+        var r      = R * (0.5 + Math.random() * 0.8);
+        var color  = COLORS[i % COLORS.length];
+        var delay  = Math.random() * 300;        /* timeVariance    */
+        c.setAttribute('cx','0');
+        c.setAttribute('cy','0');
+        c.setAttribute('r', String(r));
+        c.setAttribute('fill', color);
+        c.style.opacity = '0';
+        psvg.appendChild(c);
+        particles.push({el:c, angle:angle, dist1:dist1, dist2:dist2,
+                        r:r, delay:delay, start:null});
+      }
+
+      var t0 = null;
+      function tick(ts) {
+        if (!t0) t0 = ts;
+        var all_done = true;
+        for (var i = 0; i < particles.length; i++) {
+          var p = particles[i];
+          if (!p.start && (ts - t0) >= p.delay) p.start = ts;
+          if (!p.start) { all_done = false; continue; }
+          var elapsed = ts - p.start;
+          var prog    = Math.min(elapsed / DUR, 1);
+          if (prog < 1) all_done = false;
+          /* Ease out */
+          var e = 1 - Math.pow(1 - prog, 3);
+          /* Move out then slightly back (dist1 → dist2) */
+          var dist = prog < 0.7
+            ? p.dist1 * (prog / 0.7)
+            : p.dist1 + (p.dist2 - p.dist1) * ((prog - 0.7) / 0.3);
+          var x = Math.cos(p.angle) * dist;
+          var y = Math.sin(p.angle) * dist;
+          p.el.setAttribute('cx', String(x));
+          p.el.setAttribute('cy', String(y));
+          p.el.setAttribute('r',  String(p.r * (1 - e * 0.6)));
+          p.el.style.opacity = String(prog < 0.7 ? 1 : (1 - (prog - 0.7) / 0.3));
+        }
+        if (!all_done) requestAnimationFrame(tick);
+        else {
+          for (var i = 0; i < particles.length; i++) psvg.removeChild(particles[i].el);
+        }
+      }
+      requestAnimationFrame(tick);
+    }
+
+    /* ── Hover states ── */
+    btn.addEventListener('mouseenter', function(){
+      btn.style.background = '#4ade80';
+    });
+    btn.addEventListener('mouseleave', function(){
+      btn.style.background = '#22c55e';
+    });
+
+    /* ── Click: particles then trigger Streamlit home ── */
+    btn.addEventListener('click', function(){
+      fireParticles();
+      setTimeout(function(){
+        var btns = pd.querySelectorAll('button');
+        for (var i = 0; i < btns.length; i++){
+          var txt = (btns[i].innerText || btns[i].textContent || '').trim();
+          if (txt === 'GpNavHome'){
+            btns[i].click();
+            return;
+          }
+        }
+      }, 350);
+    });
+
+  } catch(e) { /* cross-origin guard */ }
+})();
+</script>
+</body></html>""", height=0, scrolling=False)
 
 # ════════════════════════════════════════════════════════════════════════════
 # PAGE: INPUT
