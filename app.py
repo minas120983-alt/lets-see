@@ -1352,30 +1352,32 @@ with _n_back:
                 st.session_state["page"] = "input"
                 st.rerun()
         with _nb_cols[1]:
-            if st.button("Home", key="nav_home", use_container_width=True):
+            if st.button("Home", key="nav_home", type="primary", use_container_width=True):
                 st.session_state["page"] = "home"
                 st.rerun()
     else:
         with _nb_cols[1]:
-            if st.button("Home", key="nav_home", use_container_width=True):
+            if st.button("Home", key="nav_home", type="primary", use_container_width=True):
                 st.session_state["page"] = "home"
                 st.rerun()
 
-# ── Style the nav "Home" button as a green pill ──────────────────────────────
+# ── Style the nav "Home" button (primary type) as a white-text green pill ─────
 st.markdown("""
 <style>
-/* Style the Home nav button as a solid green pill */
-button[kind="secondary"][data-testid="stBaseButton-secondary"][key="nav_home"],
-div[data-testid="stButton"]:has(button[key="nav_home"]) button {
+/* Primary buttons in the nav area — green pill with white text */
+[data-testid="stBaseButton-primary"] {
   background: #22c55e !important;
-  color: #000000 !important;
+  color: #ffffff !important;
   border: none !important;
   border-radius: 50px !important;
   font-weight: 700 !important;
+  font-size: 0.88rem !important;
+  letter-spacing: -0.01em !important;
   transition: background 0.18s !important;
 }
-div[data-testid="stButton"]:has(button[key="nav_home"]) button:hover {
-  background: #4ade80 !important;
+[data-testid="stBaseButton-primary"]:hover {
+  background: #16a34a !important;
+  color: #ffffff !important;
 }
 </style>
 """, unsafe_allow_html=True)
