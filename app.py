@@ -1012,18 +1012,6 @@ canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display
   <div class="badge">ECN316 &nbsp;&middot;&nbsp; Sustainable Finance &nbsp;&middot;&nbsp; 2026</div>
   <h1 class="title">Green<span class="dim">Port</span></h1>
   <p class="subtitle">ESG-integrated portfolio optimisation. Build and analyse sustainable investments with live LSEG data and mean-variance theory.</p>
-  <button class="enter-btn" onclick="
-    try {
-      var btns = window.parent.document.querySelectorAll('button');
-      for (var i = 0; i < btns.length; i++) {
-        var txt = btns[i].innerText || btns[i].textContent || '';
-        if (txt.trim().indexOf('Enter GreenPort') !== -1) {
-          btns[i].click();
-          break;
-        }
-      }
-    } catch(e) { console.warn('GP enter:', e); }
-  ">Enter GreenPort &rarr;</button>
 </div>
 <script>
 var canvas = document.getElementById('canvas');
@@ -1134,8 +1122,32 @@ draw();
 
     components.html(_HOME_HTML, height=620, scrolling=False)
 
-    # Native Streamlit button — centre column is 2/10 of page width ≈ 240 px at 1200 px
-    _, _btn_col, _ = st.columns([4, 2, 4])
+    # Centred "Enter GreenPort" button — uses a CSS trick to truly centre it
+    st.markdown("""
+<style>
+/* Force the home-enter button to appear centred regardless of column ratio */
+div[data-testid="stButton"]:has(button[key="home_enter"]) {
+  display: flex !important;
+  justify-content: center !important;
+}
+div[data-testid="stButton"]:has(button[key="home_enter"]) button {
+  background: #22c55e !important;
+  color: #000000 !important;
+  border: none !important;
+  border-radius: 50px !important;
+  padding: 0.65rem 2.2rem !important;
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+  min-width: 200px !important;
+  transition: background 0.18s !important;
+}
+div[data-testid="stButton"]:has(button[key="home_enter"]) button:hover {
+  background: #4ade80 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+    _, _btn_col, _ = st.columns([3, 4, 3])
     with _btn_col:
         if st.button("Enter GreenPort →", use_container_width=True, key="home_enter"):
             st.session_state["page"] = "input"
@@ -1332,200 +1344,41 @@ with _n_rot:
 </div>
 """, unsafe_allow_html=True)
 with _n_back:
+    # Right-aligned nav buttons
+    _nb_cols = st.columns([1, 1]) if _page == "results" else st.columns([2, 1])
     if _page == "results":
-        if st.button("Back to Setup", key="nav_back"):
-            st.session_state["page"] = "input"
-            st.rerun()
+        with _nb_cols[0]:
+            if st.button("Back to Setup", key="nav_back", use_container_width=True):
+                st.session_state["page"] = "input"
+                st.rerun()
+        with _nb_cols[1]:
+            if st.button("Home", key="nav_home", use_container_width=True):
+                st.session_state["page"] = "home"
+                st.rerun()
+    else:
+        with _nb_cols[1]:
+            if st.button("Home", key="nav_home", use_container_width=True):
+                st.session_state["page"] = "home"
+                st.rerun()
 
-# Hidden home trigger — GooeyNav clicks this programmatically.
-# CSS below hides it visually using the adjacent-sibling selector off the navbar.
-if st.button("GpNavHome", key="nav_home"):
-    st.session_state["page"] = "home"
-    st.rerun()
-
-# ── GooeyNav (top-right fixed) ─────────────────────────────────────────────
-components.html("""<!DOCTYPE html><html><head>
+# ── Style the nav "Home" button as a green pill ──────────────────────────────
+st.markdown("""
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-html,body{background:transparent;overflow:hidden;width:100%;height:100%}
+/* Style the Home nav button as a solid green pill */
+button[kind="secondary"][data-testid="stBaseButton-secondary"][key="nav_home"],
+div[data-testid="stButton"]:has(button[key="nav_home"]) button {
+  background: #22c55e !important;
+  color: #000000 !important;
+  border: none !important;
+  border-radius: 50px !important;
+  font-weight: 700 !important;
+  transition: background 0.18s !important;
+}
+div[data-testid="stButton"]:has(button[key="nav_home"]) button:hover {
+  background: #4ade80 !important;
+}
 </style>
-</head><body>
-<script>
-(function(){
-  try {
-    var pd = window.parent.document;
-    if (pd.getElementById('gp-gooey-nav')) return; /* idempotent */
-
-    /* ── SVG gooey filter (appended to body, display:none) ── */
-    var svgNS = 'http://www.w3.org/2000/svg';
-    var svg = pd.createElementNS(svgNS,'svg');
-    svg.setAttribute('style','position:absolute;width:0;height:0;overflow:hidden');
-    var defs = pd.createElementNS(svgNS,'defs');
-    var filt = pd.createElementNS(svgNS,'filter');
-    filt.setAttribute('id','gp-goo');
-    var blur = pd.createElementNS(svgNS,'feGaussianBlur');
-    blur.setAttribute('in','SourceGraphic');
-    blur.setAttribute('stdDeviation','7');
-    blur.setAttribute('result','blur');
-    var mat = pd.createElementNS(svgNS,'feColorMatrix');
-    mat.setAttribute('in','blur');
-    mat.setAttribute('mode','matrix');
-    mat.setAttribute('values','1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9');
-    filt.appendChild(blur); filt.appendChild(mat);
-    defs.appendChild(filt); svg.appendChild(defs);
-    pd.body.appendChild(svg);
-
-    /* ── Outer wrapper: fixed top-right ── */
-    var wrap = pd.createElement('div');
-    wrap.id = 'gp-gooey-nav';
-    wrap.style.cssText =
-      'position:fixed;top:14px;right:20px;z-index:99999;' +
-      'pointer-events:auto;user-select:none;';
-
-    /* ── Gooey filter container ── */
-    var goo = pd.createElement('div');
-    goo.style.cssText =
-      'position:relative;display:inline-flex;align-items:center;' +
-      'filter:url(#gp-goo);';
-
-    /* ── The Home pill ── */
-    var btn = pd.createElement('button');
-    btn.textContent = 'Home';
-    btn.style.cssText =
-      'background:#22c55e;color:#000000;border:none;' +
-      'border-radius:50px;padding:10px 26px;' +
-      'font-size:0.88rem;font-weight:800;letter-spacing:-0.01em;' +
-      'font-family:"Plus Jakarta Sans",ui-sans-serif,system-ui,sans-serif;' +
-      'cursor:pointer;position:relative;z-index:2;' +
-      'line-height:1.2;display:inline-flex;align-items:center;' +
-      'transition:background 0.18s;white-space:nowrap;min-width:72px;justify-content:center;';
-
-    /* ── Particle layer (SVG, sits behind button inside goo filter) ── */
-    var psvg = pd.createElementNS(svgNS,'svg');
-    psvg.setAttribute('width','200'); psvg.setAttribute('height','60');
-    psvg.style.cssText =
-      'position:absolute;left:50%;top:50%;' +
-      'transform:translate(-50%,-50%);' +
-      'pointer-events:none;overflow:visible;';
-
-    goo.appendChild(psvg);
-    goo.appendChild(btn);
-    wrap.appendChild(goo);
-    pd.body.appendChild(wrap);
-
-    /* ── Colours matching the app palette ── */
-    var COLORS = ['#22c55e','#4ade80','#16a34a','#86efac','#22c55e','#4ade80','#bbf7d0','#22c55e'];
-
-    /* ── Fire gooey particles ── */
-    function fireParticles() {
-      var N   = 15;
-      var R   = 8;   /* particle radius */
-      var DUR = 600; /* ms */
-      var particles = [];
-      for (var i = 0; i < N; i++) {
-        var c = pd.createElementNS(svgNS,'circle');
-        var angle  = (Math.random() * 2 * Math.PI);
-        var dist1  = 20 + Math.random() * 70;   /* spread inner 90 */
-        var dist2  = 4  + Math.random() * 8;    /* pull-back 10    */
-        var r      = R * (0.5 + Math.random() * 0.8);
-        var color  = COLORS[i % COLORS.length];
-        var delay  = Math.random() * 300;        /* timeVariance    */
-        c.setAttribute('cx','0');
-        c.setAttribute('cy','0');
-        c.setAttribute('r', String(r));
-        c.setAttribute('fill', color);
-        c.style.opacity = '0';
-        psvg.appendChild(c);
-        particles.push({el:c, angle:angle, dist1:dist1, dist2:dist2,
-                        r:r, delay:delay, start:null});
-      }
-
-      var t0 = null;
-      function tick(ts) {
-        if (!t0) t0 = ts;
-        var all_done = true;
-        for (var i = 0; i < particles.length; i++) {
-          var p = particles[i];
-          if (!p.start && (ts - t0) >= p.delay) p.start = ts;
-          if (!p.start) { all_done = false; continue; }
-          var elapsed = ts - p.start;
-          var prog    = Math.min(elapsed / DUR, 1);
-          if (prog < 1) all_done = false;
-          /* Ease out */
-          var e = 1 - Math.pow(1 - prog, 3);
-          /* Move out then slightly back (dist1 → dist2) */
-          var dist = prog < 0.7
-            ? p.dist1 * (prog / 0.7)
-            : p.dist1 + (p.dist2 - p.dist1) * ((prog - 0.7) / 0.3);
-          var x = Math.cos(p.angle) * dist;
-          var y = Math.sin(p.angle) * dist;
-          p.el.setAttribute('cx', String(x));
-          p.el.setAttribute('cy', String(y));
-          p.el.setAttribute('r',  String(p.r * (1 - e * 0.6)));
-          p.el.style.opacity = String(prog < 0.7 ? 1 : (1 - (prog - 0.7) / 0.3));
-        }
-        if (!all_done) requestAnimationFrame(tick);
-        else {
-          for (var i = 0; i < particles.length; i++) psvg.removeChild(particles[i].el);
-        }
-      }
-      requestAnimationFrame(tick);
-    }
-
-    /* ── Hide the GpNavHome Streamlit trigger button via JS ──────────────
-       CSS selectors can't match by text content; JS can. We hide the
-       button's entire stButton wrapper so it takes no layout space,
-       and use a MutationObserver to re-hide it on every Streamlit rerender. */
-    function hideGpNavHome() {
-      var btns = pd.querySelectorAll('button');
-      for (var i = 0; i < btns.length; i++) {
-        var txt = (btns[i].innerText || btns[i].textContent || '').trim();
-        if (txt === 'GpNavHome') {
-          /* Walk up to the stButton container and hide it entirely */
-          var el = btns[i];
-          while (el && el !== pd.body) {
-            if (el.getAttribute && el.getAttribute('data-testid') === 'stButton') {
-              el.style.cssText =
-                'position:absolute!important;left:-9999px!important;' +
-                'width:1px!important;height:1px!important;overflow:hidden!important;';
-              break;
-            }
-            el = el.parentElement;
-          }
-        }
-      }
-    }
-    hideGpNavHome();
-    var _hideMO = new MutationObserver(hideGpNavHome);
-    _hideMO.observe(pd.body, { childList: true, subtree: true });
-
-    /* ── Hover states ── */
-    btn.addEventListener('mouseenter', function(){
-      btn.style.background = '#4ade80';
-    });
-    btn.addEventListener('mouseleave', function(){
-      btn.style.background = '#22c55e';
-    });
-
-    /* ── Click: particles then trigger Streamlit home ── */
-    btn.addEventListener('click', function(){
-      fireParticles();
-      setTimeout(function(){
-        var btns = pd.querySelectorAll('button');
-        for (var i = 0; i < btns.length; i++){
-          var txt = (btns[i].innerText || btns[i].textContent || '').trim();
-          if (txt === 'GpNavHome'){
-            btns[i].click();
-            return;
-          }
-        }
-      }, 350);
-    });
-
-  } catch(e) { /* cross-origin guard */ }
-})();
-</script>
-</body></html>""", height=0, scrolling=False)
+""", unsafe_allow_html=True)
 
 # ════════════════════════════════════════════════════════════════════════════
 # PAGE: INPUT
