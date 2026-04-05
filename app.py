@@ -1187,171 +1187,158 @@ if _page == "input":
 </style>""", unsafe_allow_html=True)
 
 # ════════════════════════════════════════════════════════════════════════════
-# DOT GRID BACKGROUND — injected into parent window for input / results pages
-# Replicates the ReactBits <DotGrid> component in pure canvas JS.
+# DOT GRID BACKGROUND — self-contained inside the component iframe.
+# Uses window.frameElement to expand the iframe to full-screen (fixed),
+# then listens to window.parent for mouse events. No cross-doc injection
+# needed, no fight with Streamlit's background CSS.
 # ════════════════════════════════════════════════════════════════════════════
 if _page != "home":
-    components.html("""
+    # Make Streamlit's containers transparent so the canvas iframe behind
+    # them is visible. This st.markdown renders AFTER the global CSS so its
+    # later DOM position wins the cascade (same specificity, last wins).
+    st.markdown("""<style>
+    .stApp, [data-testid="stAppViewContainer"],
+    section.main > div, .block-container,
+    [data-testid="stVerticalBlock"],
+    [data-testid="stVerticalBlockBorderWrapper"] {
+        background: transparent !important;
+    }
+    </style>""", unsafe_allow_html=True)
+
+    components.html("""<!DOCTYPE html>
+<html>
+<head>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:transparent}
+canvas{display:block;width:100%;height:100%}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
 <script>
 (function(){
+  /* ── 1. Expand this iframe to cover the full viewport ── */
+  var fe = window.frameElement;
+  if (fe) {
+    /* The iframe itself */
+    fe.style.cssText =
+      'position:fixed!important;top:0!important;left:0!important;' +
+      'width:100vw!important;height:100vh!important;' +
+      'z-index:0!important;pointer-events:none!important;border:none!important;';
+    /* Walk up and un-clip any wrapper divs */
+    var el = fe.parentElement;
+    while (el && el.tagName !== 'BODY') {
+      el.style.overflow = 'visible';
+      el.style.padding  = '0';
+      el.style.margin   = '0';
+      el = el.parentElement;
+    }
+  }
+
+  /* ── 2. Config matching the ReactBits DotGrid props ── */
+  var DOT_R    = 2.5;   /* dotSize/2           */
+  var GAP      = 15;    /* gap                 */
+  var BASE_HEX = '#271E37';
+  var ACT_HEX  = '#77bb41';
+  var PROX     = 120;   /* proximity           */
+  var SPD_TRIG = 100;   /* speedTrigger        */
+  var SHK_R    = 250;   /* shockRadius         */
+  var SHK_STR  = 5;     /* shockStrength       */
+  var MAX_SPD  = 5000;  /* maxSpeed            */
+  var DAMP     = 0.88;  /* resistance (as multiplier per frame) */
+  var SPRING   = 0.045; /* returnDuration → spring constant     */
+
+  function hexRGB(h){var v=parseInt(h.slice(1),16);return[(v>>16)&255,(v>>8)&255,v&255];}
+  var BASE=hexRGB(BASE_HEX), ACT=hexRGB(ACT_HEX);
+  function lerp(t){
+    t=Math.min(Math.max(t,0),1);
+    return 'rgb('+Math.round(BASE[0]+(ACT[0]-BASE[0])*t)+','+
+                  Math.round(BASE[1]+(ACT[1]-BASE[1])*t)+','+
+                  Math.round(BASE[2]+(ACT[2]-BASE[2])*t)+')';
+  }
+
+  var cv  = document.getElementById('c');
+  var ctx = cv.getContext('2d');
+  var dots=[], W=0, H=0;
+  var mx=-9999, my=-9999, pmx=-9999, pmy=-9999;
+
+  function pw(){ return window.parent || window; }
+
+  function buildGrid(){
+    W = cv.width  = pw().innerWidth  || window.innerWidth;
+    H = cv.height = pw().innerHeight || window.innerHeight;
+    dots=[];
+    for(var r=0;r*GAP<=H+GAP;r++)
+      for(var c=0;c*GAP<=W+GAP;c++)
+        dots.push({ox:c*GAP, oy:r*GAP, x:c*GAP, y:r*GAP, vx:0, vy:0});
+  }
+
+  /* Listen to mouse on the PARENT page (iframe is pointer-events:none) */
   try {
-    var pw = window.parent;
-    var pd = pw.document;
-    if (pd.getElementById('gp-dot-grid-canvas')) return; /* idempotent */
-
-    /* ── Canvas element (fixed, full-viewport, behind everything) ── */
-    var cv = pd.createElement('canvas');
-    cv.id  = 'gp-dot-grid-canvas';
-    cv.style.cssText =
-      'position:fixed;top:0;left:0;width:100%;height:100%;' +
-      'z-index:0;pointer-events:none;display:block;';
-    pd.body.insertBefore(cv, pd.body.firstChild);
-
-    /* Make Streamlit's own containers sit above the canvas */
-    var bgStyle = pd.createElement('style');
-    bgStyle.id  = 'gp-dot-grid-bg-style';
-    bgStyle.textContent =
-      '.stApp,[data-testid="stAppViewContainer"],[data-testid="stVerticalBlock"],' +
-      '.block-container{background:transparent!important;}' +
-      '[data-testid="stHeader"],[data-testid="stToolbar"]{background:transparent!important;}' +
-      /* Ensure stacked content clears the canvas */
-      '[data-testid="stVerticalBlock"]{position:relative;z-index:1;}';
-    pd.head.appendChild(bgStyle);
-
-    /* ── Inject the animation script into parent window scope ── */
-    var sc = pd.createElement('script');
-    sc.id  = 'gp-dot-grid-script';
-    sc.textContent = '(' + (function dotGridInit(){
-
-      var DOT_SIZE      = 2.5;   /* radius in px  */
-      var GAP           = 15;    /* grid spacing  */
-      var BASE_COLOR    = '#271E37';
-      var ACTIVE_COLOR  = '#77bb41';
-      var PROXIMITY     = 120;   /* mouse-push radius  */
-      var SPEED_TRIGGER = 100;   /* px/frame to trigger shock  */
-      var SHOCK_RADIUS  = 250;
-      var SHOCK_STR     = 5;
-      var MAX_SPEED     = 5000;
-      var RESISTANCE    = 0.88;  /* velocity multiplier each frame (damping) */
-      var SPRING        = 0.045; /* spring constant back to origin */
-
-      /* ── Parse hex color → [r,g,b] ── */
-      function hexRGB(h) {
-        var v = parseInt(h.slice(1), 16);
-        return [(v>>16)&255, (v>>8)&255, v&255];
-      }
-      var BASE   = hexRGB(BASE_COLOR);
-      var ACTIVE = hexRGB(ACTIVE_COLOR);
-      function lerpColor(t) {
-        t = Math.min(Math.max(t, 0), 1);
-        var r = Math.round(BASE[0] + (ACTIVE[0]-BASE[0])*t);
-        var g = Math.round(BASE[1] + (ACTIVE[1]-BASE[1])*t);
-        var b = Math.round(BASE[2] + (ACTIVE[2]-BASE[2])*t);
-        return 'rgb('+r+','+g+','+b+')';
-      }
-
-      var canvas = document.getElementById('gp-dot-grid-canvas');
-      if (!canvas) return;
-      var ctx = canvas.getContext('2d');
-      var dots = [];
-      var mx = -9999, my = -9999;
-      var pmx = -9999, pmy = -9999;
-      var W = 0, H = 0;
-
-      function buildGrid() {
-        W = canvas.width  = window.innerWidth;
-        H = canvas.height = window.innerHeight;
-        dots = [];
-        var cols = Math.ceil(W / GAP) + 1;
-        var rows = Math.ceil(H / GAP) + 1;
-        for (var r = 0; r < rows; r++) {
-          for (var c = 0; c < cols; c++) {
-            var ox = c * GAP;
-            var oy = r * GAP;
-            dots.push({ ox:ox, oy:oy, x:ox, y:oy, vx:0, vy:0 });
-          }
-        }
-      }
-
-      window.addEventListener('resize', buildGrid, { passive:true });
-
-      /* Track mouse on parent window */
-      window.addEventListener('mousemove', function(e) {
-        mx = e.clientX; my = e.clientY;
-      }, { passive:true });
-
-      var raf;
-      function frame() {
-        var sdx = mx - pmx, sdy = my - pmy;
-        var spd = Math.sqrt(sdx*sdx + sdy*sdy);
-
-        /* ── Shock wave from fast movement ── */
-        if (spd > SPEED_TRIGGER) {
-          var shockF = (spd / SPEED_TRIGGER) * SHOCK_STR;
-          for (var i = 0; i < dots.length; i++) {
-            var d = dots[i];
-            var ddx = d.ox - mx, ddy = d.oy - my;
-            var dist = Math.sqrt(ddx*ddx + ddy*ddy);
-            if (dist < SHOCK_RADIUS && dist > 0) {
-              var f = (1 - dist/SHOCK_RADIUS) * shockF;
-              d.vx += (ddx/dist) * f;
-              d.vy += (ddy/dist) * f;
-            }
-          }
-        }
-        pmx = mx; pmy = my;
-
-        /* ── Physics update + draw ── */
-        ctx.fillStyle = '#0a080f'; /* very dark bg so dots read */
-        ctx.fillRect(0, 0, W, H);
-
-        for (var i = 0; i < dots.length; i++) {
-          var d = dots[i];
-
-          /* Mouse proximity push */
-          var pdx = d.x - mx, pdy = d.y - my;
-          var pd2 = Math.sqrt(pdx*pdx + pdy*pdy);
-          if (pd2 < PROXIMITY && pd2 > 0) {
-            var push = (1 - pd2/PROXIMITY) * 2.5;
-            d.vx += (pdx/pd2) * push;
-            d.vy += (pdy/pd2) * push;
-          }
-
-          /* Spring + damping */
-          d.vx += (d.ox - d.x) * SPRING;
-          d.vy += (d.oy - d.y) * SPRING;
-          d.vx *= RESISTANCE;
-          d.vy *= RESISTANCE;
-
-          /* Clamp speed */
-          var sp2 = Math.sqrt(d.vx*d.vx + d.vy*d.vy);
-          if (sp2 > MAX_SPEED) { d.vx = d.vx/sp2*MAX_SPEED; d.vy = d.vy/sp2*MAX_SPEED; }
-
-          d.x += d.vx;
-          d.y += d.vy;
-
-          /* Color by displacement */
-          var disp = Math.sqrt((d.x-d.ox)*(d.x-d.ox)+(d.y-d.oy)*(d.y-d.oy));
-          var t    = Math.min(disp / 18, 1);
-          ctx.beginPath();
-          ctx.arc(d.x, d.y, DOT_SIZE, 0, 6.2832);
-          ctx.fillStyle = lerpColor(t);
-          ctx.fill();
-        }
-
-        raf = requestAnimationFrame(frame);
-      }
-
+    pw().addEventListener('mousemove', function(e){
+      mx=e.clientX; my=e.clientY;
+    },{passive:true});
+    pw().addEventListener('resize', function(){
       buildGrid();
-      frame();
+    },{passive:true});
+  } catch(e){}
 
-    }).toString() + ')();';
-    pd.head.appendChild(sc);
+  function frame(){
+    /* Shock wave */
+    var sdx=mx-pmx, sdy=my-pmy;
+    var spd=Math.sqrt(sdx*sdx+sdy*sdy);
+    if(spd>SPD_TRIG){
+      var sf=(spd/SPD_TRIG)*SHK_STR;
+      for(var i=0;i<dots.length;i++){
+        var d=dots[i];
+        var dx=d.ox-mx, dy=d.oy-my;
+        var dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist<SHK_R&&dist>0){
+          var f=(1-dist/SHK_R)*sf;
+          d.vx+=(dx/dist)*f; d.vy+=(dy/dist)*f;
+        }
+      }
+    }
+    pmx=mx; pmy=my;
 
-  } catch(e) { /* cross-origin guard */ }
+    /* Draw background */
+    ctx.fillStyle='#0a080f';
+    ctx.fillRect(0,0,W,H);
+
+    /* Update + draw dots */
+    for(var i=0;i<dots.length;i++){
+      var d=dots[i];
+      /* Proximity push */
+      var px=d.x-mx, py=d.y-my;
+      var pd=Math.sqrt(px*px+py*py);
+      if(pd<PROX&&pd>0){
+        var push=(1-pd/PROX)*2.5;
+        d.vx+=(px/pd)*push; d.vy+=(py/pd)*push;
+      }
+      /* Spring + damp */
+      d.vx+=(d.ox-d.x)*SPRING; d.vy+=(d.oy-d.y)*SPRING;
+      d.vx*=DAMP; d.vy*=DAMP;
+      /* Clamp */
+      var sp=Math.sqrt(d.vx*d.vx+d.vy*d.vy);
+      if(sp>MAX_SPD){d.vx=d.vx/sp*MAX_SPD;d.vy=d.vy/sp*MAX_SPD;}
+      d.x+=d.vx; d.y+=d.vy;
+      /* Color by displacement */
+      var disp=Math.sqrt((d.x-d.ox)*(d.x-d.ox)+(d.y-d.oy)*(d.y-d.oy));
+      ctx.beginPath();
+      ctx.arc(d.x,d.y,DOT_R,0,6.2832);
+      ctx.fillStyle=lerp(Math.min(disp/18,1));
+      ctx.fill();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  buildGrid();
+  frame();
 })();
 </script>
-""", height=0, scrolling=False)
+</body>
+</html>""", height=2, scrolling=False)
 
 # ════════════════════════════════════════════════════════════════════════════
 # NAVBAR
