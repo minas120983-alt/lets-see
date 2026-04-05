@@ -1366,7 +1366,8 @@ if _page == "input":
     st.markdown('<div class="gp-label">Asset Universe</div>', unsafe_allow_html=True)
     _im_col, _ = st.columns([2, 3])
     with _im_col:
-        input_mode = st.radio("Input method", ["Manual input", "Ticker-based input"], horizontal=False)
+        input_mode = st.radio("Input method", ["Manual input", "Ticker-based input"],
+                              index=1, horizontal=False)
 
     default_names   = ["Tech ETF","Green Bond","Energy Stock","Healthcare","Consumer ETF",
                        "Infra Fund","EM Equity","Gov Bond","Real Estate","Commodity"]
@@ -1380,7 +1381,7 @@ if _page == "input":
     if input_mode == "Manual input":
         cl, cr = st.columns([2, 1])
         with cr:
-            n_assets = st.number_input("Number of assets", 2, 10, 3, 1)
+            n_assets = st.number_input("Number of assets", 2, 10, 2, 1)
             st.markdown('<div class="info-box">Enter expected return, volatility and ESG score (0–10).</div>', unsafe_allow_html=True)
         with cl:
             h = st.columns([2, 1.2, 1.2, 1.2])
@@ -1406,7 +1407,7 @@ if _page == "input":
     else:
         cl, cr = st.columns([2,1])
         with cr:
-            n_assets = st.number_input("Number of assets", 2, 10, 3, 1, key="n_ticker_assets")
+            n_assets = st.number_input("Number of assets", 2, 10, 2, 1, key="n_ticker_assets")
             lookback_period = st.selectbox("History window", ["1y","3y","5y","10y"], index=1)
         with cl:
             h = st.columns([1.1, 1.8])
