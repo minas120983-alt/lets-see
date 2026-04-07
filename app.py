@@ -1513,10 +1513,134 @@ if _page == "input":
                 row["manual_ret_vol"] = manual_ret_vol.get(t, None)
 
     st.markdown('<div class="gp-label">Investor Preferences</div>', unsafe_allow_html=True)
-    pref_c1, pref_c2, pref_c3 = st.columns(3)
-    with pref_c1: gamma = st.slider("Risk Aversion (γ)", 0.5, 10.0, 3.0, 0.5)
-    with pref_c2: lam   = st.slider("ESG Preference (λ)", 0.0, 5.0, 1.0, 0.1)
-    with pref_c3: rf    = st.number_input("Risk-Free Rate (%)", 0.0, 20.0, 4.0, 0.1, format="%.1f") / 100
+
+    # ── Preference input mode toggle ──────────────────────────────────────────
+    _pref_mode = st.radio(
+        "How would you like to set your preferences?",
+        ["Manual sliders", "Take the quiz"],
+        horizontal=True,
+        index=0,
+        key="pref_mode",
+    )
+
+    if _pref_mode == "Take the quiz":
+        st.markdown(
+            '<div class="info-box" style="margin-bottom:1.2rem;">'
+            '<strong>Quick Preference Quiz</strong> — answer 6 short questions and we\'ll '
+            'determine your risk aversion (γ) and ESG preference (λ) for you.</div>',
+            unsafe_allow_html=True)
+
+        # ── RISK questions (maps → γ) ─────────────────────────────────────────
+        st.markdown(
+            '<div style="font-size:0.72rem;font-weight:700;letter-spacing:0.10em;'
+            'text-transform:uppercase;color:rgba(242,242,242,0.36);margin:1.2rem 0 0.6rem;">'
+            'Risk Tolerance</div>',
+            unsafe_allow_html=True)
+
+        _rq1 = st.radio(
+            "1 · Your portfolio falls 25% in a year. What do you do?",
+            ["Sell everything — I can't take further losses (3)",
+             "Sell some to reduce exposure (2)",
+             "Hold and wait for a recovery (1)",
+             "Buy more — a great opportunity (0)"],
+            key="quiz_r1", index=2)
+
+        _rq2 = st.radio(
+            "2 · Which return/risk profile appeals to you most?",
+            ["4% return, ~3% annual volatility — very stable (3)",
+             "8% return, ~10% volatility — moderate swings (2)",
+             "13% return, ~20% volatility — significant swings (1)",
+             "20%+ return, ~35% volatility — large swings are fine (0)"],
+            key="quiz_r2", index=1)
+
+        _rq3 = st.radio(
+            "3 · What is your investment time horizon?",
+            ["Under 2 years — I may need the money soon (3)",
+             "2–5 years (2)",
+             "5–10 years (1)",
+             "10 + years — long-term wealth building (0)"],
+            key="quiz_r3", index=1)
+
+        # ── ESG questions (maps → λ) ──────────────────────────────────────────
+        st.markdown(
+            '<div style="font-size:0.72rem;font-weight:700;letter-spacing:0.10em;'
+            'text-transform:uppercase;color:rgba(242,242,242,0.36);margin:1.4rem 0 0.6rem;">'
+            'ESG Preference</div>',
+            unsafe_allow_html=True)
+
+        _eq1 = st.radio(
+            "4 · How important is sustainability in your investments?",
+            ["Not important — purely financial returns matter (0)",
+             "Somewhat — I prefer sustainable where equal (1)",
+             "Very important — ESG is a key objective (2)",
+             "Central — ESG is my primary mandate (3)"],
+            key="quiz_e1", index=1)
+
+        _eq2 = st.radio(
+            "5 · Would you accept a lower return for a higher ESG score?",
+            ["Never — I won't sacrifice any return (0)",
+             "Only a small amount — up to ~0.5%/yr (1)",
+             "Yes — up to ~2%/yr feels like a fair trade (2)",
+             "Yes — ESG quality is worth more than return to me (3)"],
+            key="quiz_e2", index=1)
+
+        _eq3 = st.radio(
+            "6 · Which best describes your view on ESG screening?",
+            ["ESG scores are noise — I ignore them (0)",
+             "Nice to have, but won't drive allocation (1)",
+             "I want meaningful ESG tilts in my portfolio (2)",
+             "I require a hard ESG minimum — no exceptions (3)"],
+            key="quiz_e3", index=1)
+
+        # ── Score → parameter mapping ─────────────────────────────────────────
+        def _score(opt_str):
+            """Extract the trailing (digit) from the option string."""
+            return int(opt_str.strip()[-2])   # e.g. "(2)" → 2
+
+        _risk_score = _score(_rq1) + _score(_rq2) + _score(_rq3)   # 0–9
+        _esg_score  = _score(_eq1) + _score(_eq2) + _score(_eq3)    # 0–9
+
+        # Piecewise mapping — risk score → γ
+        _gamma_map = [(2, 1.0), (4, 2.5), (6, 4.5), (8, 7.0), (9, 9.5)]
+        gamma = next(v for threshold, v in _gamma_map if _risk_score <= threshold)
+
+        # Piecewise mapping — ESG score → λ
+        _lam_map = [(1, 0.0), (3, 0.5), (5, 1.5), (7, 3.0), (9, 5.0)]
+        lam = next(v for threshold, v in _lam_map if _esg_score <= threshold)
+
+        # ── Show derived values ───────────────────────────────────────────────
+        _qc1, _qc2 = st.columns(2)
+        with _qc1:
+            st.markdown(
+                f'<div class="metric-card card-vol" style="margin-top:1rem;">'
+                f'<div class="metric-label">Derived Risk Aversion (γ)</div>'
+                f'<div class="metric-value">{gamma}</div>'
+                f'<div style="font-size:0.72rem;color:rgba(242,242,242,0.4);margin-top:0.4rem;">'
+                f'Risk score: {_risk_score}/9 — '
+                f'{"low" if _risk_score <= 2 else "moderate-low" if _risk_score <= 4 else "moderate" if _risk_score <= 6 else "high"} aversion'
+                f'</div></div>',
+                unsafe_allow_html=True)
+        with _qc2:
+            st.markdown(
+                f'<div class="metric-card card-esg" style="margin-top:1rem;">'
+                f'<div class="metric-label">Derived ESG Preference (λ)</div>'
+                f'<div class="metric-value">{lam}</div>'
+                f'<div style="font-size:0.72rem;color:rgba(242,242,242,0.4);margin-top:0.4rem;">'
+                f'ESG score: {_esg_score}/9 — '
+                f'{"none" if _esg_score <= 1 else "low" if _esg_score <= 3 else "moderate" if _esg_score <= 5 else "high" if _esg_score <= 7 else "very high"} preference'
+                f'</div></div>',
+                unsafe_allow_html=True)
+        st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
+
+    else:
+        # Manual sliders (original behaviour)
+        pref_c1, pref_c2 = st.columns(2)
+        with pref_c1: gamma = st.slider("Risk Aversion (γ)", 0.5, 10.0, 3.0, 0.5)
+        with pref_c2: lam   = st.slider("ESG Preference (λ)", 0.0, 5.0, 1.0, 0.1)
+
+    pref_rf_col, _ = st.columns([1, 2])
+    with pref_rf_col:
+        rf = st.number_input("Risk-Free Rate (%)", 0.0, 20.0, 4.0, 0.1, format="%.1f") / 100
 
     st.markdown('<div class="gp-label">ESG Screen</div>', unsafe_allow_html=True)
     use_exclusion = st.checkbox("Apply minimum ESG exclusion screen", value=False)
@@ -1761,7 +1885,6 @@ elif _page == "results":
         "E[R] (%)":        [f"{r*100:.2f}"  for r in mu],
         "Vol (%)":         [f"{v*100:.2f}"  for v in vols],
         "ESG (0–10)":      [f"{s:.2f}"      for s in esg_scores],
-        "In ESG frontier": ["" if m else "Excluded" for m in active_mask],
     }), use_container_width=True, hide_index=True)
 
     if input_mode == "Ticker-based input" and ticker_data_display is not None:
@@ -1928,11 +2051,10 @@ elif _page == "results":
             fig.tight_layout(); st.pyplot(fig); plt.close()
 
     with _c2:
-        # ── Build ESG-SR frontier via continuous ESG constraint sweep ──────
-        # For each ESG floor τ we solve: max Sharpe s.t. w·ESG ≥ τ, Σw=1, w≥0
-        # This yields a smooth curve (one point per τ) rather than a few
-        # per-asset-subset jumps.  We also include the unconstrained tangency
-        # as the left-most anchor (τ = achievable minimum).
+                # ── Build FULL ESG-SR frontier (both sides of tangency) ─────────────
+        # Left side:  max Sharpe s.t. ESG ≤ τ   (curves UP to tangency)
+        # Right side: max Sharpe s.t. ESG ≥ τ   (curves DOWN from tangency)
+        # This gives the complete curved frontier across the whole 0–10 range.
         _uncw0 = np.ones(n) / n
         _unc_res = minimize(
             lambda w: -port_sr(w, mu, cov, rf), _uncw0, method="SLSQP",
@@ -1940,10 +2062,32 @@ elif _page == "results":
             constraints=[{"type": "eq", "fun": lambda w: np.sum(w) - 1}],
             options={"ftol": 1e-10, "maxiter": 800})
         _unc_w = _unc_res.x if _unc_res.success else _uncw0
-        _esg_lo = float(np.dot(_unc_w, esg_scores))          # unconstrained ESG
-        _esg_hi = float(np.max(esg_scores)) * 0.999          # hard upper limit
+        _esg_lo = float(np.dot(_unc_w, esg_scores))          # unconstrained ESG (peak)
+        _esg_hi = float(np.max(esg_scores)) * 0.999
+        _esg_min = float(np.min(esg_scores))
 
-        _sr_curve = []; _esg_x_curve = []
+        _esg_x_curve = []; _sr_curve = []
+
+        # LEFT SIDE (lower ESG → rising curve to tangency)
+        for _tau in np.linspace(_esg_min, _esg_lo, 40):
+            try:
+                _r = minimize(
+                    lambda w: -port_sr(w, mu, cov, rf),
+                    _uncw0,
+                    method="SLSQP",
+                    bounds=[(0., 1.)] * n,
+                    constraints=[
+                        {"type": "eq",   "fun": lambda w: np.sum(w) - 1},
+                        {"type": "ineq", "fun": lambda w, t=_tau: t - float(np.dot(w, esg_scores))},  # ESG <= τ
+                    ],
+                    options={"ftol": 1e-9, "maxiter": 600})
+                if _r.success and port_sd(_r.x, cov) > 1e-9:
+                    _esg_x_curve.append(float(np.dot(_r.x, esg_scores)))
+                    _sr_curve.append(port_sr(_r.x, mu, cov, rf))
+            except Exception:
+                continue
+
+        # RIGHT SIDE (higher ESG → falling curve from tangency)
         for _tau in np.linspace(_esg_lo, _esg_hi, 60):
             try:
                 _r = minimize(
@@ -1992,6 +2136,7 @@ elif _page == "results":
         ax2.set_facecolor(CHART_BG)
 
         # ── Frontier curve ─────────────────────────────────────────────────
+                # ── Frontier curve (now fully curved on BOTH sides of tangency) ─────
         if len(_esg_x_sorted) >= 2:
             ax2.plot(_esg_x_sorted, _sr_sorted, color=GREEN, lw=2.4,
                      zorder=4, label="ESG–SR frontier")
@@ -2051,11 +2196,23 @@ elif _page == "results":
                      bbox=dict(boxstyle="round,pad=0.25",
                                fc=CHART_BG, ec=ORANGE, alpha=0.85, lw=0.6))
 
-        # ── Axis limits: add padding so annotations aren't clipped ────────
+
         if _esg_x_sorted:
-            _xpad = (max(_esg_x_sorted) - min(_esg_x_sorted)) * 0.18
-            ax2.set_xlim(max(0, min(_esg_x_sorted) - _xpad * 2),
-                         max(_esg_x_sorted) + _xpad)
+                    # ── Axis limits: FORCE the WHOLE graph (0–10 ESG) regardless of data
+        #     This is the final fix so the plot always shows the complete ESG-Sharpe Frontier ────────
+            ax2.set_xlim(0, 10)   # <── this line guarantees the full left-to-right view every time
+
+        # y-limits (unchanged — already optimal)
+            _all_sr = ([sr, _sr_unc] + (_sr_sorted or []) +
+                   list(_indiv_sr) +
+                   ([_sr_esg_t] if _screen_differs else []))
+            _sr_range = max(_all_sr) - min(_all_sr) if len(_all_sr) > 1 else 0.1
+            ax2.set_ylim(min(_all_sr) - _sr_range * 0.25,
+                     max(_all_sr) + _sr_range * 0.30)
+        else:
+            ax2.set_xlim(0, 10)
+
+        # y-limits (unchanged — already optimal)
         _all_sr = ([sr, _sr_unc] + (_sr_sorted or []) +
                    list(_indiv_sr) +
                    ([_sr_esg_t] if _screen_differs else []))
@@ -2069,7 +2226,10 @@ elif _page == "results":
                    edgecolor=LEG_ED, labelcolor=LABEL_C,
                    loc="upper right" if not _screen_differs else "lower left")
         _style_ax(ax2, "ESG–Sharpe Frontier")
-        fig2.tight_layout(); st.pyplot(fig2); plt.close()
+        fig2.tight_layout()
+        st.pyplot(fig2, use_container_width=True)
+        plt.close()
+
 
     st.markdown('<div class="section-header">Portfolio Breakdown</div>', unsafe_allow_html=True)
     _c3, _c4 = st.columns(2)
