@@ -240,7 +240,7 @@ div.stButton > button {
 div.stButton > button:hover { background: var(--accent-hover) !important; transform: translateY(-1px) !important; }
 div.stButton > button:active { transform: translateY(0) scale(0.99) !important; }
 .stNumberInput input, .stTextInput input, .stTextArea textarea {
-  background: var(--bg-input) !important; color: var(--text-1) !important;
+  background: var(--bg-input) !important; color: #000000 !important;
   border: 1px solid var(--sep) !important; border-radius: var(--r-sm) !important;
   font-family: var(--font) !important; font-size: 0.88rem !important;
   transition: border-color 0.15s !important;
@@ -284,14 +284,20 @@ table { color: var(--text-1) !important; border-collapse: collapse; width: 100%;
 thead tr th { color: var(--text-3) !important; font-size: 0.64rem !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; border-bottom: 1px solid var(--sep) !important; padding: 0.55rem 0.8rem !important; font-weight: 700 !important; }
 tbody tr td { color: var(--text-2) !important; border-bottom: 1px solid var(--sep) !important; padding: 0.5rem 0.8rem !important; }
 tbody tr:hover td { background: var(--bg-elevated) !important; }
-[data-testid="stExpander"] {
-  border: 1px solid var(--sep) !important; border-radius: var(--r-md) !important;
-  background: var(--bg-card) !important; margin-bottom: 0.75rem !important;
+[data-testid="stExpander"] summary {
+    color: transparent !important;
+    font-weight: 500 !important;
+    font-family: var(--font) !important;
+    list-style: none !important;
 }
-[data-testid="stExpander"] summary { color: var(--text-2) !important; font-size: 0.88rem !important; font-weight: 500 !important; font-family: var(--font) !important; }
+[data-testid="stExpander"] summary::-webkit-details-marker { display: none !important; }
+[data-testid="stExpander"] summary p {
+    color: var(--text-2) !important;
+    font-size: 0.88rem !important;
+    font-weight: 500 !important;
+}
 [data-testid="stExpander"] summary svg { display: none !important; }
-[data-testid="stExpander"] summary [data-testid="stExpanderToggleIcon"] { display: none !important; }
-[data-testid="stExpander"] summary > div > div:first-child:not(:only-child) { display: none !important; }
+[data-testid="stExpander"] summary span { color: transparent !important; font-size: 0 !important; }
 @keyframes gpFadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes gpFadeIn { from { opacity: 0; } to { opacity: 1; } }
 .gp-hero       { animation: gpFadeUp 0.45s var(--ease-out) both; }
@@ -406,6 +412,8 @@ hr { border: none !important; border-top: 1px solid var(--sep) !important; margi
 </style>
 """, unsafe_allow_html=True)
 
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # ESG DATABASE
 # ══════════════════════════════════════════════════════════════════════════════
@@ -515,8 +523,9 @@ def build_mv_frontier(mu, cov, bounds=None, n_points=100):
     n = len(mu)
     b = bounds or [(0.,1.)]*n
     w_mv = _minimise_sd(mu, cov, bounds=b)
-    ret_min = port_ret(w_mv, mu)
+    ret_mv  = port_ret(w_mv, mu)
     ret_max = float(np.max([port_ret(np.eye(n)[i], mu) for i in range(n) if b[i][1] > 0]))
+    ret_min = float(np.min([port_ret(np.eye(n)[i], mu) for i in range(n) if b[i][1] > 0]))
     targets = np.linspace(ret_min, ret_max, n_points)
     stds, rets = [], []
     for rt in targets:
@@ -1876,44 +1885,47 @@ elif _page == "results":
         ax.grid(True, alpha=0.3, color=GRID_C, linestyle="--", linewidth=0.6)
 
     with _c1:
-        fig, ax = plt.subplots(figsize=(6.5, 5.5))
-        fig.patch.set_facecolor(CHART_BG)
-        if len(std_blue) > 2:
-            ax.plot(std_blue, ret_blue, color=BLUE, lw=2.2, zorder=4, label="MV Frontier (all assets)")
-        if len(std_green) > 2:
-            ax.plot(std_green, ret_green, color=GREEN, lw=2.2, zorder=4,
-                    label=f"MV Frontier (ESG \u2265 {esg_thresh:.1f})")
-        if sp_tan_all > 1e-9 and len(std_blue) > 0:
-            cml_max = max(np.nanmax(std_blue), sp_tan_all*100) * 1.5
-            sd_cml  = np.linspace(0, cml_max, 300)
-            ax.plot(sd_cml, rf*100 + (ep_tan_all-rf)/sp_tan_all*sd_cml,
-                    color=BLUE, lw=1.4, linestyle="--", zorder=3, label="CML (all assets)")
-        if sp_tan_esg > 1e-9 and len(std_green) > 0:
-            cml_max2 = max(np.nanmax(std_green), sp_tan_esg*100) * 1.5
-            sd_cml2  = np.linspace(0, cml_max2, 300)
-            ax.plot(sd_cml2, rf*100 + (ep_tan_esg-rf)/sp_tan_esg*sd_cml2,
-                    color=GREEN, lw=1.4, linestyle="--", zorder=3,
-                    label=f"CML (ESG \u2265 {esg_thresh:.1f})")
-        ax.scatter(sp_tan_all*100, ep_tan_all*100, color=BLUE, s=140, zorder=9, edgecolors="white", lw=1.4, marker="*")
-        ax.annotate("tangency (all)", (sp_tan_all*100, ep_tan_all*100),
-                    textcoords="offset points", xytext=(7, 2), fontsize=7, color=BLUE, fontstyle="italic")
-        if len(std_green) > 2:
-            ax.scatter(sp_tan_esg*100, ep_tan_esg*100, color=GREEN, s=140, zorder=9, edgecolors="white", lw=1.4, marker="*")
-            ax.annotate("tangency (ESG)", (sp_tan_esg*100, ep_tan_esg*100),
-                        textcoords="offset points", xytext=(7, -18), fontsize=7, color=GREEN, fontstyle="italic")
-        ax.scatter(0, rf*100, color=GREY, s=60, zorder=8, edgecolors="white", lw=1, marker="s")
-        ax.scatter(sp*100, ep*100, color=ORANGE, s=160, zorder=10, edgecolors="white", lw=2, marker="*", label="ESG-Optimal")
-        for i in range(n):
-            col_pt = GREEN if active_mask[i] else BLUE
-            ax.scatter(vols[i]*100, mu[i]*100, color=col_pt, s=45, zorder=6, edgecolors="white", lw=0.7, alpha=0.8)
-            ax.annotate(names[i], (vols[i]*100, mu[i]*100),
-                        textcoords="offset points", xytext=(4, 3), fontsize=7, color=GREY)
-        ax.set_xlabel("Std Dev (%)", fontsize=9, color=GREY)
-        ax.set_ylabel("Expected Return (%)", fontsize=9, color=GREY)
-        ax.set_xlim(left=0)
-        ax.legend(fontsize=7, framealpha=0.9, facecolor=LEG_BG, edgecolor=LEG_ED, labelcolor=LABEL_C)
-        _style_ax(ax, "Mean-Variance Frontier")
-        fig.tight_layout(); st.pyplot(fig); plt.close()
+            fig, ax = plt.subplots(figsize=(6.5, 5.5))
+            fig.patch.set_facecolor(CHART_BG)
+            if len(std_green) > 2:
+                ax.plot(std_green, ret_green, color=GREEN, lw=2.0, zorder=4,
+                        label=f"MV Frontier (ESG \u2265 {esg_thresh:.1f})")
+            all_stds = list(std_blue) + list(std_green) + [sp*100, sp_tan_all*100]
+            all_rets = list(ret_blue) + list(ret_green) + [ep*100, ep_tan_all*100, rf*100]
+            x_pad = max(all_stds) * 0.08
+            y_pad = (max(all_rets) - min(all_rets)) * 0.12
+            if sp_tan_esg > 1e-9 and len(std_green) > 0:
+                cml_max2 = max(all_stds) + x_pad
+                sd_cml2  = np.linspace(0, cml_max2, 300)
+                ax.plot(sd_cml2, rf*100 + (ep_tan_esg-rf)/sp_tan_esg*sd_cml2,
+                        color=GREEN, lw=1.4, linestyle="--", zorder=3,
+                        label=f"CML (ESG \u2265 {esg_thresh:.1f})")
+            if sp_tan_all > 1e-9 and len(std_blue) > 0:
+                cml_max = max(all_stds) + x_pad
+                sd_cml  = np.linspace(0, cml_max, 300)
+                ax.plot(sd_cml, rf*100 + (ep_tan_all-rf)/sp_tan_all*sd_cml,
+                        color=BLUE, lw=1.4, linestyle="--", zorder=4, label="CML (all assets)")
+            ax.scatter(sp_tan_all*100, ep_tan_all*100, color=BLUE, s=140, zorder=9, edgecolors="white", lw=1.4, marker="*")
+            ax.annotate("tangency (all)", (sp_tan_all*100, ep_tan_all*100),
+                        textcoords="offset points", xytext=(7, 2), fontsize=7, color=BLUE, fontstyle="italic")
+            if len(std_green) > 2:
+                ax.scatter(sp_tan_esg*100, ep_tan_esg*100, color=GREEN, s=140, zorder=9, edgecolors="white", lw=1.4, marker="*")
+                ax.annotate("tangency (ESG)", (sp_tan_esg*100, ep_tan_esg*100),
+                            textcoords="offset points", xytext=(7, -18), fontsize=7, color=GREEN, fontstyle="italic")
+            ax.scatter(0, rf*100, color=GREY, s=60, zorder=8, edgecolors="white", lw=1, marker="s")
+            ax.scatter(sp*100, ep*100, color=ORANGE, s=160, zorder=10, edgecolors="white", lw=2, marker="*", label="ESG-Optimal")
+            for i in range(n):
+                col_pt = GREEN if active_mask[i] else BLUE
+                ax.scatter(vols[i]*100, mu[i]*100, color=col_pt, s=45, zorder=6, edgecolors="white", lw=0.7, alpha=0.8)
+                ax.annotate(names[i], (vols[i]*100, mu[i]*100),
+                            textcoords="offset points", xytext=(4, 3), fontsize=7, color=GREY)
+            ax.set_xlabel("Std Dev (%)", fontsize=9, color=GREY)
+            ax.set_ylabel("Expected Return (%)", fontsize=9, color=GREY)
+            ax.set_xlim(0, max(all_stds) + x_pad)
+            ax.set_ylim(rf*100 - y_pad, max(all_rets) + y_pad)
+            ax.legend(fontsize=7, framealpha=0.9, facecolor=LEG_BG, edgecolor=LEG_ED, labelcolor=LABEL_C)
+            _style_ax(ax, "Mean-Variance Frontier")
+            fig.tight_layout(); st.pyplot(fig); plt.close()
 
     with _c2:
         # ── Build ESG-SR frontier via continuous ESG constraint sweep ──────
