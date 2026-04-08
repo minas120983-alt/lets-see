@@ -21,6 +21,11 @@ with the code below.  Everything else in your app stays the same.
 # ════════════════════════════════════════════════════════════════════════════
 # GRAPH 1  —  Mean-Variance Efficient Frontier  (FIXED: blue frontier added)
 # ════════════════════════════════════════════════════════════════════════════
+# NOTE: this line creates _c1 and _c2 — make sure it is present before the
+# `with _c1:` / `with _c2:` blocks below (it may have been deleted when you
+# applied the previous patch, which caused the NameError).
+_c1, _c2 = st.columns(2)
+
 with _c1:
     fig, ax = plt.subplots(figsize=(6.5, 5.5))
     fig.patch.set_facecolor(CHART_BG)
