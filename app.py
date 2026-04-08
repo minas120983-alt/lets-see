@@ -1,11 +1,11 @@
 """
-GREENPORT — Graph Fix Patch
-===========================
-Two bugs fixed:
-  1. Graph 1 (Mean-Variance Frontier): std_blue / ret_blue were never plotted.
-  2. Graph 2 (ESG–SR Frontier): x-axis was forced to 0–10 regardless of data;
-     left-side (rising) arch segment was often empty because ESG ≤ τ feasibility
-     breaks for very low τ values — replaced with a direct sweep that works.
+GREENPORT — Graph Fix Patch  (v2)
+==================================
+Changes vs original code:
+  1. Graph 1: both the BLUE (all-assets) and GREEN (ESG-screened) MV frontiers
+     are now plotted, matching the lecture slide layout.
+  2. Graph 2: x-axis now starts at the minimum possible ESG score (the lowest
+     individual asset ESG) so the arch curve fills the chart properly.
 
 HOW TO APPLY
 ------------
@@ -33,17 +33,17 @@ with _c1:
     x_pad = max(all_stds) * 0.08 if all_stds else 5
     y_pad = ((max(all_rets) - min(all_rets)) * 0.12) if len(all_rets) > 1 else 1
 
-    # ── BUG FIX: plot the BLUE (all-assets) frontier ─────────────────────
+    # ── BLUE frontier — all assets, no ESG constraint ─────────────────────
     if len(std_blue) > 2:
         ax.plot(std_blue, ret_blue,
-                color=BLUE, lw=2.0, zorder=3,
-                label="MV Frontier (all assets)")
+                color=BLUE, lw=2.2, zorder=3,
+                label="mean-variance frontier (all assets)")
 
-    # ── green (ESG-screened) frontier ─────────────────────────────────────
+    # ── GREEN frontier — ESG-screened assets only ─────────────────────────
     if len(std_green) > 2:
         ax.plot(std_green, ret_green,
-                color=GREEN, lw=2.0, zorder=4,
-                label=f"MV Frontier (ESG \u2265 {esg_thresh:.1f})")
+                color=GREEN, lw=2.2, zorder=4,
+                label=f"mean-variance frontier (portfolios with given ESG \u2265 {esg_thresh:.1f})")
 
     # ── Capital Market Lines ──────────────────────────────────────────────
     cml_max = max(all_stds) + x_pad if all_stds else 50
@@ -53,30 +53,30 @@ with _c1:
         ax.plot(sd_cml,
                 rf * 100 + (ep_tan_all - rf) / sp_tan_all * sd_cml,
                 color=BLUE, lw=1.4, linestyle="--", zorder=4,
-                label="CML (all assets)")
+                label="tangency portfolio (all assets)")
 
     if sp_tan_esg > 1e-9 and len(std_green) > 0:
         ax.plot(sd_cml,
                 rf * 100 + (ep_tan_esg - rf) / sp_tan_esg * sd_cml,
                 color=GREEN, lw=1.4, linestyle="--", zorder=3,
-                label=f"CML (ESG \u2265 {esg_thresh:.1f})")
+                label=f"tangency portfolio (portfolios with given ESG)")
 
-    # ── tangency portfolios ───────────────────────────────────────────────
+    # ── tangency portfolio markers ────────────────────────────────────────
     ax.scatter(sp_tan_all * 100, ep_tan_all * 100,
-               color=BLUE, s=140, zorder=9,
-               edgecolors="white", lw=1.4, marker="*")
-    ax.annotate("tangency (all assets)",
+               color=BLUE, s=100, zorder=9,
+               edgecolors="white", lw=1.4, marker="o")
+    ax.annotate("tagency portfolio\n(all assets)",
                 (sp_tan_all * 100, ep_tan_all * 100),
-                textcoords="offset points", xytext=(7, 2),
+                textcoords="offset points", xytext=(-72, 8),
                 fontsize=7, color=BLUE, fontstyle="italic")
 
     if len(std_green) > 2:
         ax.scatter(sp_tan_esg * 100, ep_tan_esg * 100,
-                   color=GREEN, s=140, zorder=9,
-                   edgecolors="white", lw=1.4, marker="*")
-        ax.annotate("tangency (portfolios with given ESG)",
+                   color=GREEN, s=100, zorder=9,
+                   edgecolors="white", lw=1.4, marker="o")
+        ax.annotate("tagency portfolio\n(portfolios with given ESG)",
                     (sp_tan_esg * 100, ep_tan_esg * 100),
-                    textcoords="offset points", xytext=(7, -18),
+                    textcoords="offset points", xytext=(7, -20),
                     fontsize=7, color=GREEN, fontstyle="italic")
 
     # ── risk-free asset ───────────────────────────────────────────────────
@@ -194,14 +194,14 @@ with _c2:
     # ── user's ESG-optimal portfolio ──────────────────────────────────────
     _esg_opt  = float(np.dot(w_opt, esg_scores))
 
-    # ── axis limits — driven by actual data, not forced 0–10 ─────────────
-    _all_esg_x = (_esg_sorted + list(esg_scores)
-                  + [_esg_unc, _esg_esgt, _esg_opt])
+    # ── axis limits ───────────────────────────────────────────────────────
+    # X: start at the LOWEST individual-asset ESG score (= smallest possible
+    #    portfolio ESG with long-only weights) so the arch fills the chart.
     _all_sr_y  = (_sr_sorted + list(_indiv_sr)
                   + [_sr_unc, sr]
                   + ([_sr_esgt] if _scr_differs else []))
-    _x_lo = max(0,  min(_all_esg_x) - 0.4)
-    _x_hi = min(10, max(_all_esg_x) + 0.4)
+    _x_lo = max(0,   _esg_min - 0.25)          # start just left of min asset ESG
+    _x_hi = min(10,  _esg_max + 0.25)          # end just right of max asset ESG
     _y_lo = min(_all_sr_y) - (max(_all_sr_y) - min(_all_sr_y)) * 0.22
     _y_hi = max(_all_sr_y) + (max(_all_sr_y) - min(_all_sr_y)) * 0.28
 
