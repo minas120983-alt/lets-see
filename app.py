@@ -866,49 +866,50 @@ elif _page == "results":
         fig, ax = plt.subplots(figsize=(6.5, 5.5))
         fig.patch.set_facecolor(CHART_BG)
 
-        # ── Blue: BASE portfolio frontier (all assets, unconstrained) ────────
-        if len(std_blue) > 2:
-            ax.plot(std_blue, ret_blue, color=BLUE, lw=2.2, zorder=3,
-                    label="Efficient Frontier — Base (all assets)")
-
-        # ── Green: ESG UTILITY-MAX portfolio frontier (ESG-screened) ─────────
+        # ── Green FIRST (lower z) so blue always renders on top ──────────────
+        # Green: ESG UTILITY-MAX portfolio frontier (ESG-screened)
         if len(std_green) > 2:
-            ax.plot(std_green, ret_green, color=GREEN, lw=2.2, zorder=4,
+            ax.plot(std_green, ret_green, color=GREEN, lw=2.2, zorder=3,
                     label=f"Efficient Frontier — ESG Utility-Max (ESG ≥ {esg_thresh:.1f})")
+
+        # Blue: BASE portfolio frontier (all assets, unconstrained) — drawn on top
+        if len(std_blue) > 2:
+            ax.plot(std_blue, ret_blue, color=BLUE, lw=2.5, zorder=5,
+                    label="Efficient Frontier — Base (all assets)")
 
         # ── Capital Market Lines ──────────────────────────────────────────────
         cml_max = max(all_stds) + x_pad if all_stds else 50
         sd_cml  = np.linspace(0, cml_max, 300)
 
-        # Blue CML — BASE portfolio (through unconstrained tangency)
-        if sp_tan_all > 1e-9:
-            ax.plot(sd_cml, rf * 100 + (ep_tan_all - rf) / sp_tan_all * sd_cml,
-                    color=BLUE, lw=1.4, linestyle="--", zorder=4,
-                    label=f"CML — Base (SR={sr_tan_all:.3f})")
-
-        # Green CML — ESG UTILITY-MAX portfolio (through ESG-screened tangency)
+        # Green CML — ESG UTILITY-MAX (drawn first / lower z)
         if sp_tan_esg > 1e-9:
             ax.plot(sd_cml, rf * 100 + (ep_tan_esg - rf) / sp_tan_esg * sd_cml,
-                    color=GREEN, lw=1.4, linestyle="--", zorder=3,
+                    color=GREEN, lw=1.6, linestyle="--", zorder=4,
                     label=f"CML — ESG Utility-Max (SR={sr_tan_esg:.3f})")
 
-        # ── Tangency markers ──────────────────────────────────────────────────
-        # Blue tangency (Base)
-        ax.scatter(sp_tan_all * 100, ep_tan_all * 100, color=BLUE, s=100, zorder=9,
-                   edgecolors="white", lw=1.4, marker="o")
-        ax.annotate("Base tangency\n(all assets)",
-                    (sp_tan_all * 100, ep_tan_all * 100),
-                    textcoords="offset points", xytext=(-72, 8),
-                    fontsize=7, color=BLUE, fontstyle="italic")
+        # Blue CML — BASE portfolio (drawn on top so always visible)
+        if sp_tan_all > 1e-9:
+            ax.plot(sd_cml, rf * 100 + (ep_tan_all - rf) / sp_tan_all * sd_cml,
+                    color=BLUE, lw=1.6, linestyle="--", zorder=6,
+                    label=f"CML — Base (SR={sr_tan_all:.3f})")
 
-        # Green tangency (ESG Utility-Max)
+        # ── Tangency markers ──────────────────────────────────────────────────
+        # Green tangency first (lower z) — ESG Utility-Max
         if sp_tan_esg > 1e-9:
-            ax.scatter(sp_tan_esg * 100, ep_tan_esg * 100, color=GREEN, s=100, zorder=9,
+            ax.scatter(sp_tan_esg * 100, ep_tan_esg * 100, color=GREEN, s=110, zorder=9,
                        edgecolors="white", lw=1.4, marker="o")
             ax.annotate("ESG Utility-Max\ntangency",
                         (sp_tan_esg * 100, ep_tan_esg * 100),
                         textcoords="offset points", xytext=(7, -20),
                         fontsize=7, color=GREEN, fontstyle="italic")
+
+        # Blue tangency on top — Base
+        ax.scatter(sp_tan_all * 100, ep_tan_all * 100, color=BLUE, s=110, zorder=11,
+                   edgecolors="white", lw=1.4, marker="o")
+        ax.annotate("Base tangency\n(all assets)",
+                    (sp_tan_all * 100, ep_tan_all * 100),
+                    textcoords="offset points", xytext=(-72, 8),
+                    fontsize=7, color=BLUE, fontstyle="italic")
 
         # ── Risk-free asset ───────────────────────────────────────────────────
         ax.scatter(0, rf * 100, color=GREY, s=60, zorder=8,
