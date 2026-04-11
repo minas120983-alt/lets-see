@@ -237,7 +237,7 @@ def find_optimal(mu, cov, esg, rf, gamma, lam):
     w_star = (ret_t - rf) / (gamma * sd_t ** 2) if sd_t > 1e-9 else 0.0
     w_star = float(np.clip(w_star, 0.0, 1.0))
     return w_tan * w_star
-
+    
 def find_esg_tangency(mu, cov, esg, rf, lam, bounds=None):
     """Find the tangency portfolio on the ESG-adjusted frontier (mu_adj = mu + lam*esg)."""
     n = len(mu)
