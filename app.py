@@ -9,16 +9,13 @@ import streamlit as st
 import streamlit.components.v1 as components
 import yfinance as yf
 from scipy.optimize import minimize
-
 warnings.filterwarnings("ignore")
-
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="GreenPort · ESG Portfolio Optimiser",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
-
 # ── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
@@ -139,13 +136,11 @@ hr { border: none !important; border-top: 1px solid var(--sep) !important; margi
 [data-testid="stExpander"] summary span { color: transparent !important; font-size: 0 !important; }
 </style>
 """, unsafe_allow_html=True)
-
 # ══════════════════════════════════════════════════════════════════════════════
 # ESG DATABASE
 # ══════════════════════════════════════════════════════════════════════════════
 _ESG_CSV_URL = "https://raw.githubusercontent.com/minas120983-alt/lets-see/main/ESG%20data%202026.csv"
 _ESG_CSV_LOCAL = "/mnt/user-data/uploads/ESG data 2026.csv"
-
 def _parse_esg_df(df: pd.DataFrame) -> dict:
     df = df[df["fieldname"] == "ESGCombinedScore"].copy()
     df["valuescore"] = pd.to_numeric(df["valuescore"], errors="coerce")
@@ -162,7 +157,6 @@ def _parse_esg_df(df: pd.DataFrame) -> dict:
         }
         for _, row in latest.iterrows()
     }
-
 @st.cache_data(show_spinner=False)
 def load_esg_db() -> dict:
     try:
@@ -182,16 +176,13 @@ def load_esg_db() -> dict:
     except Exception:
         pass
     return {}
-
 _ESG_DB: dict = load_esg_db()
-
 def lookup_esg(ticker: str) -> dict:
     t = ticker.upper().strip()
     if t in _ESG_DB:
         return {"ticker": t, **_ESG_DB[t], "error": None}
     return {"ticker": t, "app_esg": None, "letter": None, "year": None,
             "source": None, "has_esg": False, "error": f"'{t}' not found in ESG CSV."}
-
 # ══════════════════════════════════════════════════════════════════════════════
 # PORTFOLIO MATH
 # ══════════════════════════════════════════════════════════════════════════════
@@ -201,7 +192,6 @@ def port_sd(w, cov):   return float(max(port_var(w, cov), 1e-14) ** 0.5)
 def port_sr(w, mu, cov, rf):
     ep = port_ret(w, mu); sp = port_sd(w, cov)
     return (ep - rf) / sp if sp > 1e-9 else 0.0
-
 def port_stats(w, mu, cov, esg, rf):
     w = np.asarray(w)
     w_sum = float(np.sum(w))
@@ -210,7 +200,6 @@ def port_stats(w, mu, cov, esg, rf):
     sr = (ep_full - rf) / sp if sp > 1e-9 else 0.0
     esg_bar = float(w @ esg) / max(w_sum, 1e-9)
     return ep_full, sp, sr, esg_bar
-
 def find_tangency(mu, cov, rf, bounds=None):
     n = len(mu)
     b = bounds or [(0., 1.)] * n
@@ -221,7 +210,6 @@ def find_tangency(mu, cov, rf, bounds=None):
         options={"ftol": 1e-10, "maxiter": 800})
     wt = res.x if res.success else np.ones(n) / n
     return wt, port_ret(wt, mu), port_sd(wt, cov), port_sr(wt, mu, cov, rf)
-
 def find_optimal(mu, cov, esg, rf, gamma, lam):
     n = len(mu)
     mu_adj = np.asarray(mu) + (lam / max(gamma, 1e-9)) * np.asarray(esg)
@@ -237,7 +225,6 @@ def find_optimal(mu, cov, esg, rf, gamma, lam):
     w_star = (ret_t - rf) / (gamma * sd_t ** 2) if sd_t > 1e-9 else 0.0
     w_star = float(np.clip(w_star, 0.0, 1.0))
     return w_tan * w_star
-
 def build_mv_frontier(mu, cov, bounds=None, n_points=100):
     n = len(mu)
     b = bounds or [(0., 1.)] * n
@@ -259,12 +246,10 @@ def build_mv_frontier(mu, cov, bounds=None, n_points=100):
             stds.append(port_sd(res.x, cov) * 100)
             rets.append(port_ret(res.x, mu) * 100)
     return np.array(stds), np.array(rets)
-
 def nearest_psd(matrix):
     ev, evec = np.linalg.eigh(matrix)
     ev[ev < 1e-8] = 1e-8
     return evec @ np.diag(ev) @ evec.T
-
 # ══════════════════════════════════════════════════════════════════════════════
 # CHATBOT
 # ══════════════════════════════════════════════════════════════════════════════
@@ -284,7 +269,6 @@ _CHIP_LABELS = [
     "What does λ do?", "How does γ change things?", "Worst ESG asset?",
     "Cost of ESG constraint?", "Explain the utility function", "How does the CML work?",
 ]
-
 def _portfolio_answer(question: str, d: dict) -> str:
     q = question.lower()
     names = d["names"]; mu = d["mu"]; vols = d["vols"]
@@ -295,7 +279,6 @@ def _portfolio_answer(question: str, d: dict) -> str:
     ep_tan_esg = d["ep_tan_esg"]; sp_tan_esg = d["sp_tan_esg"]; sr_tan_esg = d["sr_tan_esg"]
     active_mask = d["active_mask"]; esg_thresh = d["esg_thresh"]
     cov = d["cov"]; n = d["n"]
-
     ind_sr = [(mu[i] - rf) / vols[i] for i in range(n)]
     sorted_by_w   = sorted(range(n), key=lambda i: w_opt[i], reverse=True)
     sorted_by_esg = sorted(range(n), key=lambda i: esg_scores[i])
@@ -308,7 +291,6 @@ def _portfolio_answer(question: str, d: dict) -> str:
     top_w_pct   = w_opt[sorted_by_w[0]] * 100
     worst_esg_i = sorted_by_esg[0]
     best_sr_i   = sorted_by_sr[0]
-
     if any(k in q for k in ["utility", "objective", "maximis", "optimi", "formula"]):
         esg_term = lam * (esg_bar / 100); var_term = gamma / 2 * sp ** 2
         return "\n".join([
@@ -320,7 +302,6 @@ def _portfolio_answer(question: str, d: dict) -> str:
             f" Total U = {u_val:.5f}", "",
             f"With λ={lam}, each ESG point is worth {lam/100*100:.2f}% return equivalent.",
         ])
-
     if any(k in q for k in ["weight", "allocation", "holding", "position", "why does my portfolio"]):
         lines = [f"Weights maximise U = E[Rp] − (γ/2)σ² + λ·(ESG/100) with γ={gamma}, λ={lam}.", ""]
         for i in sorted_by_w:
@@ -328,7 +309,6 @@ def _portfolio_answer(question: str, d: dict) -> str:
             tag = "" if w > 0.001 else " (zero weight)"
             lines.append(f" {names[i]} ({w*100:.1f}%{tag}): E[R]={mu[i]*100:.1f}%, σ={vols[i]*100:.1f}%, ESG={esg_scores[i]:.1f}/10, SR={sr_i:.3f}")
         return "\n".join(lines)
-
     if any(k in q for k in ["sharpe", "risk-adjusted", "risk adjusted"]):
         verdict = "excellent" if sr > 1.0 else "good" if sr > 0.6 else "moderate" if sr > 0.3 else "low"
         lines = [f"Sharpe = ({ep*100:.2f}% − {rf*100:.1f}%) / {sp*100:.2f}% = {sr:.3f} — {verdict}.", "",
@@ -337,7 +317,6 @@ def _portfolio_answer(question: str, d: dict) -> str:
         for i in sorted_by_sr:
             lines.append(f" {names[i]}: {ind_sr[i]:.3f}")
         return "\n".join(lines)
-
     if any(k in q for k in ["cost", "constraint", "penalty", "sacrifice", "tradeoff", "price of esg"]):
         pct_loss = sharpe_cost / max(sr_tan_all, 0.001) * 100
         return "\n".join([
@@ -347,7 +326,6 @@ def _portfolio_answer(question: str, d: dict) -> str:
             f" ESG gained: {esg_bar:.2f}/10", "",
             f"Unconstrained SR = {sr_tan_all:.4f} | ESG-screened SR = {sr_tan_esg:.4f}",
         ])
-
     if any(k in q for k in ["lambda", "λ", "esg preference", "what does the esg"]):
         esg_term = lam * (esg_bar / 100)
         return "\n".join([
@@ -355,7 +333,6 @@ def _portfolio_answer(question: str, d: dict) -> str:
             f"Each 1-point improvement in ESG is worth {lam/100*100:.2f}% of expected return.",
             f"At λ=0 you'd hold the tangency portfolio (SR={sr_tan_all:.3f}).",
         ])
-
     if any(k in q for k in ["gamma", "γ", "risk aversion", "how does increasing risk"]):
         var_pen = gamma / 2 * sp ** 2
         sorted_by_vol = sorted(range(n), key=lambda i: vols[i])
@@ -363,44 +340,38 @@ def _portfolio_answer(question: str, d: dict) -> str:
         for i in sorted_by_vol:
             lines.append(f" {names[i]}: σ={vols[i]*100:.1f}%, weight={w_opt[i]*100:.1f}%")
         return "\n".join(lines)
-
     if any(k in q for k in ["drags", "drag", "worst esg", "lowest esg", "which asset"]):
         lines = [f"Lowest ESG: {names[worst_esg_i]} ({esg_scores[worst_esg_i]:.2f}/10), weight={w_opt[worst_esg_i]*100:.1f}%", "", "All assets by ESG:"]
         for i in sorted_by_esg:
             flag = " [excluded]" if not active_mask[i] else ""
             lines.append(f" {names[i]}: {esg_scores[i]:.2f}/10{flag}")
         return "\n".join(lines)
-
     if any(k in q for k in ["capital market line", "cml", "market line"]):
         return "\n".join([
             "The CML is a straight line from the risk-free asset through the tangency portfolio.",
-            f"Blue CML (all assets): SR={sr_tan_all:.4f} — E[R]={ep_tan_all*100:.2f}%, σ={sp_tan_all*100:.2f}%",
-            f"Green CML (ESG-screened): SR={sr_tan_esg:.4f} — E[R]={ep_tan_esg*100:.2f}%, σ={sp_tan_esg*100:.2f}%",
+            f"Blue CML (base — all assets): SR={sr_tan_all:.4f} — E[R]={ep_tan_all*100:.2f}%, σ={sp_tan_all*100:.2f}%",
+            f"Green CML (ESG utility-max): SR={sr_tan_esg:.4f} — E[R]={ep_tan_esg*100:.2f}%, σ={sp_tan_esg*100:.2f}%",
         ])
-
     if any(k in q for k in ["green frontier", "right of blue", "frontier sit"]):
         excluded = [names[i] for i in range(n) if not active_mask[i]]
         lines = [
-            "Blue = all assets (largest feasible set). Green = ESG-screened (smaller set).",
+            "Blue = all assets (largest feasible set). Green = ESG utility-max (smaller set).",
             "A smaller set can never beat a larger one → green sits to the RIGHT of blue.",
             f"Sharpe cost: {sharpe_cost:.4f} ({sharpe_cost/max(sr_tan_all,0.001)*100:.1f}% reduction)",
         ]
         if excluded: lines.append(f"Excluded: {', '.join(excluded)}")
         return "\n".join(lines)
-
     # fallback
     active = [(names[i], w_opt[i]) for i in range(n) if w_opt[i] > 0.001]
     lines = [f"Portfolio (γ={gamma}, λ={lam}): E[R]={ep*100:.2f}%, σ={sp*100:.2f}%, SR={sr:.3f}, ESG={esg_bar:.2f}/10", "", "Holdings:"]
     for nm, wt in active:
         lines.append(f" {nm}: {wt*100:.1f}%")
     return "\n".join(lines)
-
 def answer_question(question: str) -> str:
     d = st.session_state.get("chat_data")
     if d is None:
         return "Please run the portfolio optimiser first."
     return _portfolio_answer(question, d)
-
 # ══════════════════════════════════════════════════════════════════════════════
 # MARKET DATA
 # ══════════════════════════════════════════════════════════════════════════════
@@ -427,19 +398,16 @@ def fetch_market_data(tickers, period="3y"):
     if ret.empty or ret.shape[1] < 2:
         raise ValueError("Not enough return data.")
     return close, ret, ret.mean() * 252, ret.std() * np.sqrt(252), ret.cov() * 252, ret.corr()
-
 # ══════════════════════════════════════════════════════════════════════════════
 # STATE
 # ══════════════════════════════════════════════════════════════════════════════
 if "page" not in st.session_state: st.session_state["page"] = "home"
 if "chat_history" not in st.session_state: st.session_state["chat_history"] = []
 _page = st.session_state["page"]
-
 _qp = st.query_params
 if "enter" in _qp:
     st.session_state["page"] = "input"; _page = "input"
     st.query_params.clear(); st.rerun()
-
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE: HOME
 # ══════════════════════════════════════════════════════════════════════════════
@@ -450,7 +418,6 @@ if _page == "home":
     div[data-testid="stHorizontalBlock"]:first-of-type { border-bottom:none !important; margin-bottom:0 !important; padding-bottom:0 !important; }
     div.stButton > button { opacity:0 !important; pointer-events:none !important; position:absolute !important; left:-9999px !important; }
     </style>""", unsafe_allow_html=True)
-
     _HOME_HTML = """<!DOCTYPE html><html lang="en"><head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -494,7 +461,6 @@ if _page == "home":
     var fd=ctx.createLinearGradient(0,H*.68,0,H);fd.addColorStop(0,'rgba(0,0,0,0)');fd.addColorStop(1,'rgba(0,0,0,.94)');ctx.fillStyle=fd;ctx.fillRect(0,0,W,H);
     requestAnimationFrame(draw)}resize();draw();
     </script></body></html>"""
-
     components.html(_HOME_HTML, height=620, scrolling=False)
     st.markdown("""
     <div style="display:flex;justify-content:center;margin-top:1.6rem;">
@@ -504,7 +470,6 @@ if _page == "home":
       </a>
     </div>""", unsafe_allow_html=True)
     st.stop()
-
 # ══════════════════════════════════════════════════════════════════════════════
 # DOT GRID BACKGROUND
 # ══════════════════════════════════════════════════════════════════════════════
@@ -536,7 +501,6 @@ if _page != "home":
     ctx.beginPath();ctx.arc(d.x,d.y,DOT_R,0,6.2832);ctx.fillStyle=lerp(Math.min(disp/18,1));ctx.fill()}
     requestAnimationFrame(frame)}buildGrid();frame()})();
     </script></body></html>""", height=2, scrolling=False)
-
 # ══════════════════════════════════════════════════════════════════════════════
 # NAVBAR
 # ══════════════════════════════════════════════════════════════════════════════
@@ -563,7 +527,6 @@ if _page != "home":
             with _nb_c2:
                 if st.button("Home", key="nav_home", type="primary", use_container_width=True):
                     st.session_state["page"] = "home"; st.rerun()
-
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE: INPUT
 # ══════════════════════════════════════════════════════════════════════════════
@@ -574,25 +537,20 @@ if _page == "input":
     <h1 class="gp-title">Build Your<br>ESG Portfolio</h1>
     <p class="gp-subtitle">Construct and optimise a mean-variance portfolio with integrated ESG scoring, drawn from live LSEG data.</p>
     </div>""", unsafe_allow_html=True)
-
     if _ESG_DB:
         st.markdown(f'<div class="info-box">ESG database loaded — <strong>{len(_ESG_DB):,} tickers</strong> from LSEG ESGCombinedScore CSV.</div>', unsafe_allow_html=True)
     else:
         st.markdown('<div class="error-box">Could not load ESG data.</div>', unsafe_allow_html=True)
-
     st.markdown('<div class="gp-label">Asset Universe</div>', unsafe_allow_html=True)
     _im_col, _ = st.columns([2, 3])
     with _im_col:
         input_mode = st.radio("Input method", ["Manual input", "Ticker-based input"], index=1, horizontal=False)
-
     default_names   = ["Tech ETF","Green Bond","Energy Stock","Healthcare","Consumer ETF","Infra Fund","EM Equity","Gov Bond","Real Estate","Commodity"]
     default_ret     = [9.0, 4.5, 7.0, 7.5, 6.5, 5.5, 10.0, 3.0, 6.0, 5.0]
     default_vol     = [18.0, 5.0, 22.0, 15.0, 14.0, 10.0, 25.0, 4.0, 13.0, 20.0]
     default_esg     = [6.5, 8.5, 2.0, 7.0, 5.5, 7.5, 4.0, 6.0, 5.0, 3.5]
     default_tickers = ["AAPL","MSFT","XOM","JNJ","SPY","TLT","NVDA","VWO","GLD","META"]
-
     asset_data = []; ticker_rows = []; corr_df = None; lookback_period = "3y"
-
     if input_mode == "Manual input":
         cl, cr = st.columns([2, 1])
         with cr:
@@ -674,10 +632,8 @@ if _page == "input":
                 t = row["ticker"]
                 row["manual_esg"]     = manual_overrides.get(t, None)
                 row["manual_ret_vol"] = manual_ret_vol.get(t, None)
-
     st.markdown('<div class="gp-label">Investor Preferences</div>', unsafe_allow_html=True)
     _pref_mode = st.radio("How would you like to set your preferences?", ["Manual sliders", "Take the quiz"], horizontal=True, index=0, key="pref_mode")
-
     if _pref_mode == "Take the quiz":
         st.markdown('<div class="info-box"><strong>Quick Preference Quiz</strong></div>', unsafe_allow_html=True)
         _rq1 = st.radio("1 · Your portfolio falls 25%. What do you do?",
@@ -708,22 +664,18 @@ if _page == "input":
         pref_c1, pref_c2 = st.columns(2)
         with pref_c1: gamma = st.slider("Risk Aversion (γ)", 0.5, 10.0, 3.0, 0.5)
         with pref_c2: lam   = st.slider("ESG Preference (λ)", 0.0, 5.0, 1.0, 0.1)
-
     pref_rf_col, _ = st.columns([1, 2])
     with pref_rf_col:
         rf = st.number_input("Risk-Free Rate (%)", 0.0, 20.0, 4.0, 0.1, format="%.1f") / 100
-
     st.markdown('<div class="gp-label">ESG Screen</div>', unsafe_allow_html=True)
     use_exclusion = st.checkbox("Apply minimum ESG exclusion screen", value=False)
     min_esg_filter = 0.0
     if use_exclusion:
         min_esg_filter = st.slider("Minimum ESG score (0–10)", 0.0, 10.0, 4.0, 0.5)
-
     st.markdown("<div style='height:1.5rem;'></div>", unsafe_allow_html=True)
     _, cta_col, _ = st.columns([3, 2, 3])
     with cta_col:
         run = st.button("Run Optimisation", use_container_width=True)
-
     if run:
         ticker_data_display = None; esg_letters = {}; corr_np = None
         if input_mode == "Manual input":
@@ -797,7 +749,6 @@ if _page == "input":
                 "Return Source": ["Yahoo Finance" if t in available else "Manual" for t in all_tickers],
             })
             st.markdown(f'<div class="info-box">Market data loaded for: {", ".join(available)} over {lookback_period}.</div>', unsafe_allow_html=True)
-
         if np.any(np.linalg.eigvalsh(cov) < -1e-8): cov = nearest_psd(cov)
         esg_thresh  = min_esg_filter if use_exclusion else 0.0
         active_mask = esg_scores >= esg_thresh
@@ -833,7 +784,6 @@ if _page == "input":
         st.session_state["chat_history"] = []
         st.session_state["page"] = "results"
         st.rerun()
-
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE: RESULTS
 # ══════════════════════════════════════════════════════════════════════════════
@@ -842,7 +792,6 @@ elif _page == "results":
         st.markdown('<div class="warn-box">No results found. Return to setup.</div>', unsafe_allow_html=True)
         if st.button("Back to Setup"): st.session_state["page"] = "input"; st.rerun()
         st.stop()
-
     R = st.session_state["opt_results"]
     names = R["names"]; mu = R["mu"]; vols = R["vols"]; esg_scores = R["esg_scores"]
     w_opt = R["w_opt"]; ep = R["ep"]; sp = R["sp"]; sr = R["sr"]; esg_bar = R["esg_bar"]
@@ -856,25 +805,21 @@ elif _page == "results":
     input_mode = R["input_mode"]
     active_idx = np.where(active_mask)[0]
     mu_a = mu[active_idx]; cov_a = cov[np.ix_(active_idx, active_idx)]; esg_a = esg_scores[active_idx]
-
     CHART_BG = "#080808"; BLUE = "#3b82f6"; GREEN = "#22c55e"; ORANGE = "#fb923c"
     GREY = "#6b7280"; LABEL_C = "#f2f2f2"; LEG_BG = "#111111"; LEG_ED = "#222222"
     TICK_C = "#6b7280"; SPINE_C = "#222222"; GRID_C = "#1a1a1a"
-
     def _style_ax(ax, title):
         ax.set_facecolor(CHART_BG)
         ax.set_title(title, fontsize=10, fontweight="bold", color=LABEL_C, pad=10)
         ax.tick_params(colors=TICK_C, labelsize=8)
         for sp_ in ax.spines.values(): sp_.set_color(SPINE_C)
         ax.grid(True, alpha=0.3, color=GRID_C, linestyle="--", linewidth=0.6)
-
     u_val = port_ret(w_opt, mu) - gamma / 2 * sp ** 2 + lam * esg_bar
     st.markdown(f"""<div class="results-hero">
     <p class="gp-eyebrow">Optimisation Complete</p>
     <h2 class="results-title">Your Optimal Portfolio</h2>
     <p class="results-meta">γ = {gamma} &nbsp;·&nbsp; λ = {lam} &nbsp;·&nbsp; rf = {rf*100:.1f}% &nbsp;·&nbsp; U = {u_val:.4f}</p>
     </div>""", unsafe_allow_html=True)
-
     m1, m2, m3, m4 = st.columns(4)
     for col, label, val, unit, cls, card_cls in [
         (m1, "Expected Return", f"{ep*100:.2f}", "%", "metric-pos", "card-ret"),
@@ -884,8 +829,7 @@ elif _page == "results":
     ]:
         with col:
             st.markdown(f'<div class="metric-card {card_cls}"><div class="metric-label">{label}</div><div class="metric-value {cls}">{val}<span class="metric-unit">{unit}</span></div></div>', unsafe_allow_html=True)
-
-    st.markdown(f'<div class="info-box">Tangency Sharpe — all assets: <strong>{sr_tan_all:.3f}</strong> &nbsp;|&nbsp; ESG-screened: <strong>{sr_tan_esg:.3f}</strong></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="info-box">Tangency Sharpe — Base (all assets): <strong>{sr_tan_all:.3f}</strong> &nbsp;|&nbsp; ESG Utility-Max: <strong>{sr_tan_esg:.3f}</strong></div>', unsafe_allow_html=True)
     st.markdown('<div class="section-header">Portfolio Weights</div>', unsafe_allow_html=True)
     _rf_weight = max(0.0, 1.0 - float(np.sum(w_opt)))
     _display_names  = names + ["Risk-Free Asset"]
@@ -900,77 +844,81 @@ elif _page == "results":
         "Vol (%)": _display_vol,
         "ESG (0–10)": _display_esg,
     }), use_container_width=True, hide_index=True)
-
     if input_mode == "Ticker-based input" and ticker_data_display is not None:
         with st.expander("Ticker data used"):
             st.dataframe(ticker_data_display, use_container_width=True, hide_index=True)
     if corr_np is not None:
         with st.expander("Correlation matrix"):
             st.dataframe(pd.DataFrame(corr_np, index=names, columns=names).round(3), use_container_width=True)
-
     st.markdown('<div class="section-header">Efficient Frontier</div>', unsafe_allow_html=True)
-
     # ── collect axis limit data ───────────────────────────────────────────────
     all_stds = list(std_blue) + list(std_green) + [sp * 100, sp_tan_all * 100, sp_tan_esg * 100]
     all_rets = list(ret_blue) + list(ret_green) + [ep * 100, ep_tan_all * 100, ep_tan_esg * 100, rf * 100]
     x_pad = max(all_stds) * 0.08 if all_stds else 5
     y_pad = ((max(all_rets) - min(all_rets)) * 0.12) if len(all_rets) > 1 else 1
-
     _c1, _c2 = st.columns(2)
-
     # ════════════════════════════════════════════════════════════════════════
-    # GRAPH 1  —  Mean-Variance Frontier  (blue = all assets, green = ESG)
+    # GRAPH 1  —  Mean-Variance Frontier
+    #   Blue  = Base portfolio      (all assets, unconstrained): frontier + CML
+    #   Green = ESG Utility-Max portfolio (ESG-screened):        frontier + CML
     # ════════════════════════════════════════════════════════════════════════
     with _c1:
         fig, ax = plt.subplots(figsize=(6.5, 5.5))
         fig.patch.set_facecolor(CHART_BG)
 
-        # Blue frontier — ALL assets
+        # ── Blue: BASE portfolio frontier (all assets, unconstrained) ────────
         if len(std_blue) > 2:
             ax.plot(std_blue, ret_blue, color=BLUE, lw=2.2, zorder=3,
-                    label="mean-variance frontier (all assets)")
+                    label="Efficient Frontier — Base (all assets)")
 
-        # Green frontier — ESG-screened assets only
+        # ── Green: ESG UTILITY-MAX portfolio frontier (ESG-screened) ─────────
         if len(std_green) > 2:
             ax.plot(std_green, ret_green, color=GREEN, lw=2.2, zorder=4,
-                    label=f"mean-variance frontier (portfolios with given ESG ≥ {esg_thresh:.1f})")
+                    label=f"Efficient Frontier — ESG Utility-Max (ESG ≥ {esg_thresh:.1f})")
 
-        # Capital Market Lines
+        # ── Capital Market Lines ──────────────────────────────────────────────
         cml_max = max(all_stds) + x_pad if all_stds else 50
         sd_cml  = np.linspace(0, cml_max, 300)
+
+        # Blue CML — BASE portfolio (through unconstrained tangency)
         if sp_tan_all > 1e-9:
             ax.plot(sd_cml, rf * 100 + (ep_tan_all - rf) / sp_tan_all * sd_cml,
                     color=BLUE, lw=1.4, linestyle="--", zorder=4,
-                    label="tangency portfolio (all assets)")
-        if sp_tan_esg > 1e-9 and len(std_green) > 0:
+                    label=f"CML — Base (SR={sr_tan_all:.3f})")
+
+        # Green CML — ESG UTILITY-MAX portfolio (through ESG-screened tangency)
+        if sp_tan_esg > 1e-9:
             ax.plot(sd_cml, rf * 100 + (ep_tan_esg - rf) / sp_tan_esg * sd_cml,
                     color=GREEN, lw=1.4, linestyle="--", zorder=3,
-                    label="tangency portfolio (portfolios with given ESG)")
+                    label=f"CML — ESG Utility-Max (SR={sr_tan_esg:.3f})")
 
-        # Tangency markers
+        # ── Tangency markers ──────────────────────────────────────────────────
+        # Blue tangency (Base)
         ax.scatter(sp_tan_all * 100, ep_tan_all * 100, color=BLUE, s=100, zorder=9,
                    edgecolors="white", lw=1.4, marker="o")
-        ax.annotate("tangency portfolio\n(all assets)",
+        ax.annotate("Base tangency\n(all assets)",
                     (sp_tan_all * 100, ep_tan_all * 100),
                     textcoords="offset points", xytext=(-72, 8),
                     fontsize=7, color=BLUE, fontstyle="italic")
-        if len(std_green) > 2:
+
+        # Green tangency (ESG Utility-Max)
+        if sp_tan_esg > 1e-9:
             ax.scatter(sp_tan_esg * 100, ep_tan_esg * 100, color=GREEN, s=100, zorder=9,
                        edgecolors="white", lw=1.4, marker="o")
-            ax.annotate("tangency portfolio\n(portfolios with given ESG)",
+            ax.annotate("ESG Utility-Max\ntangency",
                         (sp_tan_esg * 100, ep_tan_esg * 100),
                         textcoords="offset points", xytext=(7, -20),
                         fontsize=7, color=GREEN, fontstyle="italic")
 
-        # Risk-free asset
+        # ── Risk-free asset ───────────────────────────────────────────────────
         ax.scatter(0, rf * 100, color=GREY, s=60, zorder=8,
                    edgecolors="white", lw=1, marker="s")
 
-        # ESG-optimal portfolio
+        # ── ESG-optimal portfolio (user's chosen portfolio) ───────────────────
         ax.scatter(sp * 100, ep * 100, color=ORANGE, s=160, zorder=10,
-                   edgecolors="white", lw=2, marker="*", label="ESG-Optimal portfolio")
+                   edgecolors="white", lw=2, marker="*", label="Your ESG-Optimal portfolio")
 
-        # Individual assets
+        # ── Individual assets ─────────────────────────────────────────────────
         for i in range(n):
             ax.scatter(vols[i] * 100, mu[i] * 100,
                        color=GREEN if active_mask[i] else BLUE,
@@ -1000,16 +948,13 @@ elif _page == "results":
         _w_unc  = _ures.x if _ures.success else _w0
         _sr_unc = port_sr(_w_unc, mu, cov, rf)
         _esg_unc = float(np.dot(_w_unc, esg_scores))
-
         _bounds_scr = [(0., 1.) if active_mask[i] else (0., 0.) for i in range(n)]
         _w_esgt, _ep_esgt, _sp_esgt, _sr_esgt = find_tangency(mu, cov, rf, bounds=_bounds_scr)
         _esg_esgt    = float(np.dot(_w_esgt, esg_scores))
         _scr_differs = (abs(_esg_esgt - _esg_unc) > 0.05 or abs(_sr_esgt - _sr_unc) > 0.005)
-
         _esg_min = float(np.min(esg_scores))
         _esg_max = float(np.max(esg_scores)) * 0.999
         _esg_pts, _sr_pts = [], []
-
         # Left side: ESG ≤ τ (rising toward peak)
         for _tau in np.linspace(_esg_min, _esg_unc, 45):
             try:
@@ -1023,7 +968,6 @@ elif _page == "results":
                     _sr_pts.append(port_sr(_r.x, mu, cov, rf))
             except Exception:
                 continue
-
         # Right side: ESG ≥ τ (falling from peak)
         for _tau in np.linspace(_esg_unc, _esg_max, 55):
             try:
@@ -1037,17 +981,14 @@ elif _page == "results":
                     _sr_pts.append(port_sr(_r.x, mu, cov, rf))
             except Exception:
                 continue
-
         if _esg_pts:
             _pairs = sorted(set(zip([round(x, 4) for x in _esg_pts], [round(s, 5) for s in _sr_pts])))
             _esg_sorted = [p[0] for p in _pairs]
             _sr_sorted  = [p[1] for p in _pairs]
         else:
             _esg_sorted, _sr_sorted = [], []
-
         _indiv_sr = (mu - rf) / np.maximum(vols, 1e-9)
         _esg_opt  = float(np.dot(w_opt, esg_scores))
-
         # Axis limits: x starts from minimum asset ESG
         _all_sr_y = (_sr_sorted + list(_indiv_sr) + [_sr_unc, sr]
                      + ([_sr_esgt] if _scr_differs else []))
@@ -1056,15 +997,12 @@ elif _page == "results":
         _sr_range = max(_all_sr_y) - min(_all_sr_y) if len(_all_sr_y) > 1 else 0.1
         _y_lo = min(_all_sr_y) - _sr_range * 0.22
         _y_hi = max(_all_sr_y) + _sr_range * 0.30
-
         fig2, ax2 = plt.subplots(figsize=(6.5, 5.5))
         fig2.patch.set_facecolor(CHART_BG)
         ax2.set_facecolor(CHART_BG)
-
         if len(_esg_sorted) >= 2:
             ax2.plot(_esg_sorted, _sr_sorted, color=GREEN, lw=2.4, zorder=4, label="ESG–SR frontier")
             ax2.fill_between(_esg_sorted, max(0, _y_lo), _sr_sorted, alpha=0.07, color=GREEN, zorder=2)
-
         _ann_offsets = [(6, 6), (6, -16), (-60, 6), (-60, -16), (6, 16), (-60, 16), (14, -4)]
         for _i in range(n):
             ax2.scatter(esg_scores[_i], _indiv_sr[_i],
@@ -1073,7 +1011,6 @@ elif _page == "results":
             ax2.annotate(names[_i], (esg_scores[_i], _indiv_sr[_i]),
                          textcoords="offset points", xytext=_ann_offsets[_i % len(_ann_offsets)],
                          fontsize=7, color=GREY)
-
         ax2.scatter(_esg_unc, _sr_unc, color=BLUE, s=140, zorder=9,
                     edgecolors="white", lw=1.5, marker="D",
                     label=f"Tangency — ignoring ESG (SR={_sr_unc:.3f})")
@@ -1081,7 +1018,6 @@ elif _page == "results":
                      (_esg_unc, _sr_unc), textcoords="offset points", xytext=(8, 10),
                      fontsize=7, color=BLUE, fontstyle="italic",
                      bbox=dict(boxstyle="round,pad=0.25", fc=CHART_BG, ec=BLUE, alpha=0.85, lw=0.6))
-
         if _sp_esgt > 1e-9 and _scr_differs:
             ax2.scatter(_esg_esgt, _sr_esgt, color=GREEN, s=170, zorder=10,
                         edgecolors="white", lw=2, marker="*",
@@ -1090,7 +1026,6 @@ elif _page == "results":
                          (_esg_esgt, _sr_esgt), textcoords="offset points", xytext=(8, -32),
                          fontsize=7, color=GREEN, fontstyle="italic",
                          bbox=dict(boxstyle="round,pad=0.25", fc=CHART_BG, ec=GREEN, alpha=0.85, lw=0.6))
-
         ax2.scatter(_esg_opt, sr, color=ORANGE, s=180, zorder=11,
                     edgecolors="white", lw=2, marker="*",
                     label=f"Your portfolio (SR={sr:.3f})")
@@ -1099,7 +1034,6 @@ elif _page == "results":
                      (_esg_opt, sr), textcoords="offset points", xytext=(_ann_x, -24),
                      fontsize=7, color=ORANGE, fontstyle="italic",
                      bbox=dict(boxstyle="round,pad=0.25", fc=CHART_BG, ec=ORANGE, alpha=0.85, lw=0.6))
-
         ax2.set_xlim(_x_lo, _x_hi)
         ax2.set_ylim(_y_lo, _y_hi)
         ax2.set_xlabel("ESG Score (0–10)", fontsize=9, color=GREY)
@@ -1110,7 +1044,6 @@ elif _page == "results":
         fig2.tight_layout()
         st.pyplot(fig2, use_container_width=True)
         plt.close()
-
     # ── Portfolio Breakdown ───────────────────────────────────────────────────
     st.markdown('<div class="section-header">Portfolio Breakdown</div>', unsafe_allow_html=True)
     _c3, _c4 = st.columns(2)
@@ -1143,7 +1076,6 @@ elif _page == "results":
                 ax4.set_xlabel("Risk Contribution (%)", fontsize=9, color=GREY)
                 _style_ax(ax4, "Risk Contribution by Asset")
                 fig4.tight_layout(); st.pyplot(fig4); plt.close()
-
     # ── Sensitivity Analysis ──────────────────────────────────────────────────
     st.markdown('<div class="section-header">Sensitivity Analysis</div>', unsafe_allow_html=True)
     _gamma_range = np.linspace(0.5, 10, 30); _lam_range = np.linspace(0, 5, 30)
@@ -1182,13 +1114,11 @@ elif _page == "results":
             ax6.legend(fontsize=8, facecolor=LEG_BG, edgecolor=LEG_ED, labelcolor=LABEL_C)
             _style_ax(ax6, "Return & Risk vs ESG Preference (λ)")
             fig6.tight_layout(); st.pyplot(fig6); plt.close()
-
     st.markdown("""<div class="info-box">
     <strong>Methodology:</strong> Utility U = E[R<sub>p</sub>] &minus; (&gamma;/2)&sigma;&sup2;<sub>p</sub> + &lambda;s&#772;,
-    maximised via SLSQP (no short-selling). Blue frontier: unconstrained MV frontier across all assets.
-    Green frontier: restricted to assets passing the ESG screen. ESG data: LSEG ESGCombinedScore CSV, scaled 0–10.
+    maximised via SLSQP (no short-selling). Blue frontier + CML: unconstrained base portfolio (all assets).
+    Green frontier + CML: ESG utility-max portfolio (restricted to assets passing the ESG screen). ESG data: LSEG ESGCombinedScore CSV, scaled 0–10.
     </div>""", unsafe_allow_html=True)
-
     # ── Chatbot ───────────────────────────────────────────────────────────────
     st.markdown('<div class="section-header">Portfolio Explainer</div>', unsafe_allow_html=True)
     if "chat_history" not in st.session_state: st.session_state["chat_history"] = []
@@ -1204,7 +1134,6 @@ elif _page == "results":
             else:
                 msgs_html += f'<div class="bubble-row bot-row"><div class="bot-mini-avatar">GP</div><div class="bubble bubble-b">{safe}</div></div>'
         msgs_html += '</div>'
-
     st.markdown(f"""<div class="chat-page">
     <div class="chat-header">
       <div class="chat-avatar">GP</div>
@@ -1214,7 +1143,6 @@ elif _page == "results":
     <div class="chips-row">{"".join(f'<span class="chip">{q}</span>' for q in SUGGESTED_QUESTIONS)}</div>
     <div class="messages-scroll">{msgs_html}</div>
     </div>""", unsafe_allow_html=True)
-
     st.markdown('<div class="chat-input-bar">', unsafe_allow_html=True)
     with st.form(key="chat_form", clear_on_submit=True):
         _fi, _fs = st.columns([8, 1])
@@ -1223,13 +1151,11 @@ elif _page == "results":
         with _fs:
             submitted = st.form_submit_button("Send", use_container_width=True, type="primary")
     st.markdown('</div>', unsafe_allow_html=True)
-
     if submitted and user_input.strip():
         reply = answer_question(user_input.strip())
         st.session_state["chat_history"].append({"role": "user",      "content": user_input.strip()})
         st.session_state["chat_history"].append({"role": "assistant", "content": reply})
         st.rerun()
-
     st.markdown("<div style='margin-top:1.25rem;'>", unsafe_allow_html=True)
     st.caption("Suggested questions:")
     _pc = st.columns(3)
@@ -1242,13 +1168,11 @@ elif _page == "results":
                 st.session_state["chat_history"].append({"role": "assistant", "content": _r})
                 st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
-
     if st.session_state.get("chat_history"):
         _, _clr_col, _ = st.columns([3, 1, 3])
         with _clr_col:
             if st.button("Clear chat", key="chat_clear"):
                 st.session_state["chat_history"] = []; st.rerun()
-
     st.markdown("""<div style="margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--sep);text-align:center;font-size:.65rem;color:var(--text-3);letter-spacing:.06em;text-transform:uppercase;">
     GreenPort &nbsp;·&nbsp; ECN316 Sustainable Finance &nbsp;·&nbsp; 2026
     </div>""", unsafe_allow_html=True)
