@@ -87,8 +87,8 @@ div[data-testid="stHorizontalBlock"]:first-of-type div.stButton > button { backg
 .error-box { background: #111111 !important; border: 1px solid #222222 !important; border-left: 3px solid #f87171 !important; border-radius: var(--r-sm); padding: 0.75rem 1rem; margin: 0.5rem 0; font-size: 0.81rem; color: #f2f2f2 !important; line-height: 1.6; }
 div.stButton > button { background: var(--accent) !important; color: var(--accent-on) !important; border: none !important; border-radius: var(--r-sm) !important; padding: 0.6rem 1.8rem !important; font-family: var(--font) !important; font-weight: 700 !important; font-size: 0.88rem !important; width: 100% !important; cursor: pointer !important; }
 div.stButton > button:hover { background: var(--accent-hover) !important; transform: translateY(-1px) !important; }
-.stNumberInput input, .stTextInput input, .stTextArea textarea { background: var(--bg-input) !important; color: var(--text-1) !important; border: 1px solid var(--sep) !important; border-radius: var(--r-sm) !important; font-family: var(--font) !important; font-size: 0.88rem !important; }
-.stSelectbox div[data-baseweb="select"] > div { background: var(--bg-input) !important; color: var(--text-1) !important; border: 1px solid var(--sep) !important; border-radius: var(--r-sm) !important; }
+.stNumberInput input, .stTextInput input, .stTextArea textarea { background: #1a1a1a !important; color: #f2f2f2 !important; border: 1px solid #333333 !important; border-radius: var(--r-sm) !important; font-family: var(--font) !important; font-size: 0.88rem !important; }
+.stSelectbox div[data-baseweb="select"] > div { background: #1a1a1a !important; color: #f2f2f2 !important; border: 1px solid #333333 !important; border-radius: var(--r-sm) !important; }
 .stRadio label { color: var(--text-2) !important; font-size: 0.88rem !important; }
 .stSlider [role="slider"] { background: var(--accent) !important; border: none !important; box-shadow: 0 0 0 3px var(--accent-light) !important; }
 label, .stSlider label { color: var(--text-3) !important; font-size: 0.68rem !important; font-weight: 700 !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; }
@@ -112,8 +112,10 @@ hr { border: none !important; border-top: 1px solid var(--sep) !important; margi
 .chips-row { display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto; padding: 0.65rem 1.25rem; border-bottom: 1px solid var(--sep); scrollbar-width: none; }
 .chip { background: #1a1a1a; color: #22c55e !important; border: 1px solid #222222; border-radius: 100px; padding: 0.25rem 0.75rem; font-size: 0.72rem; font-weight: 600; white-space: nowrap; flex-shrink: 0; cursor: pointer; }
 .chip:hover { background: #222222; }
-/* Hide the functional chip buttons — they live offscreen, clicked via JS */
-button[title^="gp-chip-"] { position: fixed !important; left: -9999px !important; top: 0 !important; width: 1px !important; height: 1px !important; opacity: 0 !important; pointer-events: none !important; overflow: hidden !important; }
+/* Hide the functional chip buttons AND every wrapper div around them */
+button[title^="gp-chip-"],
+div:has(> button[title^="gp-chip-"]),
+div:has(button[title^="gp-chip-"]) { display: none !important; }
 .messages-scroll { height: 440px; overflow-y: auto; display: flex; flex-direction: column-reverse; padding: 1rem 1.25rem; background: var(--chat-bg); }
 .messages-inner { display: flex; flex-direction: column; gap: 0.2rem; }
 .bubble-row { display: flex; margin-bottom: 0.25rem; }
@@ -160,12 +162,15 @@ html, body, [class*="css"],
 .stMarkdown, .stText, [data-testid="stMarkdownContainer"] * {
   color: #f2f2f2 !important;
 }
-/* Input fields */
-.stNumberInput input, .stTextInput input, .stTextArea textarea {
+/* Input fields — solid dark background regardless of OS mode */
+.stNumberInput input, .stTextInput input, .stTextArea textarea,
+.stNumberInput div[data-baseweb="input"], .stTextInput div[data-baseweb="input"] {
   color: #f2f2f2 !important;
-  background: rgba(255,255,255,0.09) !important;
+  background: #1a1a1a !important;
+  border-color: #333333 !important;
 }
-.stSelectbox div[data-baseweb="select"] > div { color: #f2f2f2 !important; }
+.stNumberInput, .stTextInput, .stTextArea { background: #1a1a1a !important; }
+.stSelectbox div[data-baseweb="select"] > div { color: #f2f2f2 !important; background: #1a1a1a !important; }
 /* Branded accent colours — must not be wiped by the rule above */
 .gp-eyebrow, .chat-status, .chip, .metric-pos,
 .gp-rw-a, .gp-rw-b { color: #22c55e !important; }
