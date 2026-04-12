@@ -110,7 +110,10 @@ hr { border: none !important; border-top: 1px solid var(--sep) !important; margi
 .chat-status { font-size: 0.68rem; color: var(--accent) !important; margin: 0; display: flex; align-items: center; gap: 4px; }
 .chat-status::before { content: ""; display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
 .chips-row { display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto; padding: 0.65rem 1.25rem; border-bottom: 1px solid var(--sep); scrollbar-width: none; }
-.chip { background: var(--chat-chip-bg); color: var(--chat-chip-color) !important; border: 1px solid var(--sep); border-radius: 100px; padding: 0.25rem 0.75rem; font-size: 0.72rem; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+.chip { background: #1a1a1a; color: #22c55e !important; border: 1px solid #222222; border-radius: 100px; padding: 0.25rem 0.75rem; font-size: 0.72rem; font-weight: 600; white-space: nowrap; flex-shrink: 0; cursor: pointer; }
+.chip:hover { background: #222222; }
+/* Hide the functional chip buttons — they live offscreen, clicked via JS */
+button[title^="gp-chip-"] { position: fixed !important; left: -9999px !important; top: 0 !important; width: 1px !important; height: 1px !important; opacity: 0 !important; pointer-events: none !important; overflow: hidden !important; }
 .messages-scroll { height: 440px; overflow-y: auto; display: flex; flex-direction: column-reverse; padding: 1rem 1.25rem; background: var(--chat-bg); }
 .messages-inner { display: flex; flex-direction: column; gap: 0.2rem; }
 .bubble-row { display: flex; margin-bottom: 0.25rem; }
@@ -326,8 +329,10 @@ def _portfolio_answer(question: str, d: dict) -> str:
     sorted_by_sr  = sorted(range(n), key=lambda i: ind_sr[i], reverse=True)
     w_sum = float(np.sum(w_opt))
     u_val = float(np.dot(w_opt, np.asarray(mu) - rf)) - gamma / 2 * sp ** 2 + lam * float(np.dot(w_opt, esg_scores)) / 100.0
-    sharpe_cost = sr_tan_all - sr_tan_esg
-    ret_cost    = ep_tan_all - ep_tan_esg
+    sharpe_cost  = sr_tan_all - sr_tan_esg   # cost of hard ESG screen
+    pref_cost    = sr_tan_esg - sr            # cost of λ tilt
+    total_cost   = sr_tan_all - sr            # total vs pure MV
+    ret_cost     = ep_tan_all - ep_tan_esg
     top_w_name  = names[sorted_by_w[0]]
     top_w_pct   = w_opt[sorted_by_w[0]] * 100
     worst_esg_i = sorted_by_esg[0]
@@ -359,14 +364,27 @@ def _portfolio_answer(question: str, d: dict) -> str:
             lines.append(f" {names[i]}: {ind_sr[i]:.3f}")
         return "\n".join(lines)
     if any(k in q for k in ["cost", "constraint", "penalty", "sacrifice", "tradeoff", "price of esg"]):
-        pct_loss = sharpe_cost / max(sr_tan_all, 0.001) * 100
-        return "\n".join([
-            f"ESG screen (min ESG ≥ {esg_thresh:.1f}) costs:",
-            f" Sharpe loss: {sharpe_cost:.4f} ({pct_loss:.1f}% reduction)",
-            f" Return loss: {ret_cost*100:.2f}%/yr",
-            f" ESG gained: {esg_bar:.2f}/10", "",
-            f"Unconstrained SR = {sr_tan_all:.4f} | ESG-screened SR = {sr_tan_esg:.4f}",
-        ])
+        lines = [
+            f"ESG costs vs unconstrained MV (SR = {sr_tan_all:.4f}):", "",
+            f"1. Preference cost (λ = {lam} tilt toward high-ESG assets):",
+            f"    SR loss: {pref_cost:.4f} ({pref_cost/max(sr_tan_all,0.001)*100:.1f}% reduction)",
+            f"    Unconstrained tangency SR {sr_tan_all:.4f} → optimal SR {sr:.4f}",
+        ]
+        if abs(sharpe_cost) > 0.0005:
+            lines += [
+                "",
+                f"2. Screening cost (hard ESG filter ≥ {esg_thresh:.1f}):",
+                f"    SR loss: {sharpe_cost:.4f} ({sharpe_cost/max(sr_tan_all,0.001)*100:.1f}% reduction)",
+                f"    ESG-screened tangency SR = {sr_tan_esg:.4f}",
+            ]
+        if abs(total_cost) > 0.0005:
+            lines += [
+                "",
+                f"Total ESG cost: {total_cost:.4f} SR ({total_cost/max(sr_tan_all,0.001)*100:.1f}% below unconstrained MV)",
+            ]
+        else:
+            lines += ["", "No measurable Sharpe cost at current λ and screen settings."]
+        return "\n".join(lines)
     if any(k in q for k in ["lambda", "λ", "esg preference", "what does the esg"]):
         esg_term = lam * (esg_bar / 100)
         return "\n".join([
@@ -959,7 +977,17 @@ if "opt_results" in st.session_state and _page == "input":
     ]:
         with col:
             st.markdown(f'<div class="metric-card {card_cls}"><div class="metric-label">{label}</div><div class="metric-value {cls}">{val}<span class="metric-unit">{unit}</span></div></div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="info-box">Tangency Sharpe — Base (all assets): <strong>{sr_tan_all:.3f}</strong> &nbsp;|&nbsp; ESG Utility-Max: <strong>{sr_tan_esg:.3f}</strong></div>', unsafe_allow_html=True)
+    _screen_cost = sr_tan_all - sr_tan_esg
+    _pref_cost   = sr_tan_esg - sr
+    _total_cost  = sr_tan_all - sr
+    _cost_parts  = []
+    if abs(_screen_cost) > 0.0005:
+        _cost_parts.append(f"screening cost <strong>{_screen_cost:+.3f}</strong>")
+    if abs(_pref_cost) > 0.0005:
+        _cost_parts.append(f"λ-preference cost <strong>{_pref_cost:+.3f}</strong>")
+    _cost_str = " &nbsp;+&nbsp; ".join(_cost_parts) if _cost_parts else "no measurable cost"
+    _total_str = f" &nbsp;→&nbsp; total ESG cost <strong>{_total_cost:+.3f}</strong> SR" if abs(_total_cost) > 0.0005 else ""
+    st.markdown(f'<div class="info-box">Unconstrained tangency SR <strong>{sr_tan_all:.3f}</strong> &nbsp;·&nbsp; {_cost_str}{_total_str} &nbsp;·&nbsp; your portfolio SR <strong>{sr:.3f}</strong></div>', unsafe_allow_html=True)
     st.markdown('<div class="section-header">Portfolio Weights</div>', unsafe_allow_html=True)
     _rf_weight = max(0.0, 1.0 - float(np.sum(w_opt)))
     _display_names  = names + ["Risk-Free Asset"]
@@ -1225,13 +1253,26 @@ if "opt_results" in st.session_state and _page == "input":
             else:
                 msgs_html += f'<div class="bubble-row bot-row"><div class="bot-mini-avatar">GP</div><div class="bubble bubble-b">{safe}</div></div>'
         msgs_html += '</div>'
+    # ── Offscreen functional chip buttons (clicked via JS onclick on chip spans) ─
+    for _i, _q in enumerate(SUGGESTED_QUESTIONS):
+        _label = _CHIP_LABELS[_i] if _i < len(_CHIP_LABELS) else _q
+        if st.button(_label, key=f"chip_{_i}", help=f"gp-chip-{_i}"):
+            _r = answer_question(_q)
+            st.session_state["chat_history"].append({"role": "user",      "content": _q})
+            st.session_state["chat_history"].append({"role": "assistant", "content": _r})
+            st.rerun()
+    # ── Build clickable chip spans with JS onclick ──────────────────────────────
+    _chips_html = "".join(
+        f'<span class="chip" onclick="(function(){{var b=Array.from(document.querySelectorAll(\'button[title=\\\"gp-chip-{_i}\\\"]\'));if(b.length)b[0].click();}})()">{q}</span>'
+        for _i, q in enumerate(SUGGESTED_QUESTIONS)
+    )
     st.markdown(f"""<div class="chat-page">
     <div class="chat-header">
       <div class="chat-avatar">GP</div>
       <div style="flex:1;"><p class="chat-name" style="color:{_t1_c};">Portfolio Explainer</p><p class="chat-status">Active</p></div>
       <div style="font-size:.68rem;color:rgba(128,128,128,.6);text-align:right;line-height:1.7;">Powered by TerraVest<br>No API key required</div>
     </div>
-    <div class="chips-row">{"".join(f'<span class="chip">{q}</span>' for q in SUGGESTED_QUESTIONS)}</div>
+    <div class="chips-row">{_chips_html}</div>
     <div class="messages-scroll">{msgs_html}</div>
     </div>""", unsafe_allow_html=True)
     st.markdown('<div class="chat-input-bar">', unsafe_allow_html=True)
@@ -1247,18 +1288,6 @@ if "opt_results" in st.session_state and _page == "input":
         st.session_state["chat_history"].append({"role": "user",      "content": user_input.strip()})
         st.session_state["chat_history"].append({"role": "assistant", "content": reply})
         st.rerun()
-    st.markdown("<div style='margin-top:1.25rem;'>", unsafe_allow_html=True)
-    st.caption("Suggested questions:")
-    _pc = st.columns(3)
-    for _i, _q in enumerate(SUGGESTED_QUESTIONS):
-        _label = _CHIP_LABELS[_i] if _i < len(_CHIP_LABELS) else _q
-        with _pc[_i % 3]:
-            if st.button(_label, key=f"chip_{_i}", use_container_width=True):
-                _r = answer_question(_q)
-                st.session_state["chat_history"].append({"role": "user",      "content": _q})
-                st.session_state["chat_history"].append({"role": "assistant", "content": _r})
-                st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
     if st.session_state.get("chat_history"):
         _, _clr_col, _ = st.columns([3, 1, 3])
         with _clr_col:
