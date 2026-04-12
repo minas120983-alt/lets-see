@@ -112,10 +112,6 @@ hr { border: none !important; border-top: 1px solid var(--sep) !important; margi
 .chips-row { display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto; padding: 0.65rem 1.25rem; border-bottom: 1px solid var(--sep); scrollbar-width: none; }
 .chip { background: #1a1a1a; color: #22c55e !important; border: 1px solid #222222; border-radius: 100px; padding: 0.25rem 0.75rem; font-size: 0.72rem; font-weight: 600; white-space: nowrap; flex-shrink: 0; cursor: pointer; }
 .chip:hover { background: #222222; }
-/* Hide the functional chip buttons AND every wrapper div around them */
-button[title^="gp-chip-"],
-div:has(> button[title^="gp-chip-"]),
-div:has(button[title^="gp-chip-"]) { display: none !important; }
 .messages-scroll { height: 440px; overflow-y: auto; display: flex; flex-direction: column-reverse; padding: 1rem 1.25rem; background: var(--chat-bg); }
 .messages-inner { display: flex; flex-direction: column; gap: 0.2rem; }
 .bubble-row { display: flex; margin-bottom: 0.25rem; }
@@ -151,13 +147,21 @@ div:has(button[title^="gp-chip-"]) { display: none !important; }
 [data-testid="stExpander"] { animation: gp-fade-in 0.4s ease 0.1s both; }
 /* Spinner fade-in */
 [data-testid="stSpinner"] > div { animation: gp-fade-in 0.3s ease both; }
-[data-testid="stExpander"] { border: 1px solid var(--sep) !important; border-radius: var(--r-md) !important; background: var(--bg-card) !important; margin-bottom: 0.75rem !important; }
-[data-testid="stExpander"] summary { color: transparent !important; font-weight: 500 !important; font-family: var(--font) !important; list-style: none !important; }
+[data-testid="stExpander"] { border: 1px solid #222222 !important; border-radius: var(--r-md) !important; background: #111111 !important; margin-bottom: 0.75rem !important; }
+[data-testid="stExpander"] > div { background: #111111 !important; }
+[data-testid="stExpander"] details { background: #111111 !important; }
+[data-testid="stExpander"] summary { color: transparent !important; font-weight: 500 !important; font-family: var(--font) !important; list-style: none !important; background: #111111 !important; }
 [data-testid="stExpander"] summary::-webkit-details-marker { display: none !important; }
-[data-testid="stExpander"] summary p { color: var(--text-2) !important; font-size: 0.88rem !important; font-weight: 500 !important; }
+[data-testid="stExpander"] summary p { color: #f2f2f2 !important; font-size: 0.88rem !important; font-weight: 500 !important; }
 [data-testid="stExpander"] summary svg { display: none !important; }
 [data-testid="stExpander"] summary span { color: transparent !important; font-size: 0 !important; }
-/* ── Always-on: force white text regardless of OS light/dark mode ─────── */
+/* Expander content area */
+[data-testid="stExpanderDetails"] { background: #111111 !important; }
+[data-testid="stExpanderDetails"] > div { background: #111111 !important; }
+/* ── Always-on: force dark background + white text regardless of OS mode ─ */
+html, body { background: #080808 !important; }
+[data-testid="stAppViewContainer"], [data-testid="stAppViewBlockContainer"],
+section.main, section.main > div, .block-container { background: #080808 !important; }
 html, body, [class*="css"],
 .stMarkdown, .stText, [data-testid="stMarkdownContainer"] * {
   color: #f2f2f2 !important;
@@ -1258,18 +1262,26 @@ if "opt_results" in st.session_state and _page == "input":
             else:
                 msgs_html += f'<div class="bubble-row bot-row"><div class="bot-mini-avatar">GP</div><div class="bubble bubble-b">{safe}</div></div>'
         msgs_html += '</div>'
-    # ── Offscreen functional chip buttons (clicked via JS onclick on chip spans) ─
-    for _i, _q in enumerate(SUGGESTED_QUESTIONS):
-        _label = _CHIP_LABELS[_i] if _i < len(_CHIP_LABELS) else _q
-        if st.button(_label, key=f"chip_{_i}", help=f"gp-chip-{_i}"):
-            _r = answer_question(_q)
-            st.session_state["chat_history"].append({"role": "user",      "content": _q})
-            st.session_state["chat_history"].append({"role": "assistant", "content": _r})
-            st.rerun()
-    # ── Build clickable chip spans with JS onclick ──────────────────────────────
+    # ── Chip spans: set the chat input value via React native setter + click Send ─
+    def _chip_js(question):
+        q_escaped = question.replace("'", "\\'").replace('"', '&quot;')
+        return (
+            f"(function(){{"
+            f"var inp=document.querySelector('input[placeholder=\"Ask about your portfolio...\"]');"
+            f"if(!inp)return;"
+            f"var s=Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set;"
+            f"s.call(inp,'{q_escaped}');"
+            f"inp.dispatchEvent(new Event('input',{{bubbles:true}}));"
+            f"inp.dispatchEvent(new Event('change',{{bubbles:true}}));"
+            f"setTimeout(function(){{"
+            f"var btn=Array.from(document.querySelectorAll('button')).find(function(b){{return b.innerText.trim()==='Send';}});"
+            f"if(btn)btn.click();"
+            f"}},80);"
+            f"}})()"
+        )
     _chips_html = "".join(
-        f'<span class="chip" onclick="(function(){{var b=Array.from(document.querySelectorAll(\'button[title=\\\"gp-chip-{_i}\\\"]\'));if(b.length)b[0].click();}})()">{q}</span>'
-        for _i, q in enumerate(SUGGESTED_QUESTIONS)
+        f'<span class="chip" onclick="{_chip_js(q)}">{q}</span>'
+        for q in SUGGESTED_QUESTIONS
     )
     st.markdown(f"""<div class="chat-page">
     <div class="chat-header">
