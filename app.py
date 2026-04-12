@@ -427,10 +427,8 @@ if _page == "home":
     .block-container { padding-top:0 !important; padding-bottom:0 !important; max-width:100% !important; padding-left:0 !important; padding-right:0 !important; }
     .stApp, [data-testid="stAppViewContainer"], section.main > div { background:#000000 !important; }
     div[data-testid="stHorizontalBlock"]:first-of-type { border-bottom:none !important; margin-bottom:0 !important; padding-bottom:0 !important; }
-    /* Enter TerraVest — pill button, centred */
-    div.stButton { display:flex !important; justify-content:center !important; width:100% !important; margin-top:1.6rem !important; }
-    div.stButton > button { width:auto !important; min-width:210px !important; border-radius:50px !important; font-size:0.95rem !important; letter-spacing:-0.01em !important; padding:0.7rem 2.4rem !important; min-height:48px !important; animation:gp-fade-up 0.5s cubic-bezier(0.16,1,0.3,1) 0.35s both !important; }
-    div.stButton > button:hover { background:#4ade80 !important; transform:none !important; }
+    /* Streamlit button is hidden — click triggered by JS from the iframe */
+    div.stButton > button { opacity:0 !important; pointer-events:none !important; position:absolute !important; left:-9999px !important; }
     </style>""", unsafe_allow_html=True)
     _HOME_HTML = """<!DOCTYPE html><html lang="en"><head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -454,8 +452,10 @@ if _page == "home":
       <div class="badge">ECN316 &middot; Sustainable Finance &middot; 2026</div>
       <h1 class="title">Terra<span class="dim">Vest</span></h1>
       <p class="subtitle">ESG-integrated portfolio optimisation. Build and analyse sustainable investments with live LSEG data and mean-variance theory.</p>
+      <button id="gp-enter" onclick="triggerEnter()" style="pointer-events:auto;margin-top:2.2rem;display:inline-flex;align-items:center;justify-content:center;background:#22c55e;color:#000;font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size:.95rem;font-weight:700;letter-spacing:-.01em;border:none;border-radius:50px;padding:.7rem 2.4rem;min-width:210px;cursor:pointer;box-shadow:0 0 0 1px rgba(255,255,255,.08);animation:fadeUp .65s cubic-bezier(.16,1,.3,1) .4s forwards;opacity:0;" onmouseover="this.style.background='#4ade80'" onmouseout="this.style.background='#22c55e'">Enter TerraVest →</button>
     </div>
     <script>
+    function triggerEnter(){try{var bs=window.parent.document.querySelectorAll('button');for(var i=0;i<bs.length;i++){if(bs[i].innerText&&bs[i].innerText.indexOf('TerraVest')>-1){bs[i].click();return;}}}catch(e){}window.parent.location.href=window.parent.location.pathname+'?enter=1';}
     var canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d'),W=0,H=0,mouse={x:.5,y:.5},sm={x:.5,y:.5},frame=0;
     var BLIND_COUNT=20,SPOT_R=.5,DAMP=.15,COLOR_A='#4ade80',COLOR_B='#000000';
     function lerp(a,b,t){return a+(b-a)*t}function clamp(v,lo,hi){return v<lo?lo:v>hi?hi:v}
@@ -570,7 +570,7 @@ if _page == "input":
         with cl:
             h = st.columns([2, 1.2, 1.2, 1.2])
             h[0].markdown("**Asset name**"); h[1].markdown("**E[R] (%)**")
-            h[2].markdown("**Vol (%)**"); h[3].markdown("**ESG (0–10)**")
+            h[2].markdown("**Std (%)**"); h[3].markdown("**ESG (0–10)**")
             for i in range(int(n_assets)):
                 c0, c1, c2, c3 = st.columns([2, 1.2, 1.2, 1.2])
                 name = c0.text_input("", value=default_names[i], key=f"name_{i}", label_visibility="collapsed")
@@ -628,7 +628,7 @@ if _page == "input":
                     bc1, bc2, bc3 = st.columns(3)
                     bc1.markdown(f"**{t}**")
                     m_ret = bc2.number_input(f"{t} E[R] (%)", value=default_ret[def_idx], min_value=-50.0, max_value=200.0, step=0.5, format="%.1f", key=f"manual_ret_{t}")
-                    m_vol = bc3.number_input(f"{t} Vol (%)",  value=default_vol[def_idx], min_value=0.1,   max_value=200.0, step=0.5, format="%.1f", key=f"manual_vol_{t}")
+                    m_vol = bc3.number_input(f"{t} Std (%)",  value=default_vol[def_idx], min_value=0.1,   max_value=200.0, step=0.5, format="%.1f", key=f"manual_vol_{t}")
                     manual_ret_vol[t] = {"ret": m_ret / 100.0, "vol": m_vol / 100.0}
             if missing_esg:
                 st.markdown(f'<div class="warn-box"><strong>Not in ESG CSV:</strong> {", ".join(missing_esg)}.</div>', unsafe_allow_html=True)
@@ -753,7 +753,7 @@ if _page == "input":
                         cov[i, j] = vols[i] ** 2; corr_np[i, j] = 1.0
             ticker_data_display = pd.DataFrame({
                 "Ticker": all_tickers, "Name": names,
-                "E[R] (%)": (mu * 100).round(2), "Vol (%)": (vols * 100).round(2),
+                "E[R] (%)": (mu * 100).round(2), "Std (%)": (vols * 100).round(2),
                 "ESG Score (0–10)": [r["final_esg"] for r in resolved],
                 "LSEG Letter": [r["letter"] for r in resolved],
                 "ESG Year": [r["year"] for r in resolved], "ESG Source": [r["src"] for r in resolved],
@@ -852,7 +852,7 @@ elif _page == "results":
         "Asset": _display_names,
         "Weight (%)": _display_w,
         "E[R] (%)": _display_ret,
-        "Vol (%)": _display_vol,
+        "Std (%)": _display_vol,
         "ESG (0–10)": _display_esg,
     }), use_container_width=True, hide_index=True)
     if input_mode == "Ticker-based input" and ticker_data_display is not None:
@@ -896,13 +896,13 @@ elif _page == "results":
         if sp_tan_esg > 1e-9:
             ax.plot(sd_cml, rf * 100 + (ep_tan_esg - rf) / sp_tan_esg * sd_cml,
                     color=GREEN, lw=1.6, linestyle="--", zorder=4,
-                    label=f"CML — ESG Utility-Max (SR={sr_tan_esg:.3f})")
+                    label="CML — ESG Utility-Max")
 
         # Blue CML — BASE portfolio (drawn on top so always visible)
         if sp_tan_all > 1e-9:
             ax.plot(sd_cml, rf * 100 + (ep_tan_all - rf) / sp_tan_all * sd_cml,
                     color=BLUE, lw=1.6, linestyle="--", zorder=6,
-                    label=f"CML — Base (SR={sr_tan_all:.3f})")
+                    label="CML — Base")
 
         # ── Tangency markers ──────────────────────────────────────────────────
         # Green tangency first (lower z) — ESG Utility-Max
@@ -1025,7 +1025,7 @@ elif _page == "results":
                          fontsize=7, color=GREY)
         ax2.scatter(_esg_unc, _sr_unc, color=BLUE, s=140, zorder=9,
                     edgecolors="white", lw=1.5, marker="D",
-                    label=f"Tangency — ignoring ESG (SR={_sr_unc:.3f})")
+                    label="Tangency — unconstrained")
         ax2.annotate(f"Tangency portfolio\nignoring ESG information",
                      (_esg_unc, _sr_unc), textcoords="offset points", xytext=(8, 10),
                      fontsize=7, color=BLUE, fontstyle="italic",
@@ -1033,14 +1033,14 @@ elif _page == "results":
         if _sp_esgt > 1e-9 and _scr_differs:
             ax2.scatter(_esg_esgt, _sr_esgt, color=GREEN, s=170, zorder=10,
                         edgecolors="white", lw=2, marker="*",
-                        label=f"Tangency — ESG screened (SR={_sr_esgt:.3f})")
+                        label="Tangency — ESG screened")
             ax2.annotate(f"Tangency portfolio\nusing ESG information",
                          (_esg_esgt, _sr_esgt), textcoords="offset points", xytext=(8, -32),
                          fontsize=7, color=GREEN, fontstyle="italic",
                          bbox=dict(boxstyle="round,pad=0.25", fc=CHART_BG, ec=GREEN, alpha=0.85, lw=0.6))
         ax2.scatter(_esg_opt, sr, color=ORANGE, s=180, zorder=11,
                     edgecolors="white", lw=2, marker="*",
-                    label=f"Your portfolio (SR={sr:.3f})")
+                    label="Your portfolio")
         _ann_x = 10 if _esg_opt < (_x_lo + _x_hi) / 2 else -95
         ax2.annotate(f"Your portfolio\nSR = {sr:.3f}",
                      (_esg_opt, sr), textcoords="offset points", xytext=(_ann_x, -24),
@@ -1111,7 +1111,7 @@ elif _page == "results":
             fig5, ax5 = plt.subplots(figsize=(6.5, 4))
             fig5.patch.set_facecolor(CHART_BG); ax5.set_facecolor(CHART_BG)
             ax5.plot(sens_g_df["γ"], sens_g_df["E[R](%)"], color=GREEN, lw=2, label="E[R]")
-            ax5.plot(sens_g_df["γ"], sens_g_df["σ(%)"],    color=BLUE,  lw=2, linestyle="--", label="Vol")
+            ax5.plot(sens_g_df["γ"], sens_g_df["σ(%)"],    color=BLUE,  lw=2, linestyle="--", label="Std")
             ax5.set_xlabel("γ (Risk Aversion)", fontsize=9, color=GREY); ax5.set_ylabel("%", fontsize=9, color=GREY)
             ax5.legend(fontsize=8, facecolor=LEG_BG, edgecolor=LEG_ED, labelcolor=LABEL_C)
             _style_ax(ax5, "Return & Risk vs Risk Aversion (γ)")
@@ -1121,7 +1121,7 @@ elif _page == "results":
             fig6, ax6 = plt.subplots(figsize=(6.5, 4))
             fig6.patch.set_facecolor(CHART_BG); ax6.set_facecolor(CHART_BG)
             ax6.plot(sens_l_df["λ"], sens_l_df["E[R](%)"], color=GREEN,  lw=2, label="E[R]")
-            ax6.plot(sens_l_df["λ"], sens_l_df["σ(%)"],    color=ORANGE, lw=2, linestyle="--", label="Vol")
+            ax6.plot(sens_l_df["λ"], sens_l_df["σ(%)"],    color=ORANGE, lw=2, linestyle="--", label="Std")
             ax6.set_xlabel("λ (ESG Preference)", fontsize=9, color=GREY); ax6.set_ylabel("%", fontsize=9, color=GREY)
             ax6.legend(fontsize=8, facecolor=LEG_BG, edgecolor=LEG_ED, labelcolor=LABEL_C)
             _style_ax(ax6, "Return & Risk vs ESG Preference (λ)")
