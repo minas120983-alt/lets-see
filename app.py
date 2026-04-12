@@ -1272,94 +1272,98 @@ if "opt_results" in st.session_state and _page == "input":
     Green frontier + CML: ESG utility-max portfolio (restricted to assets passing the ESG screen). ESG data: LSEG ESGCombinedScore CSV, scaled 0–10.
     </div>""", unsafe_allow_html=True)
     # ── Chatbot ───────────────────────────────────────────────────────────────
+    # ── Chatbot ───────────────────────────────────────────────────────────────
     st.markdown('<div class="section-header">Portfolio Explainer</div>', unsafe_allow_html=True)
-    if "chat_history" not in st.session_state: st.session_state["chat_history"] = []
-    # Handle incoming question from iframe via query param
-    _qp_chat = st.query_params.get("chat_q", "")
-    if _qp_chat:
-        st.query_params.clear()
-        st.session_state["chat_history"].append({"role": "user",      "content": _qp_chat})
-        st.session_state["chat_history"].append({"role": "assistant", "content": answer_question(_qp_chat)})
+
+    if "chat_history" not in st.session_state:
+        st.session_state["chat_history"] = []
+
+    SUGGESTED_QUESTIONS = [
+        "Why does my portfolio have these weights?",
+        "What is the Sharpe ratio and is mine good?",
+        "What does the ESG preference λ actually do?",
+        "How does risk aversion γ change my portfolio?",
+        "What is the cost of the ESG constraint?",
+        "Explain the utility function used here.",
+        "Which asset has the worst ESG score?",
+        "How does the Capital Market Line work?",
+    ]
+
+    def _answer(question):
+        q = question.lower()
+        if any(k in q for k in ["weight", "allocation", "why does my portfolio"]):
+            lines = [f"Weights maximise U = E[Rp] − (γ/2)σ² + λs̄ with γ={gamma}, λ={lam}.", ""]
+            for i in range(n):
+                if w_opt[i] > 0.001:
+                    lines.append(f"  {names[i]}: {w_opt[i]*100:.1f}% — E[R]={mu[i]*100:.1f}%, σ={vols[i]*100:.1f}%, ESG={esg_scores[i]:.1f}/10")
+            return "\n".join(lines)
+        if any(k in q for k in ["sharpe"]):
+            verdict = "excellent" if sr > 1.0 else "good" if sr > 0.6 else "moderate" if sr > 0.3 else "low"
+            return (f"Sharpe = (E[Rp] − rf) / σp = ({ep*100:.2f}% − {rf*100:.1f}%) / {sp*100:.2f}% = {sr:.3f}.\n"
+                    f"That is a {verdict} risk-adjusted return.\n"
+                    f"Unconstrained tangency SR = {sr_tan_all:.3f} | ESG-screened SR = {sr_tan_esg:.3f}.")
+        if any(k in q for k in ["lambda", "λ", "esg preference"]):
+            return (f"λ = {lam} controls how much you value ESG in your utility.\n"
+                    f"Higher λ → portfolio tilts toward higher-ESG assets, trading some Sharpe for sustainability.\n"
+                    f"At λ=0 you'd hold the pure tangency portfolio (SR={sr_tan_all:.3f}).")
+        if any(k in q for k in ["gamma", "γ", "risk aversion"]):
+            return (f"γ = {gamma} penalises portfolio variance in utility via −(γ/2)σ².\n"
+                    f"Higher γ → more cautious, less invested in risky assets, more in risk-free.\n"
+                    f"Your portfolio σ = {sp*100:.2f}%, variance penalty = {gamma/2*sp**2*100:.3f}%.")
+        if any(k in q for k in ["cost", "constraint", "esg screen"]):
+            cost = sr_tan_all - sr_tan_esg
+            return (f"Applying the ESG screen reduces the tangency Sharpe from {sr_tan_all:.3f} to {sr_tan_esg:.3f}.\n"
+                    f"That is a cost of {cost:.4f} Sharpe points ({cost/max(sr_tan_all,0.001)*100:.1f}% reduction).\n"
+                    f"This is the price of sustainability — a constrained feasible set cannot beat an unconstrained one.")
+        if any(k in q for k in ["utility", "function"]):
+            u = ep - gamma/2*sp**2 + lam*esg_bar
+            return (f"U = E[Rp] − (γ/2)σ²p + λs̄\n"
+                    f"  E[Rp] = {ep*100:.2f}%  →  rewards return\n"
+                    f"  −(γ/2)σ² = −{gamma/2*sp**2*100:.3f}%  →  penalises variance\n"
+                    f"  λs̄ = {lam}×{esg_bar:.2f} = {lam*esg_bar:.4f}  →  rewards ESG\n"
+                    f"  Total U = {u:.4f}")
+        if any(k in q for k in ["worst esg", "lowest esg", "which asset"]):
+            idx = int(np.argmin(esg_scores))
+            return (f"The lowest ESG asset is {names[idx]} with score {esg_scores[idx]:.2f}/10.\n"
+                    f"It holds {w_opt[idx]*100:.1f}% of the portfolio.\n"
+                    f"Raising the ESG floor above {esg_scores[idx]:.1f} would exclude it from the optimal portfolio.")
+        if any(k in q for k in ["capital market line", "cml"]):
+            return (f"The CML is a straight line from the risk-free rate through the tangency portfolio.\n"
+                    f"Any mix of cash + tangency portfolio lies on the CML.\n"
+                    f"Blue CML: rf={rf*100:.1f}% → tangency SR={sr_tan_all:.3f} (all assets)\n"
+                    f"Green CML: tangency SR={sr_tan_esg:.3f} (ESG-screened)")
+        return (f"Portfolio summary: E[R]={ep*100:.2f}%, σ={sp*100:.2f}%, SR={sr:.3f}, ESG={esg_bar:.2f}/10\n"
+                f"Parameters: γ={gamma}, λ={lam}, rf={rf*100:.1f}%")
+
+    # Display chat history
+    for msg in st.session_state["chat_history"]:
+        if msg["role"] == "user":
+            st.markdown(f"**You:** {msg['content']}")
+        else:
+            st.markdown(f"**GreenPort:** {msg['content']}")
+
+    # Suggested question buttons
+    st.markdown("**Suggested questions:**")
+    cols = st.columns(4)
+    for i, q in enumerate(SUGGESTED_QUESTIONS):
+        if cols[i % 4].button(q[:40] + "…" if len(q) > 40 else q, key=f"sq_{i}", use_container_width=True):
+            reply = _answer(q)
+            st.session_state["chat_history"].append({"role": "user", "content": q})
+            st.session_state["chat_history"].append({"role": "assistant", "content": reply})
+            st.rerun()
+
+    # Free text input
+    with st.form("chat_form", clear_on_submit=True):
+        col_i, col_b = st.columns([5, 1])
+        user_q = col_i.text_input("Ask anything about your portfolio:", label_visibility="collapsed", placeholder="Type your question...")
+        submitted = col_b.form_submit_button("Ask")
+    if submitted and user_q.strip():
+        reply = _answer(user_q.strip())
+        st.session_state["chat_history"].append({"role": "user", "content": user_q.strip()})
+        st.session_state["chat_history"].append({"role": "assistant", "content": reply})
         st.rerun()
-    # Build messages HTML
-    if not st.session_state["chat_history"]:
-        _msgs_inner = '<div class="chat-empty">Ask about weights, the Sharpe ratio, ESG scores,<br>the utility function, or any part of your portfolio.</div>'
-    else:
-        _msgs_inner = ""
-        for _msg in st.session_state["chat_history"]:
-            _safe = (_msg["content"]
-                     .replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")
-                     .replace("\n","<br>"))
-            if _msg["role"] == "user":
-                _msgs_inner += f'<div class="bubble-row user-row"><div class="bubble bubble-u">{_safe}</div></div>'
-            else:
-                _msgs_inner += f'<div class="bubble-row bot-row"><div class="bot-mini-avatar">GP</div><div class="bubble bubble-b">{_safe}</div></div>'
-    # Build chip buttons HTML
-    _chips_inner = ""
-    for _cq, _cl in zip(SUGGESTED_QUESTIONS, _CHIP_LABELS):
-        _cq_esc = _cq.replace("'", "\\'")
-        _chips_inner += f'<button class="chip" onclick="sendQ(\'{_cq_esc}\')">{_cl}</button>'
-    # Full self-contained chat UI via components.html (JS works here, unlike st.markdown)
-    _chat_html = f"""<!DOCTYPE html><html lang="en"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-<style>
-*,*::before,*::after{{margin:0;padding:0;box-sizing:border-box}}
-html,body{{width:100%;background:transparent;font-family:"Plus Jakarta Sans",system-ui,sans-serif;overflow-x:hidden}}
-.chat-page{{background:#080808;border:1px solid #1e1e1e;border-radius:16px;overflow:hidden;margin-bottom:10px}}
-.chat-header{{background:#111111;border-bottom:1px solid #1e1e1e;padding:12px 20px;display:flex;align-items:center;gap:12px}}
-.chat-avatar{{width:36px;height:36px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#000;flex-shrink:0}}
-.chat-name{{font-size:14px;font-weight:700;color:#f2f2f2;margin:0;line-height:1.2}}
-.chat-status{{font-size:11px;color:#22c55e;margin:0;display:flex;align-items:center;gap:4px}}
-.chat-status::before{{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:#22c55e}}
-.header-right{{font-size:10px;color:rgba(128,128,128,.6);text-align:right;line-height:1.7;margin-left:auto}}
-.messages-scroll{{height:300px;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:10px;scrollbar-width:none}}
-.messages-scroll::-webkit-scrollbar{{display:none}}
-.chat-empty{{display:flex;align-items:center;justify-content:center;height:100%;text-align:center;color:rgba(255,255,255,.32);font-size:12px;line-height:1.7}}
-.bubble-row{{display:flex;align-items:flex-end;gap:8px}}
-.user-row{{flex-direction:row-reverse}}
-.bubble{{max-width:78%;padding:9px 14px;border-radius:14px;font-size:12px;line-height:1.6;word-break:break-word}}
-.bubble-u{{background:#22c55e;color:#000;border-radius:14px 14px 2px 14px;font-weight:600}}
-.bubble-b{{background:#1a1a1a;color:#e0e0e0;border:1px solid #222;border-radius:14px 14px 14px 2px}}
-.bot-mini-avatar{{width:22px;height:22px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:#000;flex-shrink:0}}
-.input-bar{{background:#0d0d0d;border-top:1px solid #1e1e1e;padding:10px 16px;display:flex;gap:8px;align-items:center}}
-.input-bar input{{flex:1;background:#1a1a1a;border:1px solid #222;border-radius:50px;padding:8px 16px;font-size:13px;color:#f2f2f2;font-family:inherit;outline:none;transition:border-color .15s}}
-.input-bar input::placeholder{{color:rgba(255,255,255,.28)}}
-.input-bar input:focus{{border-color:#444}}
-.send-btn{{background:#22c55e;color:#000;border:none;border-radius:50px;padding:8px 20px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;flex-shrink:0;transition:background .15s}}
-.send-btn:hover{{background:#4ade80}}
-.chips-row{{display:flex;flex-wrap:wrap;gap:7px;padding:2px 0 6px}}
-.chip{{background:#1a1a1a;color:#22c55e;border:1px solid #222222;border-radius:100px;padding:5px 13px;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s;line-height:1.4}}
-.chip:hover{{background:#222;border-color:#333}}
-</style></head><body>
-<div class="chat-page">
-  <div class="chat-header">
-    <div class="chat-avatar">GP</div>
-    <div style="flex:1">
-      <p class="chat-name">Portfolio Explainer</p>
-      <p class="chat-status">Active</p>
-    </div>
-    <div class="header-right">Powered by TerraVest<br>No API key required</div>
-  </div>
-  <div class="messages-scroll" id="msgs">{_msgs_inner}</div>
-  <div class="input-bar">
-    <input id="chatInput" placeholder="Ask about your portfolio..." autocomplete="off"/>
-    <button class="send-btn" onclick="sendInput()">Send</button>
-  </div>
-</div>
-<div class="chips-row">{_chips_inner}</div>
-<script>
-function sendQ(q){{window.parent.location.href=window.parent.location.pathname+'?chat_q='+encodeURIComponent(q);}}
-function sendInput(){{var q=document.getElementById('chatInput').value.trim();if(q)sendQ(q);}}
-document.getElementById('chatInput').addEventListener('keypress',function(e){{if(e.key==='Enter')sendInput();}});
-var m=document.getElementById('msgs');if(m)m.scrollTop=m.scrollHeight;
-</script></body></html>"""
-    components.html(_chat_html, height=520, scrolling=False)
-    if st.session_state.get("chat_history"):
-        _, _clr_col, _ = st.columns([3, 1, 3])
-        with _clr_col:
-            if st.button("Clear chat", key="chat_clear"):
-                st.session_state["chat_history"] = []; st.rerun()
-    st.markdown("""<div style="margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--sep);text-align:center;font-size:.65rem;color:var(--text-3);letter-spacing:.06em;text-transform:uppercase;">
-    TerraVest &nbsp;·&nbsp; ECN316 Sustainable Finance &nbsp;·&nbsp; 2026
-    </div>""", unsafe_allow_html=True)
+
+    if st.session_state["chat_history"]:
+        if st.button("Clear chat", key="clear_chat"):
+            st.session_state["chat_history"] = []
+            st.rerun()
