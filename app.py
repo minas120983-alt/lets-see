@@ -779,12 +779,6 @@ if _page == "input":
     _, cta_col, _ = st.columns([3, 2, 3])
     with cta_col:
         run = st.button("Run Optimisation", use_container_width=True)
-    _qp_chat = st.query_params.get("chat_q", "")
-    if _qp_chat:
-        st.query_params.clear()
-        st.session_state["chat_history"].append({"role": "user",      "content": _qp_chat})
-        st.session_state["chat_history"].append({"role": "assistant", "content": answer_question(_qp_chat)})
-        st.rerun()
     if run:
         ticker_data_display = None; esg_letters = {}; corr_np = None
         if input_mode == "Manual input":
@@ -1281,29 +1275,20 @@ if "opt_results" in st.session_state and _page == "input":
     st.markdown('<div class="section-header">Portfolio Explainer</div>', unsafe_allow_html=True)
     if "chat_history" not in st.session_state: st.session_state["chat_history"] = []
 
-    # Build messages HTML
-    if not st.session_state["chat_history"]:
-        _msgs_inner = '<div class="chat-empty">Ask about weights, the Sharpe ratio, ESG scores,<br>the utility function, or any part of your portfolio.</div>'
-    else:
-        _msgs_inner = ""
-        for _msg in st.session_state["chat_history"]:
-            _safe = (_msg["content"]
-                     .replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")
-                     .replace("\n","<br>"))
-            if _msg["role"] == "user":
-                _msgs_inner += f'<div class="bubble-row user-row"><div class="bubble bubble-u">{_safe}</div></div>'
-            else:
-                _msgs_inner += f'<div class="bubble-row bot-row"><div class="bot-mini-avatar">GP</div><div class="bubble bubble-b">{_safe}</div></div>'
+    import json as _json
+    _cpd = _json.dumps({
+        "names": names, "mu": mu.tolist(), "vols": vols.tolist(),
+        "esg_scores": esg_scores.tolist(), "w_opt": w_opt.tolist(),
+        "ep": float(ep), "sp": float(sp), "sr": float(sr), "esg_bar": float(esg_bar),
+        "gamma": float(gamma), "lam": float(lam), "rf": float(rf), "n": int(n),
+        "ep_tan_all": float(ep_tan_all), "sp_tan_all": float(sp_tan_all), "sr_tan_all": float(sr_tan_all),
+        "ep_tan_esg": float(ep_tan_esg), "sp_tan_esg": float(sp_tan_esg), "sr_tan_esg": float(sr_tan_esg),
+        "active_mask": [bool(x) for x in active_mask], "esg_thresh": float(esg_thresh),
+    })
+    _chips_json = _json.dumps(list(zip(SUGGESTED_QUESTIONS, _CHIP_LABELS)))
 
-    # Build chip buttons HTML
-    _chips_inner = ""
-    for _cq, _cl in zip(SUGGESTED_QUESTIONS, _CHIP_LABELS):
-        _cq_esc = _cq.replace("'", "\\'")
-        _chips_inner += f'<button class="chip" onclick="sendQ(\'{_cq_esc}\')">{_cl}</button>'
-
-    _base_url = "."
     _chat_html = f"""<!DOCTYPE html><html lang="en"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta charset="UTF-8">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{{margin:0;padding:0;box-sizing:border-box}}
@@ -1321,53 +1306,225 @@ html,body{{width:100%;background:transparent;font-family:"Plus Jakarta Sans",sys
 .chat-empty{{display:flex;align-items:center;justify-content:center;height:100%;text-align:center;color:rgba(255,255,255,.32);font-size:12px;line-height:1.7}}
 .bubble-row{{display:flex;align-items:flex-end;gap:8px}}
 .user-row{{flex-direction:row-reverse}}
-.bubble{{max-width:78%;padding:9px 14px;border-radius:14px;font-size:12px;line-height:1.6;word-break:break-word}}
+.bubble{{max-width:78%;padding:9px 14px;border-radius:14px;font-size:12px;line-height:1.6;word-break:break-word;white-space:pre-wrap}}
 .bubble-u{{background:#22c55e;color:#000;border-radius:14px 14px 2px 14px;font-weight:600}}
 .bubble-b{{background:#1a1a1a;color:#e0e0e0;border:1px solid #222;border-radius:14px 14px 14px 2px}}
-.bot-mini-avatar{{width:22px;height:22px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:#000;flex-shrink:0}}
+.bot-mini-avatar{{width:22px;height:22px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:#000;flex-shrink:0;margin-bottom:2px}}
 .input-bar{{background:#0d0d0d;border-top:1px solid #1e1e1e;padding:10px 16px;display:flex;gap:8px;align-items:center}}
-.input-bar input{{flex:1;background:#1a1a1a;border:1px solid #222;border-radius:50px;padding:8px 16px;font-size:13px;color:#f2f2f2;font-family:inherit;outline:none;transition:border-color .15s}}
+.input-bar input{{flex:1;background:#1a1a1a;border:1px solid #222;border-radius:50px;padding:8px 16px;font-size:13px;color:#f2f2f2;font-family:inherit;outline:none}}
 .input-bar input::placeholder{{color:rgba(255,255,255,.28)}}
 .input-bar input:focus{{border-color:#444}}
-.send-btn{{background:#22c55e;color:#000;border:none;border-radius:50px;padding:8px 20px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;flex-shrink:0;transition:background .15s}}
+.send-btn{{background:#22c55e;color:#000;border:none;border-radius:50px;padding:8px 20px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;flex-shrink:0}}
 .send-btn:hover{{background:#4ade80}}
-.chip{{background:#1a1a1a;color:#22c55e;border:1px solid #222222;border-radius:100px;padding:5px 13px;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s;line-height:1.4}}
+.chip{{background:#1a1a1a;color:#22c55e;border:1px solid #222222;border-radius:100px;padding:5px 13px;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap;line-height:1.4}}
 .chip:hover{{background:#222;border-color:#333}}
 </style></head><body>
 <div class="chat-page">
   <div class="chat-header">
     <div class="chat-avatar">GP</div>
-    <div style="flex:1">
-      <p class="chat-name">Portfolio Explainer</p>
-      <p class="chat-status">Active</p>
-    </div>
+    <div style="flex:1"><p class="chat-name">Portfolio Explainer</p><p class="chat-status">Active</p></div>
     <div class="header-right">Powered by TerraVest<br>No API key required</div>
   </div>
-  <div class="chips-row">{_chips_inner}</div>
-  <div class="messages-scroll" id="msgs">{_msgs_inner}</div>
+  <div class="chips-row" id="chips"></div>
+  <div class="messages-scroll" id="msgs">
+    <div class="chat-empty" id="empty-state">Ask about weights, the Sharpe ratio, ESG scores,<br>the utility function, or any part of your portfolio.</div>
+  </div>
   <div class="input-bar">
     <input id="chatInput" placeholder="Ask about your portfolio..." autocomplete="off"/>
     <button class="send-btn" onclick="sendInput()">Send</button>
   </div>
 </div>
 <script>
-function sendQ(q){{
-  try {{
-    var url = window.parent.location.pathname + '?chat_q=' + encodeURIComponent(q);
-    window.parent.location.href = url;
-  }} catch(e) {{
-    window.location.href = '?chat_q=' + encodeURIComponent(q);
-  }}
-}}
-function sendInput(){{
-  var q = document.getElementById('chatInput').value.trim();
-  if(q) sendQ(q);
-}}
-document.getElementById('chatInput').addEventListener('keypress', function(e){{
-  if(e.key === 'Enter') sendInput();
+const D = {_cpd};
+const CHIPS = {_chips_json};
+
+// Build chip buttons
+const chipsEl = document.getElementById('chips');
+CHIPS.forEach(([fullQ, label]) => {{
+  const btn = document.createElement('button');
+  btn.className = 'chip';
+  btn.textContent = label;
+  btn.onclick = () => send(fullQ);
+  chipsEl.appendChild(btn);
 }});
-var m = document.getElementById('msgs');
-if(m) m.scrollTop = m.scrollHeight;
+
+// Chat state
+const msgs = [];
+const msgsEl = document.getElementById('msgs');
+const emptyEl = document.getElementById('empty-state');
+
+function addBubble(role, text) {{
+  msgs.push({{role, text}});
+  if (emptyEl) emptyEl.remove();
+  const row = document.createElement('div');
+  row.className = 'bubble-row ' + (role === 'user' ? 'user-row' : 'bot-row');
+  if (role === 'bot') {{
+    const av = document.createElement('div');
+    av.className = 'bot-mini-avatar';
+    av.textContent = 'GP';
+    row.appendChild(av);
+  }}
+  const bub = document.createElement('div');
+  bub.className = 'bubble ' + (role === 'user' ? 'bubble-u' : 'bubble-b');
+  bub.textContent = text;
+  row.appendChild(bub);
+  msgsEl.appendChild(row);
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+}}
+
+function send(q) {{
+  if (!q.trim()) return;
+  addBubble('user', q);
+  addBubble('bot', answer(q));
+  document.getElementById('chatInput').value = '';
+}}
+
+function sendInput() {{
+  send(document.getElementById('chatInput').value.trim());
+}}
+
+document.getElementById('chatInput').addEventListener('keypress', e => {{
+  if (e.key === 'Enter') sendInput();
+}});
+
+// ── Answer logic (mirrors Python _portfolio_answer) ───────────────────────
+function answer(question) {{
+  const q = question.toLowerCase();
+  const {{ names, mu, vols, esg_scores, w_opt, ep, sp, sr, esg_bar,
+           gamma, lam, rf, n, ep_tan_all, sp_tan_all, sr_tan_all,
+           ep_tan_esg, sp_tan_esg, sr_tan_esg, active_mask, esg_thresh }} = D;
+
+  const dot = (a, b) => a.reduce((s, ai, i) => s + ai * b[i], 0);
+  const pct = v => (v * 100).toFixed(2);
+  const p3  = v => v.toFixed(3);
+  const p4  = v => v.toFixed(4);
+  const idx = [...Array(n).keys()];
+  const ind_sr = mu.map((m, i) => (m - rf) / Math.max(vols[i], 1e-9));
+  const by_w   = [...idx].sort((a, b) => w_opt[b] - w_opt[a]);
+  const by_esg = [...idx].sort((a, b) => esg_scores[a] - esg_scores[b]);
+  const by_sr  = [...idx].sort((a, b) => ind_sr[b] - ind_sr[a]);
+  const by_vol = [...idx].sort((a, b) => vols[a] - vols[b]);
+  const w_sum  = w_opt.reduce((s, w) => s + w, 0);
+  const u_val  = dot(w_opt, mu.map((m) => m - rf)) - gamma/2*sp*sp + lam*dot(w_opt,esg_scores)/100;
+  const sc = sr_tan_all - sr_tan_esg;
+  const pc = sr_tan_esg - sr;
+  const tc = sr_tan_all - sr;
+
+  if (/utility|objective|maximis|optimi|formula/.test(q)) {{
+    const vt = gamma/2*sp*sp, et = lam*(esg_bar/100);
+    return `The model maximises investor utility:\n U = E[Rp] − (γ/2)·σ²p + λ·(ESG̅/100)\n\nFor your portfolio (γ=${{gamma}}, λ=${{lam}}, rf=${{(rf*100).toFixed(1)}}%):\n E[Rp] = ${{pct(ep)}}%\n −(γ/2)σ² = −${{(vt*100).toFixed(3)}}%\n λ·(ESG̅/100) = ${{lam}}·(${{esg_bar.toFixed(2)}}/100) = +${{et.toFixed(4)}}\n Total U = ${{u_val.toFixed(5)}}\n\nWith λ=${{lam}}, each ESG point is worth ${{(lam).toFixed(2)}}% return equivalent.`;
+  }}
+
+  if (/weight|allocation|holding|position|why does my portfolio/.test(q)) {{
+    let lines = [`Weights maximise U = E[Rp] − (γ/2)σ² + λ·(ESG/100) with γ=${{gamma}}, λ=${{lam}}.`, ''];
+    by_w.forEach(i => {{
+      const tag = w_opt[i] > 0.001 ? '' : ' (zero weight)';
+      lines.push(` ${{names[i]}} (${{(w_opt[i]*100).toFixed(1)}}%${{tag}}): E[R]=${{(mu[i]*100).toFixed(1)}}%, σ=${{(vols[i]*100).toFixed(1)}}%, ESG=${{esg_scores[i].toFixed(1)}}/10, SR=${{ind_sr[i].toFixed(3)}}`);
+    }});
+    return lines.join('\n');
+  }}
+
+  if (/sharpe|risk.adjusted/.test(q)) {{
+    const v = sr>1?'excellent':sr>0.6?'good':sr>0.3?'moderate':'low';
+    let lines = [`Sharpe = (${{pct(ep)}}% − ${{(rf*100).toFixed(1)}}%) / ${{pct(sp)}}% = ${{p3(sr)}} — ${{v}}.`,'',
+      `Unconstrained tangency: ${{p3(sr_tan_all)}} | ESG-screened tangency: ${{p3(sr_tan_esg)}}`,'','Individual SRs:'];
+    by_sr.forEach(i => lines.push(` ${{names[i]}}: ${{ind_sr[i].toFixed(3)}}`));
+    return lines.join('\n');
+  }}
+
+  if (/cost|constraint|penalty|sacrifice|tradeoff|price of esg/.test(q)) {{
+    let lines = [`ESG costs vs unconstrained MV (SR = ${{p4(sr_tan_all)}}):`,'',
+      `1. Preference cost (λ = ${{lam}} tilt toward high-ESG assets):`,
+      `    SR loss: ${{p4(pc)}} (${{(pc/Math.max(sr_tan_all,0.001)*100).toFixed(1)}}% reduction)`,
+      `    Unconstrained tangency SR ${{p4(sr_tan_all)}} → optimal SR ${{p4(sr)}}`];
+    if (Math.abs(sc)>0.0005) {{
+      lines.push('',`2. Screening cost (hard ESG filter ≥ ${{esg_thresh.toFixed(1)}}):`,
+        `    SR loss: ${{p4(sc)}} (${{(sc/Math.max(sr_tan_all,0.001)*100).toFixed(1)}}% reduction)`,
+        `    ESG-screened tangency SR = ${{p4(sr_tan_esg)}}`);
+    }}
+    lines.push('', Math.abs(tc)>0.0005
+      ? `Total ESG cost: ${{p4(tc)}} SR (${{(tc/Math.max(sr_tan_all,0.001)*100).toFixed(1)}}% below unconstrained MV)`
+      : 'No measurable Sharpe cost at current λ and screen settings.');
+    return lines.join('\n');
+  }}
+
+  if (/lambda|λ|esg preference|what does the esg/.test(q)) {{
+    return `λ = ${{lam}} is your ESG preference. It enters utility as +λ·(ESG̅/100) = ${{(lam*(esg_bar/100)).toFixed(4)}}.\nEach 1-point improvement in ESG is worth ${{lam.toFixed(2)}}% of expected return.\nAt λ=0 you'd hold the tangency portfolio (SR=${{p3(sr_tan_all)}}).`;
+  }}
+
+  if (/gamma|γ|risk aversion|how does increasing risk/.test(q)) {{
+    let lines = [`γ = ${{gamma}}: penalises variance by −${{(gamma/2*sp*sp*100).toFixed(3)}}% in utility.`,'Assets by volatility:'];
+    by_vol.forEach(i => lines.push(` ${{names[i]}}: σ=${{(vols[i]*100).toFixed(1)}}%, weight=${{(w_opt[i]*100).toFixed(1)}}%`));
+    return lines.join('\n');
+  }}
+
+  if (/drags|drag|worst esg|lowest esg|which asset/.test(q)) {{
+    const w = by_esg[0];
+    let lines = [`Lowest ESG: ${{names[w]}} (${{esg_scores[w].toFixed(2)}}/10), weight=${{(w_opt[w]*100).toFixed(1)}}%`,'','All assets by ESG:'];
+    by_esg.forEach(i => lines.push(` ${{names[i]}}: ${{esg_scores[i].toFixed(2)}}/10${{active_mask[i]?'':' [excluded]'}}`));
+    return lines.join('\n');
+  }}
+
+  if (/capital market line|cml|market line/.test(q)) {{
+    return `The CML is a straight line from the risk-free asset through the tangency portfolio.\nBlue CML (base — all assets): SR=${{p4(sr_tan_all)}} — E[R]=${{pct(ep_tan_all)}}%, σ=${{pct(sp_tan_all)}}%\nGreen CML (ESG utility-max): SR=${{p4(sr_tan_esg)}} — E[R]=${{pct(ep_tan_esg)}}%, σ=${{pct(sp_tan_esg)}}%`;
+  }}
+
+  if (/green frontier|right of blue|frontier sit/.test(q)) {{
+    const excl = names.filter((_, i) => !active_mask[i]);
+    let lines = ['Blue = all assets (largest feasible set). Green = ESG utility-max (smaller set).',
+      'A smaller set can never beat a larger one → green sits to the RIGHT of blue.',
+      `Sharpe cost: ${{p4(sc)}} (${{(sc/Math.max(sr_tan_all,0.001)*100).toFixed(1)}}% reduction)`];
+    if (excl.length) lines.push(`Excluded: ${{excl.join(', ')}}`);
+    return lines.join('\n');
+  }}
+
+  if (/efficient frontier|what is.*frontier/.test(q)) {{
+    return `The efficient frontier is the set of portfolios offering the highest expected return for each level of risk.\n\nBlue frontier = all ${{n}} assets unconstrained.\nGreen frontier = ESG-screened assets only (ESG ≥ ${{esg_thresh.toFixed(1)}}).\n\nYour portfolio: E[R]=${{pct(ep)}}%, σ=${{pct(sp)}}%.`;
+  }}
+
+  if (/diversif/.test(q)) {{
+    return `Diversification means combining assets whose returns don't move perfectly together (correlation < 1).\n\nYour portfolio volatility σp = ${{pct(sp)}}% is lower than a simple weighted average of individual volatilities because of diversification benefits.`;
+  }}
+
+  if (/correlation/.test(q)) {{
+    return `The correlation matrix shows how each pair of assets moves together:\n • +1 = perfect positive correlation\n • 0  = no linear relationship\n • −1 = perfect negative (hedge)\n\nLow correlations reduce total portfolio volatility below the weighted average of individual volatilities.`;
+  }}
+
+  if (/zero weight|why.*zero/.test(q)) {{
+    const zeros = names.filter((_, i) => w_opt[i] <= 0.001);
+    if (!zeros.length) return 'All assets have positive weight — no zero-weight assets.';
+    return `Zero-weight assets: ${{zeros.join(', ')}}.\n\nAssets receive zero weight when adding them wouldn't improve utility U = E[Rp] − (γ/2)σ² + λ·(ESG/100). The non-negativity constraint (no short-selling) causes the optimizer to hit w=0.`;
+  }}
+
+  if (/risk.free|rf rate|risk free rate/.test(q)) {{
+    const cashPct = ((1 - w_sum)*100).toFixed(1);
+    return `The risk-free rate rf = ${{(rf*100).toFixed(1)}}% is the return on a riskless asset (e.g. T-bills).\n\nIt affects your portfolio in two ways:\n 1. Shifts the CML slope, changing the tangency portfolio.\n 2. ${{cashPct}}% of your portfolio is held in the risk-free asset.\n\nSharpe ratio = (E[Rp] − rf) / σp = ${{p3(sr)}}.`;
+  }}
+
+  if (/best risk.return|risk.return asset/.test(q)) {{
+    let lines = ['Assets ranked by individual Sharpe ratio:'];
+    by_sr.forEach(i => lines.push(` ${{names[i]}}: SR=${{ind_sr[i].toFixed(3)}}, E[R]=${{(mu[i]*100).toFixed(1)}}%, σ=${{(vols[i]*100).toFixed(1)}}%`));
+    return lines.join('\n');
+  }}
+
+  if (/volatility|how does vol/.test(q)) {{
+    let lines = [`Portfolio σp = ${{pct(sp)}}%. Higher-vol assets penalised more as γ rises.\n\nAssets by volatility:`];
+    by_vol.forEach(i => lines.push(` ${{names[i]}}: σ=${{(vols[i]*100).toFixed(1)}}%, weight=${{(w_opt[i]*100).toFixed(1)}}%`));
+    return lines.join('\n');
+  }}
+
+  if (/tighten.*esg|esg filter/.test(q)) {{
+    return `Tightening the ESG filter (raising the minimum above ${{esg_thresh.toFixed(1)}}) would:\n 1. Exclude more assets from the investable universe.\n 2. Push the green frontier further right.\n 3. Reduce maximum achievable Sharpe ratio.\n 4. Force more concentration in high-ESG assets.\n\nCurrent screen cost vs unconstrained: ${{p4(sc)}}.`;
+  }}
+
+  if (/mean.variance|mv optimis/.test(q)) {{
+    return `Mean-variance optimisation (Markowitz, 1952) finds portfolios maximising return for a given risk level.\n\nTerraVest extends this with an ESG utility term:\n U = E[Rp] − (γ/2)σ²p + λ·(ESG̅/100)\n\nSolved via SLSQP with no short-selling (w ≥ 0).`;
+  }}
+
+  // fallback
+  const active = names.map((nm, i) => w_opt[i]>0.001 ? ` ${{nm}}: ${{(w_opt[i]*100).toFixed(1)}}%` : null).filter(Boolean);
+  return `Portfolio (γ=${{gamma}}, λ=${{lam}}): E[R]=${{pct(ep)}}%, σ=${{pct(sp)}}%, SR=${{p3(sr)}}, ESG=${{esg_bar.toFixed(2)}}/10\n\nHoldings:\n${{active.join('\\n')}}`;
+}}
 </script></body></html>"""
 
     components.html(_chat_html, height=560, scrolling=False)
