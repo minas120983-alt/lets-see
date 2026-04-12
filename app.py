@@ -128,6 +128,21 @@ hr { border: none !important; border-top: 1px solid var(--sep) !important; margi
 .gp-rw-b { position:absolute;top:0;left:0;white-space:nowrap;animation:gp-rw-in 5s cubic-bezier(0.16,1,0.3,1) infinite;color:var(--accent);font-weight:700; }
 [data-testid="stBaseButton-primary"] { background: #22c55e !important; color: #ffffff !important; border: none !important; border-radius: 50px !important; font-weight: 700 !important; }
 [data-testid="stBaseButton-primary"]:hover { background: #16a34a !important; color: #ffffff !important; }
+/* ── Page-transition animations ───────────────────────────────────────── */
+@keyframes gp-fade-up { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+@keyframes gp-fade-in { from{opacity:0} to{opacity:1} }
+/* Results page — staggered fade-in */
+.results-hero { animation: gp-fade-up 0.45s cubic-bezier(0.16,1,0.3,1) both; }
+.metric-card  { animation: gp-fade-up 0.45s cubic-bezier(0.16,1,0.3,1) 0.08s both; }
+.section-header { animation: gp-fade-in 0.4s ease 0.05s both; }
+.info-box, .warn-box, .error-box { animation: gp-fade-in 0.35s ease both; }
+.gp-card { animation: gp-fade-up 0.4s cubic-bezier(0.16,1,0.3,1) both; }
+/* Charts, tables, expanders */
+[data-testid="stImage"] { animation: gp-fade-up 0.55s cubic-bezier(0.16,1,0.3,1) 0.18s both; }
+[data-testid="stDataFrame"] { animation: gp-fade-up 0.45s cubic-bezier(0.16,1,0.3,1) 0.12s both; }
+[data-testid="stExpander"] { animation: gp-fade-in 0.4s ease 0.1s both; }
+/* Spinner fade-in */
+[data-testid="stSpinner"] > div { animation: gp-fade-in 0.3s ease both; }
 [data-testid="stExpander"] { border: 1px solid var(--sep) !important; border-radius: var(--r-md) !important; background: var(--bg-card) !important; margin-bottom: 0.75rem !important; }
 [data-testid="stExpander"] summary { color: transparent !important; font-weight: 500 !important; font-family: var(--font) !important; list-style: none !important; }
 [data-testid="stExpander"] summary::-webkit-details-marker { display: none !important; }
@@ -404,10 +419,6 @@ def fetch_market_data(tickers, period="3y"):
 if "page" not in st.session_state: st.session_state["page"] = "home"
 if "chat_history" not in st.session_state: st.session_state["chat_history"] = []
 _page = st.session_state["page"]
-_qp = st.query_params
-if "enter" in _qp:
-    st.session_state["page"] = "input"; _page = "input"
-    st.query_params.clear(); st.rerun()
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE: HOME
 # ══════════════════════════════════════════════════════════════════════════════
@@ -416,7 +427,9 @@ if _page == "home":
     .block-container { padding-top:0 !important; padding-bottom:0 !important; max-width:100% !important; padding-left:0 !important; padding-right:0 !important; }
     .stApp, [data-testid="stAppViewContainer"], section.main > div { background:#000000 !important; }
     div[data-testid="stHorizontalBlock"]:first-of-type { border-bottom:none !important; margin-bottom:0 !important; padding-bottom:0 !important; }
-    div.stButton > button { opacity:0 !important; pointer-events:none !important; position:absolute !important; left:-9999px !important; }
+    /* Enter GreenPort — pill button, centred */
+    div.stButton > button { border-radius:50px !important; font-size:0.95rem !important; letter-spacing:-0.01em !important; padding:0.7rem 2.4rem !important; min-height:48px !important; animation:gp-fade-up 0.5s cubic-bezier(0.16,1,0.3,1) 0.35s both !important; }
+    div.stButton > button:hover { background:#4ade80 !important; transform:none !important; }
     </style>""", unsafe_allow_html=True)
     _HOME_HTML = """<!DOCTYPE html><html lang="en"><head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -462,13 +475,12 @@ if _page == "home":
     requestAnimationFrame(draw)}resize();draw();
     </script></body></html>"""
     components.html(_HOME_HTML, height=620, scrolling=False)
-    st.markdown("""
-    <div style="display:flex;justify-content:center;margin-top:1.6rem;">
-      <a href="?enter=1" style="display:inline-flex;align-items:center;justify-content:center;background:#22c55e;color:#000000;font-family:'Plus Jakarta Sans',ui-sans-serif,system-ui,sans-serif;font-size:.95rem;font-weight:700;letter-spacing:-.01em;text-decoration:none;border-radius:50px;padding:.7rem 2.4rem;min-width:210px;text-align:center;box-shadow:0 0 0 1px rgba(255,255,255,.08);"
-         onmouseover="this.style.background='#4ade80'" onmouseout="this.style.background='#22c55e'">
-        Enter GreenPort →
-      </a>
-    </div>""", unsafe_allow_html=True)
+    # Native Streamlit button — no URL change, no redirect
+    _he1, _he2, _he3 = st.columns([3, 2, 3])
+    with _he2:
+        if st.button("Enter GreenPort →", key="home_enter_btn", use_container_width=True):
+            st.session_state["page"] = "input"
+            st.rerun()
     st.stop()
 # ══════════════════════════════════════════════════════════════════════════════
 # DOT GRID BACKGROUND
