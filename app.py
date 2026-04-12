@@ -92,8 +92,8 @@ div.stButton > button:hover { background: var(--accent-hover) !important; transf
 .stRadio label { color: var(--text-2) !important; font-size: 0.88rem !important; }
 .stSlider [role="slider"] { background: var(--accent) !important; border: none !important; box-shadow: 0 0 0 3px var(--accent-light) !important; }
 label, .stSlider label { color: var(--text-3) !important; font-size: 0.68rem !important; font-weight: 700 !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; }
-h1, h2, h3, h4, h5, h6 { color: var(--text-1) !important; font-family: var(--font) !important; }
-p, div, span, li { font-family: var(--font) !important; color: var(--text-2); }
+h1, h2, h3, h4, h5, h6 { color: #ffffff !important; font-family: var(--font) !important; }
+p, div, span, li { font-family: var(--font) !important; color: #f2f2f2 !important; }
 code { font-family: var(--font-mono) !important; background: var(--bg-input); color: var(--accent); border-radius: 4px; padding: 1px 6px; font-size: 0.84em; }
 .stDataFrame, [data-testid="stDataFrame"] { background: #111111 !important; }
 .stDataFrame thead th { background: #181818 !important; color: #888888 !important; font-size: 0.64rem !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; font-weight: 700 !important; }
@@ -152,28 +152,23 @@ hr { border: none !important; border-top: 1px solid var(--sep) !important; margi
 [data-testid="stExpander"] summary p { color: var(--text-2) !important; font-size: 0.88rem !important; font-weight: 500 !important; }
 [data-testid="stExpander"] summary svg { display: none !important; }
 [data-testid="stExpander"] summary span { color: transparent !important; font-size: 0 !important; }
-/* ── Dark-mode override: ensure all text is white ─────────────────────── */
-@media (prefers-color-scheme: dark) {
-  html, body, [class*="css"], p, div, span, li, label,
-  .stMarkdown, .stText, [data-testid="stMarkdownContainer"] * {
-    color: #f2f2f2 !important;
-  }
-  h1, h2, h3, h4, h5, h6 { color: #ffffff !important; }
-  /* Input fields: black text was invisible on dark backgrounds */
-  .stNumberInput input, .stTextInput input, .stTextArea textarea {
-    color: #f2f2f2 !important;
-    background: rgba(255,255,255,0.09) !important;
-  }
-  .stSelectbox div[data-baseweb="select"] > div { color: #f2f2f2 !important; }
-  /* Re-assert branded colour overrides so they aren't wiped by the rule above */
-  .gp-eyebrow, .chat-status, .chip,
-  .info-box, .metric-pos, .gp-rw-a, .gp-rw-b { color: #22c55e !important; }
-  .warn-box  { color: #fb923c !important; }
-  .error-box { color: #f87171 !important; }
-  .metric-neg { color: #f87171 !important; }
-  .bubble-u   { color: #000000 !important; }
-  .bubble-b   { color: rgba(242,242,242,0.88) !important; }
+/* ── Always-on: force white text regardless of OS light/dark mode ─────── */
+html, body, [class*="css"],
+.stMarkdown, .stText, [data-testid="stMarkdownContainer"] * {
+  color: #f2f2f2 !important;
 }
+/* Input fields */
+.stNumberInput input, .stTextInput input, .stTextArea textarea {
+  color: #f2f2f2 !important;
+  background: rgba(255,255,255,0.09) !important;
+}
+.stSelectbox div[data-baseweb="select"] > div { color: #f2f2f2 !important; }
+/* Branded accent colours — must not be wiped by the rule above */
+.gp-eyebrow, .chat-status, .chip, .metric-pos,
+.gp-rw-a, .gp-rw-b { color: #22c55e !important; }
+.metric-neg { color: #f87171 !important; }
+.bubble-u   { color: #000000 !important; }
+.bubble-b   { color: rgba(242,242,242,0.88) !important; }
 </style>
 """, unsafe_allow_html=True)
 # ══════════════════════════════════════════════════════════════════════════════
