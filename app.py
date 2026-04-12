@@ -968,12 +968,6 @@ if _page == "input":
         st.session_state["chat_data"]      = st.session_state["opt_results"]
         st.session_state["chat_history"]   = []
         st.session_state["opt_fingerprint"] = _cur_fp
-        st.session_state["opt_results"]["mu_a"]      = mu_a
-        st.session_state["opt_results"]["cov_a"]     = cov_a
-        st.session_state["opt_results"]["esg_a"]     = esg_a
-        st.session_state["opt_results"]["names_a"]   = names_a
-        st.session_state["opt_results"]["vols_a"]    = vols_a
-        st.session_state["opt_results"]["active_idx"]= active_idx
         st.rerun()  # rerun so results animate in cleanly
 # ══════════════════════════════════════════════════════════════════════════════
 # INLINE RESULTS — appears below the form on the input page
