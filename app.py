@@ -670,12 +670,7 @@ if _page == "input":
             for i in range(int(n_assets)):
                 c1, c2 = st.columns([1.1, 1.8])
                 ticker = c1.text_input("", value=default_tickers[i], key=f"ticker_{i}", label_visibility="collapsed").upper().strip()
-                # When the ticker changes, clear the name widget's session state so the
-                # freshly fetched name becomes the default on the next render.
-                _prev_ticker_key = f"_prev_ticker_{i}"
-                if st.session_state.get(_prev_ticker_key, "") != ticker:
-                    st.session_state.pop(f"ticker_name_{i}", None)
-                    st.session_state[_prev_ticker_key] = ticker
+                # Fetch company name from Yahoo Finance (cached in session state)
                 _cache_key = f"fetched_name_{ticker}"
                 if ticker and _cache_key not in st.session_state:
                     try:
@@ -685,7 +680,9 @@ if _page == "input":
                     except Exception:
                         st.session_state[_cache_key] = ticker
                 _default_name = st.session_state.get(_cache_key, default_names[i] if i < len(default_names) else ticker)
-                name = c2.text_input("", value=_default_name, key=f"ticker_name_{i}", label_visibility="collapsed")
+                # Key includes the ticker so changing the ticker creates a fresh widget
+                # with the new fetched name — user edits persist while ticker stays the same
+                name = c2.text_input("", value=_default_name, key=f"ticker_name_{i}_{ticker}", label_visibility="collapsed")
                 ticker_rows.append({"ticker": ticker, "name": name or ticker, "manual_esg": None})
         valid_tickers = [r["ticker"] for r in ticker_rows if r["ticker"]]
         if valid_tickers:
