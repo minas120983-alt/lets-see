@@ -428,7 +428,7 @@ if _page == "home":
     .stApp, [data-testid="stAppViewContainer"], section.main > div { background:#000000 !important; }
     div[data-testid="stHorizontalBlock"]:first-of-type { border-bottom:none !important; margin-bottom:0 !important; padding-bottom:0 !important; }
     /* Enter TerraVest — pill button, centred */
-    div.stButton { display:flex !important; justify-content:center !important; }
+    div.stButton { display:flex !important; justify-content:center !important; width:100% !important; margin-top:1.6rem !important; }
     div.stButton > button { width:auto !important; min-width:210px !important; border-radius:50px !important; font-size:0.95rem !important; letter-spacing:-0.01em !important; padding:0.7rem 2.4rem !important; min-height:48px !important; animation:gp-fade-up 0.5s cubic-bezier(0.16,1,0.3,1) 0.35s both !important; }
     div.stButton > button:hover { background:#4ade80 !important; transform:none !important; }
     </style>""", unsafe_allow_html=True)
