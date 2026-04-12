@@ -462,7 +462,7 @@ def _portfolio_answer(question: str, d: dict) -> str:
 def answer_question(question: str) -> str:
     d = st.session_state.get("chat_data")
     if d is None:
-        return "Please run the portfolio optimiser first."
+        return "Please run the optimiser first by clicking Optimise Portfolio."
     return _portfolio_answer(question, d)
 # ══════════════════════════════════════════════════════════════════════════════
 # MARKET DATA
@@ -779,6 +779,12 @@ if _page == "input":
     _, cta_col, _ = st.columns([3, 2, 3])
     with cta_col:
         run = st.button("Run Optimisation", use_container_width=True)
+    _qp_chat = st.query_params.get("chat_q", "")
+    if _qp_chat:
+        st.query_params.clear()
+        st.session_state["chat_history"].append({"role": "user",      "content": _qp_chat})
+        st.session_state["chat_history"].append({"role": "assistant", "content": answer_question(_qp_chat)})
+        st.rerun()
     if run:
         ticker_data_display = None; esg_letters = {}; corr_np = None
         if input_mode == "Manual input":
@@ -1275,12 +1281,6 @@ if "opt_results" in st.session_state and _page == "input":
     st.markdown('<div class="section-header">Portfolio Explainer</div>', unsafe_allow_html=True)
     if "chat_history" not in st.session_state: st.session_state["chat_history"] = []
     # Handle incoming question from iframe via query param
-    _qp_chat = st.query_params.get("chat_q", "")
-    if _qp_chat:
-        st.query_params.clear()
-        st.session_state["chat_history"].append({"role": "user",      "content": _qp_chat})
-        st.session_state["chat_history"].append({"role": "assistant", "content": answer_question(_qp_chat)})
-        st.rerun()
     # Build messages HTML
     if not st.session_state["chat_history"]:
         _msgs_inner = '<div class="chat-empty">Ask about weights, the Sharpe ratio, ESG scores,<br>the utility function, or any part of your portfolio.</div>'
