@@ -12,7 +12,7 @@ from scipy.optimize import minimize
 warnings.filterwarnings("ignore")
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="GreenPort · ESG Portfolio Optimiser",
+    page_title="TerraVest · ESG Portfolio Optimiser",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -427,8 +427,9 @@ if _page == "home":
     .block-container { padding-top:0 !important; padding-bottom:0 !important; max-width:100% !important; padding-left:0 !important; padding-right:0 !important; }
     .stApp, [data-testid="stAppViewContainer"], section.main > div { background:#000000 !important; }
     div[data-testid="stHorizontalBlock"]:first-of-type { border-bottom:none !important; margin-bottom:0 !important; padding-bottom:0 !important; }
-    /* Enter GreenPort — pill button, centred */
-    div.stButton > button { border-radius:50px !important; font-size:0.95rem !important; letter-spacing:-0.01em !important; padding:0.7rem 2.4rem !important; min-height:48px !important; animation:gp-fade-up 0.5s cubic-bezier(0.16,1,0.3,1) 0.35s both !important; }
+    /* Enter TerraVest — pill button, centred */
+    div.stButton { display:flex !important; justify-content:center !important; }
+    div.stButton > button { width:auto !important; min-width:210px !important; border-radius:50px !important; font-size:0.95rem !important; letter-spacing:-0.01em !important; padding:0.7rem 2.4rem !important; min-height:48px !important; animation:gp-fade-up 0.5s cubic-bezier(0.16,1,0.3,1) 0.35s both !important; }
     div.stButton > button:hover { background:#4ade80 !important; transform:none !important; }
     </style>""", unsafe_allow_html=True)
     _HOME_HTML = """<!DOCTYPE html><html lang="en"><head>
@@ -451,7 +452,7 @@ if _page == "home":
     <div class="overlay">
       <div class="logo-mark"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.58 5 10C5 14.15 7.9 17.55 11.75 18V22H12.25V18C16.1 17.55 19 14.15 19 10C19 5.58 15.87 2 12 2Z" fill="rgba(255,255,255,0.9)"/></svg></div>
       <div class="badge">ECN316 &middot; Sustainable Finance &middot; 2026</div>
-      <h1 class="title">Green<span class="dim">Port</span></h1>
+      <h1 class="title">Terra<span class="dim">Vest</span></h1>
       <p class="subtitle">ESG-integrated portfolio optimisation. Build and analyse sustainable investments with live LSEG data and mean-variance theory.</p>
     </div>
     <script>
@@ -475,12 +476,10 @@ if _page == "home":
     requestAnimationFrame(draw)}resize();draw();
     </script></body></html>"""
     components.html(_HOME_HTML, height=620, scrolling=False)
-    # Native Streamlit button — no URL change, no redirect
-    _he1, _he2, _he3 = st.columns([3, 2, 3])
-    with _he2:
-        if st.button("Enter GreenPort →", key="home_enter_btn", use_container_width=True):
-            st.session_state["page"] = "input"
-            st.rerun()
+    # Native Streamlit button — no URL change, CSS handles centering
+    if st.button("Enter TerraVest →", key="home_enter_btn"):
+        st.session_state["page"] = "input"
+        st.rerun()
     st.stop()
 # ══════════════════════════════════════════════════════════════════════════════
 # DOT GRID BACKGROUND
@@ -521,7 +520,7 @@ if _page != "home":
     with _n_logo:
         st.markdown("""<div class="gp-nav"><div class="gp-logo-row">
         <div class="gp-logo-mark"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1C5.2 1 3 3.5 3 6.5C3 9.3 4.9 11.6 7.5 12V15H8.5V12C11.1 11.6 13 9.3 13 6.5C13 3.5 10.8 1 8 1Z" fill="#000"/></svg></div>
-        <span class="gp-wordmark">Green<span>Port</span></span><span class="gp-badge">ESG</span>
+        <span class="gp-wordmark">Terra<span>Vest</span></span><span class="gp-badge">ESG</span>
         </div></div>""", unsafe_allow_html=True)
     with _n_rot:
         st.markdown("""<div class="gp-rw-outer"><span class="gp-rw-text">Sustainable&nbsp;<span class="gp-rw-wrap"><span class="gp-rw-a">Portfolio</span><span class="gp-rw-b">Life</span></span></span></div>""", unsafe_allow_html=True)
@@ -1151,7 +1150,7 @@ elif _page == "results":
     <div class="chat-header">
       <div class="chat-avatar">GP</div>
       <div style="flex:1;"><p class="chat-name" style="color:{_t1_c};">Portfolio Explainer</p><p class="chat-status">Active</p></div>
-      <div style="font-size:.68rem;color:rgba(128,128,128,.6);text-align:right;line-height:1.7;">Powered by GreenPort<br>No API key required</div>
+      <div style="font-size:.68rem;color:rgba(128,128,128,.6);text-align:right;line-height:1.7;">Powered by TerraVest<br>No API key required</div>
     </div>
     <div class="chips-row">{"".join(f'<span class="chip">{q}</span>' for q in SUGGESTED_QUESTIONS)}</div>
     <div class="messages-scroll">{msgs_html}</div>
@@ -1187,5 +1186,5 @@ elif _page == "results":
             if st.button("Clear chat", key="chat_clear"):
                 st.session_state["chat_history"] = []; st.rerun()
     st.markdown("""<div style="margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--sep);text-align:center;font-size:.65rem;color:var(--text-3);letter-spacing:.06em;text-transform:uppercase;">
-    GreenPort &nbsp;·&nbsp; ECN316 Sustainable Finance &nbsp;·&nbsp; 2026
+    TerraVest &nbsp;·&nbsp; ECN316 Sustainable Finance &nbsp;·&nbsp; 2026
     </div>""", unsafe_allow_html=True)
