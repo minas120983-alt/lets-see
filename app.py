@@ -316,11 +316,35 @@ SUGGESTED_QUESTIONS = [
     "What is the cost of the ESG constraint here?",
     "Explain the utility function used here.",
     "How does the Capital Market Line work?",
+    "What is mean-variance optimisation?",
+    "How does the risk-free rate affect my portfolio?",
+    "Which assets have the best risk-return tradeoff?",
+    "What does portfolio diversification mean here?",
+    "How do I interpret the correlation matrix?",
+    "What happens if I tighten the ESG filter?",
+    "Why do some assets get zero weight?",
+    "What is the efficient frontier?",
+    "How does volatility affect my allocation?",
 ]
 _CHIP_LABELS = [
-    "Why these weights?", "Is my Sharpe ratio good?", "Why green frontier right of blue?",
-    "What does λ do?", "How does γ change things?", "Worst ESG asset?",
-    "Cost of ESG constraint?", "Explain the utility function", "How does the CML work?",
+    "Why these weights?",
+    "Is my Sharpe good?",
+    "Why green frontier right?",
+    "What does λ do?",
+    "How does γ change things?",
+    "Worst ESG asset?",
+    "Cost of ESG constraint?",
+    "Explain utility function",
+    "How does the CML work?",
+    "What is MV optimisation?",
+    "Effect of risk-free rate?",
+    "Best risk-return assets?",
+    "What is diversification?",
+    "Read the correlation matrix",
+    "Tighten ESG filter?",
+    "Why zero weights?",
+    "What is efficient frontier?",
+    "How does volatility affect me?",
 ]
 def _portfolio_answer(question: str, d: dict) -> str:
     q = question.lower()
@@ -1250,71 +1274,87 @@ if "opt_results" in st.session_state and _page == "input":
     # ── Chatbot ───────────────────────────────────────────────────────────────
     st.markdown('<div class="section-header">Portfolio Explainer</div>', unsafe_allow_html=True)
     if "chat_history" not in st.session_state: st.session_state["chat_history"] = []
-    # Handle chip click from previous rerun (set by chip buttons below)
-    if st.session_state.get("_chip_pending"):
-        _chip_q = st.session_state.pop("_chip_pending")
-        st.session_state["chat_history"].append({"role": "user",      "content": _chip_q})
-        st.session_state["chat_history"].append({"role": "assistant", "content": answer_question(_chip_q)})
+    # Handle incoming question from iframe via query param
+    _qp_chat = st.query_params.get("chat_q", "")
+    if _qp_chat:
+        st.query_params.clear()
+        st.session_state["chat_history"].append({"role": "user",      "content": _qp_chat})
+        st.session_state["chat_history"].append({"role": "assistant", "content": answer_question(_qp_chat)})
         st.rerun()
-    _t1_c = "#f2f2f2"
+    # Build messages HTML
     if not st.session_state["chat_history"]:
-        msgs_html = '<div class="chat-empty">Ask about weights, the Sharpe ratio, ESG scores,<br>the utility function, or any part of your portfolio.</div>'
+        _msgs_inner = '<div class="chat-empty">Ask about weights, the Sharpe ratio, ESG scores,<br>the utility function, or any part of your portfolio.</div>'
     else:
-        msgs_html = '<div class="messages-inner">'
-        for msg in st.session_state["chat_history"]:
-            safe = msg["content"].replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")
-            if msg["role"] == "user":
-                msgs_html += f'<div class="bubble-row user-row"><div class="bubble bubble-u">{safe}</div></div>'
+        _msgs_inner = ""
+        for _msg in st.session_state["chat_history"]:
+            _safe = (_msg["content"]
+                     .replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")
+                     .replace("\n","<br>"))
+            if _msg["role"] == "user":
+                _msgs_inner += f'<div class="bubble-row user-row"><div class="bubble bubble-u">{_safe}</div></div>'
             else:
-                msgs_html += f'<div class="bubble-row bot-row"><div class="bot-mini-avatar">GP</div><div class="bubble bubble-b">{safe}</div></div>'
-        msgs_html += '</div>'
-    # Chat container — header + messages only (chips are real Streamlit buttons below)
-    st.markdown(f"""<div class="chat-page">
-    <div class="chat-header">
-      <div class="chat-avatar">GP</div>
-      <div style="flex:1;"><p class="chat-name" style="color:{_t1_c};">Portfolio Explainer</p><p class="chat-status">Active</p></div>
-      <div style="font-size:.68rem;color:rgba(128,128,128,.6);text-align:right;line-height:1.7;">Powered by TerraVest<br>No API key required</div>
+                _msgs_inner += f'<div class="bubble-row bot-row"><div class="bot-mini-avatar">GP</div><div class="bubble bubble-b">{_safe}</div></div>'
+    # Build chip buttons HTML
+    _chips_inner = ""
+    for _cq, _cl in zip(SUGGESTED_QUESTIONS, _CHIP_LABELS):
+        _cq_esc = _cq.replace("'", "\\'")
+        _chips_inner += f'<button class="chip" onclick="sendQ(\'{_cq_esc}\')">{_cl}</button>'
+    # Full self-contained chat UI via components.html (JS works here, unlike st.markdown)
+    _chat_html = f"""<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{{margin:0;padding:0;box-sizing:border-box}}
+html,body{{width:100%;background:transparent;font-family:"Plus Jakarta Sans",system-ui,sans-serif;overflow-x:hidden}}
+.chat-page{{background:#080808;border:1px solid #1e1e1e;border-radius:16px;overflow:hidden;margin-bottom:10px}}
+.chat-header{{background:#111111;border-bottom:1px solid #1e1e1e;padding:12px 20px;display:flex;align-items:center;gap:12px}}
+.chat-avatar{{width:36px;height:36px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#000;flex-shrink:0}}
+.chat-name{{font-size:14px;font-weight:700;color:#f2f2f2;margin:0;line-height:1.2}}
+.chat-status{{font-size:11px;color:#22c55e;margin:0;display:flex;align-items:center;gap:4px}}
+.chat-status::before{{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:#22c55e}}
+.header-right{{font-size:10px;color:rgba(128,128,128,.6);text-align:right;line-height:1.7;margin-left:auto}}
+.messages-scroll{{height:300px;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:10px;scrollbar-width:none}}
+.messages-scroll::-webkit-scrollbar{{display:none}}
+.chat-empty{{display:flex;align-items:center;justify-content:center;height:100%;text-align:center;color:rgba(255,255,255,.32);font-size:12px;line-height:1.7}}
+.bubble-row{{display:flex;align-items:flex-end;gap:8px}}
+.user-row{{flex-direction:row-reverse}}
+.bubble{{max-width:78%;padding:9px 14px;border-radius:14px;font-size:12px;line-height:1.6;word-break:break-word}}
+.bubble-u{{background:#22c55e;color:#000;border-radius:14px 14px 2px 14px;font-weight:600}}
+.bubble-b{{background:#1a1a1a;color:#e0e0e0;border:1px solid #222;border-radius:14px 14px 14px 2px}}
+.bot-mini-avatar{{width:22px;height:22px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:#000;flex-shrink:0}}
+.input-bar{{background:#0d0d0d;border-top:1px solid #1e1e1e;padding:10px 16px;display:flex;gap:8px;align-items:center}}
+.input-bar input{{flex:1;background:#1a1a1a;border:1px solid #222;border-radius:50px;padding:8px 16px;font-size:13px;color:#f2f2f2;font-family:inherit;outline:none;transition:border-color .15s}}
+.input-bar input::placeholder{{color:rgba(255,255,255,.28)}}
+.input-bar input:focus{{border-color:#444}}
+.send-btn{{background:#22c55e;color:#000;border:none;border-radius:50px;padding:8px 20px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;flex-shrink:0;transition:background .15s}}
+.send-btn:hover{{background:#4ade80}}
+.chips-row{{display:flex;flex-wrap:wrap;gap:7px;padding:2px 0 6px}}
+.chip{{background:#1a1a1a;color:#22c55e;border:1px solid #222222;border-radius:100px;padding:5px 13px;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s;line-height:1.4}}
+.chip:hover{{background:#222;border-color:#333}}
+</style></head><body>
+<div class="chat-page">
+  <div class="chat-header">
+    <div class="chat-avatar">GP</div>
+    <div style="flex:1">
+      <p class="chat-name">Portfolio Explainer</p>
+      <p class="chat-status">Active</p>
     </div>
-    <div class="messages-scroll">{msgs_html}</div>
-    </div>""", unsafe_allow_html=True)
-    # ── Chip buttons (real Streamlit buttons styled as chips via :has() CSS) ──
-    # The .chip-row-marker div lets us target ONLY these buttons with CSS,
-    # leaving the navbar Reset/Home/Send buttons untouched.
-    st.markdown("""<style>
-    div.element-container:has(> .chip-row-marker) + div [data-testid="baseButton-secondary"],
-    div.element-container:has(> .chip-row-marker) + div button[kind="secondary"] {
-        background: #1a1a1a !important; color: #22c55e !important;
-        border: 1px solid #222 !important; border-radius: 100px !important;
-        font-size: 0.7rem !important; font-weight: 600 !important;
-        padding: 0.18rem 0.65rem !important; min-height: 0 !important;
-        height: auto !important; line-height: 1.5 !important; width: auto !important;
-        letter-spacing: 0.01em !important; white-space: nowrap !important;
-    }
-    div.element-container:has(> .chip-row-marker) + div [data-testid="baseButton-secondary"]:hover,
-    div.element-container:has(> .chip-row-marker) + div button[kind="secondary"]:hover {
-        background: #222 !important; border-color: #333 !important;
-    }
-    div.element-container:has(> .chip-row-marker) { margin-bottom: -0.25rem !important; }
-    </style>
-    <div class="chip-row-marker"></div>""", unsafe_allow_html=True)
-    _chip_cols = st.columns(len(_CHIP_LABELS))
-    for _ci, (_cc, _cq, _cl) in enumerate(zip(_chip_cols, SUGGESTED_QUESTIONS, _CHIP_LABELS)):
-        with _cc:
-            if st.button(_cl, key=f"_chip_{_ci}", use_container_width=True, help=_cq):
-                st.session_state["_chip_pending"] = _cq
-                st.rerun()
-    # ── Manual text input ─────────────────────────────────────────────────────
-    with st.form(key="chat_form", clear_on_submit=True):
-        _fi, _fs = st.columns([8, 1])
-        with _fi:
-            user_input = st.text_input("msg", placeholder="Ask about your portfolio...", label_visibility="collapsed")
-        with _fs:
-            submitted = st.form_submit_button("Send", use_container_width=True, type="primary")
-    if submitted and user_input.strip():
-        reply = answer_question(user_input.strip())
-        st.session_state["chat_history"].append({"role": "user",      "content": user_input.strip()})
-        st.session_state["chat_history"].append({"role": "assistant", "content": reply})
-        st.rerun()
+    <div class="header-right">Powered by TerraVest<br>No API key required</div>
+  </div>
+  <div class="messages-scroll" id="msgs">{_msgs_inner}</div>
+  <div class="input-bar">
+    <input id="chatInput" placeholder="Ask about your portfolio..." autocomplete="off"/>
+    <button class="send-btn" onclick="sendInput()">Send</button>
+  </div>
+</div>
+<div class="chips-row">{_chips_inner}</div>
+<script>
+function sendQ(q){{window.parent.location.href=window.parent.location.pathname+'?chat_q='+encodeURIComponent(q);}}
+function sendInput(){{var q=document.getElementById('chatInput').value.trim();if(q)sendQ(q);}}
+document.getElementById('chatInput').addEventListener('keypress',function(e){{if(e.key==='Enter')sendInput();}});
+var m=document.getElementById('msgs');if(m)m.scrollTop=m.scrollHeight;
+</script></body></html>"""
+    components.html(_chat_html, height=520, scrolling=False)
     if st.session_state.get("chat_history"):
         _, _clr_col, _ = st.columns([3, 1, 3])
         with _clr_col:
