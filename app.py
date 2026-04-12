@@ -1274,28 +1274,7 @@ if "opt_results" in st.session_state and _page == "input":
     # ── Chatbot ───────────────────────────────────────────────────────────────
     st.markdown('<div class="section-header">Portfolio Explainer</div>', unsafe_allow_html=True)
     if "chat_history" not in st.session_state: st.session_state["chat_history"] = []
-    # Handle chip/send click — triggered by hidden Streamlit buttons clicked from iframe JS
-    if st.session_state.get("_chip_pending"):
-        _chip_q = st.session_state.pop("_chip_pending")
-        st.session_state["chat_history"].append({"role": "user",      "content": _chip_q})
-        st.session_state["chat_history"].append({"role": "assistant", "content": answer_question(_chip_q)})
-        st.rerun()
-    # ── Hidden Streamlit trigger buttons (one per question + one for typed input) ──
-    # The iframe JS finds these by their text (prefix "§") and clicks them.
-    # They are hidden from view by JS injected into the parent DOM from the iframe.
-    _TRIG_PREFIX = "\u00a7"   # § — unlikely to appear in any other button label
-    for _ti, _tq in enumerate(SUGGESTED_QUESTIONS):
-        if st.button(f"{_TRIG_PREFIX}{_ti}", key=f"_chtrig_{_ti}"):
-            st.session_state["_chip_pending"] = _tq
-            st.rerun()
-    # Typed-input trigger button
-    if st.button(f"{_TRIG_PREFIX}send", key="_chtrig_send"):
-        _typed = st.session_state.pop("_chat_typed", "")
-        if _typed:
-            st.session_state["chat_history"].append({"role": "user",      "content": _typed})
-            st.session_state["chat_history"].append({"role": "assistant", "content": answer_question(_typed)})
-        st.rerun()
-    # ── Build messages HTML ───────────────────────────────────────────────────
+    # ── Build messages HTML for the display iframe ────────────────────────────
     if not st.session_state["chat_history"]:
         _msgs_inner = '<div class="chat-empty">Ask about weights, the Sharpe ratio, ESG scores,<br>the utility function, or any part of your portfolio.</div>'
     else:
@@ -1308,25 +1287,21 @@ if "opt_results" in st.session_state and _page == "input":
                 _msgs_inner += f'<div class="bubble-row user-row"><div class="bubble bubble-u">{_safe}</div></div>'
             else:
                 _msgs_inner += f'<div class="bubble-row bot-row"><div class="bot-mini-avatar">GP</div><div class="bubble bubble-b">{_safe}</div></div>'
-    # ── Build chip buttons HTML (visual only — clicks go via JS → hidden buttons) ─
-    _chips_inner = ""
-    for _ci, (_cq, _cl) in enumerate(zip(SUGGESTED_QUESTIONS, _CHIP_LABELS)):
-        _chips_inner += f'<button class="chip" onclick="sendChip({_ci})">{_cl}</button>'
-    # ── Full chat UI via components.html (JS unrestricted here) ──────────────
-    _chat_html = f"""<!DOCTYPE html><html lang="en"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+    # ── Chat display iframe (header + messages only — no JS tricks needed) ────
+    components.html(f"""<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{{margin:0;padding:0;box-sizing:border-box}}
-html,body{{width:100%;background:transparent;font-family:"Plus Jakarta Sans",system-ui,sans-serif;overflow-x:hidden}}
-.chat-page{{background:#080808;border:1px solid #1e1e1e;border-radius:16px;overflow:hidden;margin-bottom:10px}}
-.chat-header{{background:#111111;border-bottom:1px solid #1e1e1e;padding:12px 20px;display:flex;align-items:center;gap:12px}}
+html,body{{width:100%;background:transparent;font-family:"Plus Jakarta Sans",system-ui,sans-serif}}
+.chat-page{{background:#080808;border:1px solid #1e1e1e;border-radius:16px;overflow:hidden}}
+.chat-header{{background:#111;border-bottom:1px solid #1e1e1e;padding:12px 20px;display:flex;align-items:center;gap:12px}}
 .chat-avatar{{width:36px;height:36px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#000;flex-shrink:0}}
 .chat-name{{font-size:14px;font-weight:700;color:#f2f2f2;margin:0;line-height:1.2}}
 .chat-status{{font-size:11px;color:#22c55e;margin:0;display:flex;align-items:center;gap:4px}}
 .chat-status::before{{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:#22c55e}}
 .header-right{{font-size:10px;color:rgba(128,128,128,.6);text-align:right;line-height:1.7;margin-left:auto}}
-.messages-scroll{{height:300px;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:10px;scrollbar-width:none}}
+.messages-scroll{{height:320px;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:10px;scrollbar-width:none}}
 .messages-scroll::-webkit-scrollbar{{display:none}}
 .chat-empty{{display:flex;align-items:center;justify-content:center;height:100%;text-align:center;color:rgba(255,255,255,.32);font-size:12px;line-height:1.7}}
 .bubble-row{{display:flex;align-items:flex-end;gap:8px}}
@@ -1335,15 +1310,6 @@ html,body{{width:100%;background:transparent;font-family:"Plus Jakarta Sans",sys
 .bubble-u{{background:#22c55e;color:#000;border-radius:14px 14px 2px 14px;font-weight:600}}
 .bubble-b{{background:#1a1a1a;color:#e0e0e0;border:1px solid #222;border-radius:14px 14px 14px 2px}}
 .bot-mini-avatar{{width:22px;height:22px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:#000;flex-shrink:0}}
-.input-bar{{background:#0d0d0d;border-top:1px solid #1e1e1e;padding:10px 16px;display:flex;gap:8px;align-items:center}}
-.input-bar input{{flex:1;background:#1a1a1a;border:1px solid #222;border-radius:50px;padding:8px 16px;font-size:13px;color:#f2f2f2;font-family:inherit;outline:none;transition:border-color .15s}}
-.input-bar input::placeholder{{color:rgba(255,255,255,.28)}}
-.input-bar input:focus{{border-color:#444}}
-.send-btn{{background:#22c55e;color:#000;border:none;border-radius:50px;padding:8px 20px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;flex-shrink:0;transition:background .15s}}
-.send-btn:hover{{background:#4ade80}}
-.chips-row{{display:flex;flex-wrap:wrap;gap:7px;padding:2px 0 6px}}
-.chip{{background:#1a1a1a;color:#22c55e;border:1px solid #222;border-radius:100px;padding:5px 13px;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s;line-height:1.4}}
-.chip:hover{{background:#222;border-color:#333}}
 </style></head><body>
 <div class="chat-page">
   <div class="chat-header">
@@ -1352,66 +1318,46 @@ html,body{{width:100%;background:transparent;font-family:"Plus Jakarta Sans",sys
     <div class="header-right">Powered by TerraVest<br>No API key required</div>
   </div>
   <div class="messages-scroll" id="msgs">{_msgs_inner}</div>
-  <div class="input-bar">
-    <input id="chatInput" placeholder="Ask about your portfolio..." autocomplete="off"/>
-    <button class="send-btn" onclick="sendTyped()">Send</button>
-  </div>
 </div>
-<div class="chips-row">{_chips_inner}</div>
-<script>
-/* ── Find a hidden trigger button in the parent by its text and click it ── */
-function clickTrigger(label) {{
-  try {{
-    var bs = window.parent.document.querySelectorAll('button');
-    for (var i = 0; i < bs.length; i++) {{
-      if (bs[i].innerText && bs[i].innerText.trim() === label) {{
-        bs[i].click(); return true;
-      }}
-    }}
-  }} catch(e) {{}}
-  return false;
-}}
-/* ── Hide all § trigger buttons from view ── */
-function hideTriggers() {{
-  try {{
-    var bs = window.parent.document.querySelectorAll('button');
-    for (var i = 0; i < bs.length; i++) {{
-      if (bs[i].innerText && bs[i].innerText.trim().charAt(0) === '\u00a7') {{
-        var el = bs[i].closest('[data-testid="stButton"]') || bs[i].parentElement;
-        if (el) {{ el.style.cssText = 'position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;overflow:hidden!important'; }}
-      }}
-    }}
-  }} catch(e) {{}}
-}}
-/* ── Chip click: click the matching hidden Streamlit button ── */
-function sendChip(idx) {{ clickTrigger('\u00a7' + idx); }}
-/* ── Typed send: store text in a hidden input then click §send ── */
-function sendTyped() {{
-  var q = document.getElementById('chatInput').value.trim();
-  if (!q) return;
-  try {{
-    /* Write the text into a hidden Streamlit text_input in the parent so Python can read it */
-    var inp = window.parent.document.querySelector('input[data-testid="stTextInput"]');
-    if (inp) {{
-      var nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-      nativeSetter.call(inp, q);
-      inp.dispatchEvent(new Event('input', {{bubbles: true}}));
-      inp.dispatchEvent(new Event('change', {{bubbles: true}}));
-    }}
-  }} catch(e) {{}}
-  setTimeout(function() {{ clickTrigger('\u00a7send'); }}, 60);
-}}
-document.getElementById('chatInput').addEventListener('keypress', function(e) {{ if (e.key === 'Enter') sendTyped(); }});
-/* ── Scroll messages to bottom ── */
-var m = document.getElementById('msgs'); if (m) m.scrollTop = m.scrollHeight;
-/* ── Hide triggers now and after Streamlit finishes rendering ── */
-hideTriggers();
-setTimeout(hideTriggers, 300);
-setTimeout(hideTriggers, 1000);
-</script></body></html>"""
-    # Hidden text input — Python reads this to get the typed question
-    _typed_val = st.text_input("_chat_typed_input", key="_chat_typed", label_visibility="collapsed")
-    components.html(_chat_html, height=520, scrolling=False)
+<script>var m=document.getElementById('msgs');if(m)m.scrollTop=m.scrollHeight;</script>
+</body></html>""", height=400, scrolling=False)
+    # ── Text input + Send (native Streamlit form — always works) ─────────────
+    with st.form(key="chat_form", clear_on_submit=True):
+        _fc1, _fc2 = st.columns([8, 1])
+        with _fc1:
+            _user_input = st.text_input("msg", placeholder="Ask about your portfolio...", label_visibility="collapsed")
+        with _fc2:
+            _submitted = st.form_submit_button("Send", use_container_width=True, type="primary")
+    if _submitted and _user_input.strip():
+        st.session_state["chat_history"].append({"role": "user",      "content": _user_input.strip()})
+        st.session_state["chat_history"].append({"role": "assistant", "content": answer_question(_user_input.strip())})
+        st.rerun()
+    # ── Chip buttons (native Streamlit — always works, styled as green pills) ─
+    st.markdown("""<style>
+/* Green pill style for all secondary buttons in the chip grid rows */
+div[data-testid="stHorizontalBlock"] button[data-testid="baseButton-secondary"] {
+    background:#1a1a1a !important; color:#22c55e !important;
+    border:1px solid #222 !important; border-radius:100px !important;
+    font-size:0.72rem !important; font-weight:600 !important;
+    padding:0.22rem 0.8rem !important; min-height:0 !important;
+    height:auto !important; line-height:1.5 !important;
+    white-space:nowrap !important; letter-spacing:0.01em !important;
+}
+div[data-testid="stHorizontalBlock"] button[data-testid="baseButton-secondary"]:hover {
+    background:#222 !important; border-color:#333 !important;
+}
+</style>""", unsafe_allow_html=True)
+    # Render chips in rows of 5
+    _cq_list = list(zip(SUGGESTED_QUESTIONS, _CHIP_LABELS))
+    for _row_start in range(0, len(_cq_list), 5):
+        _row = _cq_list[_row_start:_row_start + 5]
+        _rcols = st.columns(len(_row))
+        for _rc, (_cq, _cl) in zip(_rcols, _row):
+            with _rc:
+                if st.button(_cl, key=f"chip_{_row_start + _row.index((_cq, _cl))}", use_container_width=True):
+                    st.session_state["chat_history"].append({"role": "user",      "content": _cq})
+                    st.session_state["chat_history"].append({"role": "assistant", "content": answer_question(_cq)})
+                    st.rerun()
     if st.session_state.get("chat_history"):
         _, _clr_col, _ = st.columns([3, 1, 3])
         with _clr_col:
