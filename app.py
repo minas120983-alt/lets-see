@@ -1298,7 +1298,7 @@ if "opt_results" in st.session_state and _page == "input":
     _chips_inner = ""
     for _cq, _cl in zip(SUGGESTED_QUESTIONS, _CHIP_LABELS):
         _cq_esc = _cq.replace("'", "\\'")
-        _chips_inner = ""
+        _chips_inner += f'<button class="chip" onclick="sendQ(\'{_cq_esc}\')">{_cl}</button>'
     # Full self-contained chat UI via components.html (JS works here, unlike st.markdown)
     _chat_html = f"""<!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -1357,17 +1357,6 @@ var m=document.getElementById('msgs');if(m)m.scrollTop=m.scrollHeight;
     components.html(_chat_html, height=520, scrolling=False)
     # Clickable suggestion chips as real Streamlit buttons
     st.markdown("<div style='margin-top:8px;'>", unsafe_allow_html=True)
-    _all_chips = list(zip(SUGGESTED_QUESTIONS, _CHIP_LABELS))
-    for _row_start in range(0, len(_all_chips), 4):
-        _row_chips = _all_chips[_row_start:_row_start+4]
-        _rcols = st.columns(len(_row_chips))
-        for _ci, (_q, _label) in enumerate(_row_chips):
-            with _rcols[_ci]:
-                if st.button(_label, key=f"chip_{_row_start+_ci}", use_container_width=True):
-                    st.session_state.setdefault("chat_history", [])
-                    st.session_state["chat_history"].append({"role": "user", "content": _q})
-                    st.session_state["chat_history"].append({"role": "assistant", "content": answer_question(_q)})
-                    st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
     if st.session_state.get("chat_history"):
         _, _clr_col, _ = st.columns([3, 1, 3])
