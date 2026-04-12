@@ -1294,11 +1294,10 @@ if "opt_results" in st.session_state and _page == "input":
                 _msgs_inner += f'<div class="bubble-row user-row"><div class="bubble bubble-u">{_safe}</div></div>'
             else:
                 _msgs_inner += f'<div class="bubble-row bot-row"><div class="bot-mini-avatar">GP</div><div class="bubble bubble-b">{_safe}</div></div>'
-    # Build chip buttons HTML
     _chips_inner = ""
     for _cq, _cl in zip(SUGGESTED_QUESTIONS, _CHIP_LABELS):
         _cq_esc = _cq.replace("'", "\\'")
-        _chips_inner += f'<button class="chip" onclick="sendQ(\'{_cq_esc}\')">{_cl}</button>'
+        _chips_inner += f'<button class="chip" onclick="populateInput(\'{_cq_esc}\')">{_cl}</button>'
     # Full self-contained chat UI via components.html (JS works here, unlike st.markdown)
     _chat_html = f"""<!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -1351,6 +1350,7 @@ html,body{{width:100%;background:transparent;font-family:"Plus Jakarta Sans",sys
 <script>
 function sendQ(q){{window.parent.location.href=window.parent.location.pathname+'?chat_q='+encodeURIComponent(q);}}
 function sendInput(){{var q=document.getElementById('chatInput').value.trim();if(q)sendQ(q);}}
+function populateInput(q){{var input=document.getElementById('chatInput');if(input){{input.value=q;input.focus();}}}}
 document.getElementById('chatInput').addEventListener('keypress',function(e){{if(e.key==='Enter')sendInput();}});
 var m=document.getElementById('msgs');if(m)m.scrollTop=m.scrollHeight;
 </script></body></html>"""
