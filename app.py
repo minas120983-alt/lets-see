@@ -1,6 +1,7 @@
 import warnings
 import io
 import json
+import hashlib
 import requests
 import matplotlib.pyplot as plt
 import numpy as np
@@ -525,24 +526,21 @@ if _page != "home":
     with _n_rot:
         st.markdown("""<div class="gp-rw-outer"><span class="gp-rw-text">Sustainable&nbsp;<span class="gp-rw-wrap"><span class="gp-rw-a">Portfolio</span><span class="gp-rw-b">Life</span></span></span></div>""", unsafe_allow_html=True)
     with _n_back:
-        if _page == "results":
-            _nb_c1, _nb_c2 = st.columns(2)
-            with _nb_c1:
-                if st.button("← Setup", key="nav_back", use_container_width=True):
-                    st.session_state["page"] = "input"; st.rerun()
-            with _nb_c2:
-                if st.button("Home", key="nav_home", type="primary", use_container_width=True):
-                    st.session_state["page"] = "home"; st.rerun()
-        else:
-            _, _nb_c2 = st.columns([3, 1])
-            with _nb_c2:
-                if st.button("Home", key="nav_home", type="primary", use_container_width=True):
-                    st.session_state["page"] = "home"; st.rerun()
+        _nb_c1, _nb_c2 = st.columns(2)
+        with _nb_c1:
+            if st.button("↺ Reset", key="nav_reset", use_container_width=True):
+                for _k in ["opt_results", "opt_fingerprint", "chat_history", "chat_data"]:
+                    st.session_state.pop(_k, None)
+                st.rerun()
+        with _nb_c2:
+            if st.button("Home", key="nav_home", type="primary", use_container_width=True):
+                st.session_state["page"] = "home"; st.rerun()
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE: INPUT
 # ══════════════════════════════════════════════════════════════════════════════
 if _page == "input":
-    st.markdown("""<style>.block-container{max-width:740px!important}</style>""", unsafe_allow_html=True)
+    _cw = "1100px" if "opt_results" in st.session_state else "780px"
+    st.markdown(f"""<style>.block-container{{max-width:{_cw}!important}}</style>""", unsafe_allow_html=True)
     st.markdown("""<div class="gp-hero">
     <p class="gp-eyebrow">ECN316 · Sustainable Finance</p>
     <h1 class="gp-title">Build Your<br>ESG Portfolio</h1>
@@ -683,6 +681,25 @@ if _page == "input":
     min_esg_filter = 0.0
     if use_exclusion:
         min_esg_filter = st.slider("Minimum ESG score (0–10)", 0.0, 10.0, 4.0, 0.5)
+    # ── Input fingerprint — clear results if any input changed ───────────────
+    _fp_parts = [str(input_mode), str(gamma), str(lam), str(rf), str(use_exclusion), str(min_esg_filter)]
+    if input_mode == "Manual input":
+        for _d in asset_data:
+            _fp_parts.extend([_d["name"], str(round(_d["ret"], 6)), str(round(_d["vol"], 6)), str(round(_d["esg"], 3))])
+        try:
+            _fp_parts.append(str([[round(float(x), 4) for x in _row] for _row in corr_df.values.tolist()]))
+        except Exception:
+            pass
+    else:
+        _fp_parts.append(str(lookback_period))
+        for _r in ticker_rows:
+            _fp_parts.extend([_r["ticker"], _r.get("name", ""),
+                               str(_r.get("manual_esg", "")), str(_r.get("manual_ret_vol", ""))])
+    _cur_fp = hashlib.md5("|".join(_fp_parts).encode()).hexdigest()
+    if "opt_results" in st.session_state and st.session_state.get("opt_fingerprint", "") != _cur_fp:
+        for _k in ["opt_results", "opt_fingerprint", "chat_history", "chat_data"]:
+            st.session_state.pop(_k, None)
+        st.rerun()
     st.markdown("<div style='height:1.5rem;'></div>", unsafe_allow_html=True)
     _, cta_col, _ = st.columns([3, 2, 3])
     with cta_col:
@@ -791,18 +808,31 @@ if _page == "input":
             "ticker_data_display": ticker_data_display, "corr_np": corr_np,
             "input_mode": input_mode, "esg_letters": esg_letters,
         }
-        st.session_state["chat_data"]    = st.session_state["opt_results"]
-        st.session_state["chat_history"] = []
-        st.session_state["page"] = "results"
-        st.rerun()
+        st.session_state["chat_data"]      = st.session_state["opt_results"]
+        st.session_state["chat_history"]   = []
+        st.session_state["opt_fingerprint"] = _cur_fp
+        st.session_state["results_fresh"]  = True
+        st.rerun()  # rerun so container widens and results animate in cleanly
 # ══════════════════════════════════════════════════════════════════════════════
-# PAGE: RESULTS
+# INLINE RESULTS — appears below the form on the input page
 # ══════════════════════════════════════════════════════════════════════════════
-elif _page == "results":
-    if "opt_results" not in st.session_state:
-        st.markdown('<div class="warn-box">No results found. Return to setup.</div>', unsafe_allow_html=True)
-        if st.button("Back to Setup"): st.session_state["page"] = "input"; st.rerun()
-        st.stop()
+if "opt_results" in st.session_state and _page == "input":
+    # Inject fresh-reveal animation only on the first render after Run
+    if st.session_state.pop("results_fresh", False):
+        st.markdown("""<style>
+        .results-hero,.metric-card,.section-header,.gp-card,.info-box,.warn-box {
+            animation: gp-fade-up 0.38s cubic-bezier(0.16,1,0.3,1) both !important; }
+        [data-testid="stImage"] {
+            animation: gp-fade-up 0.48s cubic-bezier(0.16,1,0.3,1) 0.10s both !important; }
+        [data-testid="stDataFrame"] {
+            animation: gp-fade-up 0.38s cubic-bezier(0.16,1,0.3,1) 0.06s both !important; }
+        </style>""", unsafe_allow_html=True)
+    st.markdown("""<div style="margin:2.5rem 0 1.5rem;display:flex;align-items:center;gap:1rem;">
+    <div style="flex:1;height:1px;background:rgba(255,255,255,0.08);"></div>
+    <span style="font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;
+    color:rgba(255,255,255,0.28);font-family:'Plus Jakarta Sans',sans-serif;">Optimisation Results</span>
+    <div style="flex:1;height:1px;background:rgba(255,255,255,0.08);"></div>
+    </div>""", unsafe_allow_html=True)
     R = st.session_state["opt_results"]
     names = R["names"]; mu = R["mu"]; vols = R["vols"]; esg_scores = R["esg_scores"]
     w_opt = R["w_opt"]; ep = R["ep"]; sp = R["sp"]; sr = R["sr"]; esg_bar = R["esg_bar"]
