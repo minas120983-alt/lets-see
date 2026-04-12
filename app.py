@@ -324,7 +324,7 @@ SUGGESTED_QUESTIONS = [
     "What happens if I tighten the ESG filter?",
     "Why do some assets get zero weight?",
     "What is the efficient frontier?",
-    "How does volatility affect my allocation?",
+    "How does risk affect my allocation?",
 ]
 _CHIP_LABELS = [
     "Why these weights?",
@@ -344,7 +344,7 @@ _CHIP_LABELS = [
     "Tighten ESG filter?",
     "Why zero weights?",
     "What is efficient frontier?",
-    "How does volatility affect me?",
+    "How does risk affect me?",
 ]
 def _portfolio_answer(question: str, d: dict) -> str:
     q = question.lower()
@@ -428,7 +428,7 @@ def _portfolio_answer(question: str, d: dict) -> str:
     if any(k in q for k in ["gamma", "γ", "risk aversion", "how does increasing risk"]):
         var_pen = gamma / 2 * sp ** 2
         sorted_by_vol = sorted(range(n), key=lambda i: vols[i])
-        lines = [f"γ = {gamma}: penalises variance by −{var_pen*100:.3f}% in utility.", "Assets by volatility:"]
+        lines = [f"γ = {gamma}: penalises variance by −{var_pen*100:.3f}% in utility.", "Assets by risk:"]
         for i in sorted_by_vol:
             lines.append(f" {names[i]}: σ={vols[i]*100:.1f}%, weight={w_opt[i]*100:.1f}%")
         return "\n".join(lines)
@@ -639,7 +639,7 @@ if _page == "input":
         cl, cr = st.columns([2, 1])
         with cr:
             n_assets = st.number_input("Number of assets", 2, 10, 2, 1)
-        st.markdown('<div class="info-box">Enter expected return, volatility and ESG score (0–10).</div>', unsafe_allow_html=True)
+        st.markdown('<div class="info-box">Enter expected return, risk and ESG score (0–10).</div>', unsafe_allow_html=True)
         with cl:
             h = st.columns([2, 1.2, 1.2, 1.2])
             h[0].markdown("**Asset name**"); h[1].markdown("**E[R] (%)**")
@@ -726,7 +726,7 @@ if _page == "input":
         _rq1 = st.radio("1 · Your portfolio falls 25%. What do you do?",
             ["Sell everything (3)", "Sell some (2)", "Hold (1)", "Buy more (0)"], key="quiz_r1", index=2)
         _rq2 = st.radio("2 · Which profile appeals to you?",
-            ["4% ret, ~3% vol (3)", "8% ret, ~10% vol (2)", "13% ret, ~20% vol (1)", "20%+ ret, ~35% vol (0)"], key="quiz_r2", index=1)
+            ["4% ret, ~3% risk (3)", "8% ret, ~10% risk (2)", "13% ret, ~20% risk (1)", "20%+ ret, ~35% risk (0)"], key="quiz_r2", index=1)
         _rq3 = st.radio("3 · Investment time horizon?",
             ["Under 2 years (3)", "2–5 years (2)", "5–10 years (1)", "10+ years (0)"], key="quiz_r3", index=1)
         _eq1 = st.radio("4 · How important is sustainability?",
@@ -1007,7 +1007,7 @@ if "opt_results" in st.session_state and _page == "input":
     m1, m2, m3, m4 = st.columns(4)
     for col, label, val, unit, cls, card_cls in [
         (m1, "Expected Return", f"{ep*100:.2f}", "%", "metric-pos", "card-ret"),
-        (m2, "Volatility",      f"{sp*100:.2f}", "%", "",            "card-vol"),
+        (m2, "Risk",             f"{sp*100:.2f}", "%", "",            "card-vol"),
         (m3, "Sharpe Ratio",    f"{sr:.3f}",      "",  "metric-pos" if sr > 0 else "metric-neg", "card-sr"),
         (m4, "ESG Score",       f"{esg_bar:.2f}", "/ 10", "metric-pos" if esg_bar >= 5 else "", "card-esg"),
     ]:
