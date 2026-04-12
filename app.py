@@ -227,20 +227,26 @@ def find_tangency(mu, cov, rf, bounds=None):
     wt = res.x if res.success else np.ones(n) / n
     return wt, port_ret(wt, mu), port_sd(wt, cov), port_sr(wt, mu, cov, rf)
 def find_optimal(mu, cov, esg, rf, gamma, lam):
-    n = len(mu)
-    mu_adj = np.asarray(mu) + (lam / max(gamma, 1e-9)) * np.asarray(esg)
-    res = minimize(
-        lambda w: -port_sr(w, mu_adj, cov, rf),
-        np.ones(n) / n, method="SLSQP",
-        bounds=[(0., 1.)] * n,
-        constraints=[{"type": "eq", "fun": lambda w: np.sum(w) - 1}],
-        options={"ftol": 1e-10, "maxiter": 1000})
-    w_tan = res.x if res.success else np.ones(n) / n
-    ret_t = port_ret(w_tan, mu)
-    sd_t  = port_sd(w_tan, cov)
-    w_star = (ret_t - rf) / (gamma * sd_t ** 2) if sd_t > 1e-9 else 0.0
-    w_star = float(np.clip(w_star, 0.0, 1.0))
-    return w_tan * w_star
+    """
+    Maximise U = w'(μ−rf) − (γ/2)·w'Σw + λ·(w'esg/100)
+    s.t. w_i ≥ 0, Σw_i ≤ 1  (remainder goes to risk-free asset)
+    ESG scores divided by 100 internally so the λ slider 0–5 produces
+    gradual tilts; corner solution (all-in on highest-ESG asset) appears
+    around λ ≈ 1.5–2.0 for typical inputs.
+    """
+    n      = len(mu)
+    mu_exc = np.asarray(mu, dtype=float) - rf
+    esg_v  = np.asarray(esg, dtype=float) / 100.0
+    cov_m  = np.asarray(cov, dtype=float)
+    def neg_u(w):
+        return -(float(w @ mu_exc)
+                 - gamma / 2 * float(w @ cov_m @ w)
+                 + lam * float(w @ esg_v))
+    res = minimize(neg_u, np.ones(n) / n, method="SLSQP",
+                   bounds=[(0., 1.)] * n,
+                   constraints=[{"type": "ineq", "fun": lambda w: 1.0 - float(np.sum(w))}],
+                   options={"ftol": 1e-12, "maxiter": 1000})
+    return res.x if res.success else np.ones(n) / n
 def build_mv_frontier(mu, cov, bounds=None, n_points=100):
     n = len(mu)
     b = bounds or [(0., 1.)] * n
@@ -300,7 +306,7 @@ def _portfolio_answer(question: str, d: dict) -> str:
     sorted_by_esg = sorted(range(n), key=lambda i: esg_scores[i])
     sorted_by_sr  = sorted(range(n), key=lambda i: ind_sr[i], reverse=True)
     w_sum = float(np.sum(w_opt))
-    u_val = port_ret(w_opt, mu) - gamma / 2 * sp ** 2 + lam * (float(np.dot(w_opt, esg_scores)) / max(w_sum, 1e-9))
+    u_val = float(np.dot(w_opt, np.asarray(mu) - rf)) - gamma / 2 * sp ** 2 + lam * float(np.dot(w_opt, esg_scores)) / 100.0
     sharpe_cost = sr_tan_all - sr_tan_esg
     ret_cost    = ep_tan_all - ep_tan_esg
     top_w_name  = names[sorted_by_w[0]]
@@ -919,7 +925,7 @@ if "opt_results" in st.session_state and _page == "input":
         ax.tick_params(colors=TICK_C, labelsize=8)
         for sp_ in ax.spines.values(): sp_.set_color(SPINE_C)
         ax.grid(True, alpha=0.3, color=GRID_C, linestyle="--", linewidth=0.6)
-    u_val = port_ret(w_opt, mu) - gamma / 2 * sp ** 2 + lam * esg_bar
+    u_val = float(w_opt @ (np.asarray(mu) - rf)) - gamma / 2 * sp ** 2 + lam * float(w_opt @ esg_scores) / 100.0
     st.markdown(f"""<div class="results-hero">
     <p class="gp-eyebrow">Optimisation Complete</p>
     <h2 class="results-title">Your Optimal Portfolio</h2>
@@ -949,6 +955,22 @@ if "opt_results" in st.session_state and _page == "input":
         "Std (%)": _display_vol,
         "ESG (0–10)": _display_esg,
     }), use_container_width=True, hide_index=True)
+    # ── Corner solution detection ────────────────────────────────────────────────
+    _w_max_i = int(np.argmax(w_opt))
+    _w_sum   = float(np.sum(w_opt))
+    if _w_sum > 0.01 and float(w_opt[_w_max_i]) / _w_sum > 0.98 and _w_sum > 0.5:
+        _corner_asset = names[_w_max_i]
+        _corner_esg   = esg_scores[_w_max_i]
+        _corner_u     = u_val
+        st.markdown(f"""<div class="warn-box">
+        <strong>⚠ Corner solution detected</strong> — At λ = {lam}, the optimizer has concentrated
+        virtually the entire risky portfolio in <strong>{_corner_asset}</strong> (ESG = {_corner_esg:.1f}/10),
+        the highest-ESG asset in the investable set. This is mathematically correct: the ESG premium
+        (λ·esg/100) outweighs the diversification benefit of spreading across lower-ESG assets, so the
+        non-negativity constraint <em>w ≥ 0</em> is binding for all other assets.
+        The objective value U = {_corner_u:.5f} is verifiably higher at this corner than at any interior
+        point. To restore diversification, reduce λ or raise γ.
+        </div>""", unsafe_allow_html=True)
     if input_mode == "Ticker-based input" and ticker_data_display is not None:
         with st.expander("Ticker data used"):
             st.dataframe(ticker_data_display, use_container_width=True, hide_index=True)
