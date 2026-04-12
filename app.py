@@ -1264,13 +1264,16 @@ if "opt_results" in st.session_state and _page == "input":
         msgs_html += '</div>'
     # ── Chip spans: set the chat input value via React native setter + click Send ─
     def _chip_js(question):
-        q_escaped = question.replace("'", "\\'").replace('"', '&quot;')
-        return (
+        # Escape the question for use inside a JS single-quoted string
+        q_js = question.replace("\\", "\\\\").replace("'", "\\'")
+        # Build the JS using double quotes for the CSS selector (cleaner than escaping)
+        # then HTML-encode ALL double quotes so the onclick="..." attribute stays valid
+        js_raw = (
             f"(function(){{"
-            f"var inp=document.querySelector('input[placeholder=\"Ask about your portfolio...\"]');"
+            f"var inp=document.querySelector(\"input[placeholder='Ask about your portfolio...']\");"
             f"if(!inp)return;"
             f"var s=Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set;"
-            f"s.call(inp,'{q_escaped}');"
+            f"s.call(inp,'{q_js}');"
             f"inp.dispatchEvent(new Event('input',{{bubbles:true}}));"
             f"inp.dispatchEvent(new Event('change',{{bubbles:true}}));"
             f"setTimeout(function(){{"
@@ -1279,9 +1282,11 @@ if "opt_results" in st.session_state and _page == "input":
             f"}},80);"
             f"}})()"
         )
+        # HTML-encode for onclick="..." attribute: browsers decode &quot; → " before running JS
+        return js_raw.replace('&', '&amp;').replace('"', '&quot;')
     _chips_html = "".join(
-        f'<span class="chip" onclick="{_chip_js(q)}">{q}</span>'
-        for q in SUGGESTED_QUESTIONS
+        f'<span class="chip" onclick="{_chip_js(q)}" title="{q}">{label}</span>'
+        for q, label in zip(SUGGESTED_QUESTIONS, _CHIP_LABELS)
     )
     st.markdown(f"""<div class="chat-page">
     <div class="chat-header">
