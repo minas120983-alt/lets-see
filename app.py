@@ -539,8 +539,7 @@ if _page != "home":
 # PAGE: INPUT
 # ══════════════════════════════════════════════════════════════════════════════
 if _page == "input":
-    _cw = "1100px" if "opt_results" in st.session_state else "780px"
-    st.markdown(f"""<style>.block-container{{max-width:{_cw}!important}}</style>""", unsafe_allow_html=True)
+    st.markdown("""<style>.block-container{max-width:1100px!important}</style>""", unsafe_allow_html=True)
     st.markdown("""<div class="gp-hero">
     <p class="gp-eyebrow">ECN316 · Sustainable Finance</p>
     <h1 class="gp-title">Build Your<br>ESG Portfolio</h1>
@@ -788,15 +787,84 @@ if _page == "input":
             st.error("Need at least 2 assets passing the ESG screen."); st.stop()
         mu_a  = mu[active_idx]; cov_a = cov[np.ix_(active_idx, active_idx)]; esg_a = esg_scores[active_idx]
         bounds_green = [(0., 1.) if active_mask[i] else (0., 0.) for i in range(n)]
+        # ── Stepped progress indicator ────────────────────────────────────────
+        _prog = st.empty()
+        def _prog_msg(msg):
+            _prog.markdown(f'<div class="info-box" style="text-align:center;letter-spacing:.04em;">'
+                           f'<span style="opacity:.6;">⟳</span>&nbsp; {msg}</div>', unsafe_allow_html=True)
+        _prog_msg("Solving tangency portfolios&hellip;")
         w_tan_all, ep_tan_all, sp_tan_all, sr_tan_all = find_tangency(mu, cov, rf)
         w_tan_esg, ep_tan_esg, sp_tan_esg, sr_tan_esg = find_tangency(mu, cov, rf, bounds=bounds_green)
+        _prog_msg("Computing optimal weights&hellip;")
         w_opt_a = find_optimal(mu_a, cov_a, esg_a, rf, gamma, lam)
         w_opt   = np.zeros(n)
         for idx, wi in zip(active_idx, w_opt_a): w_opt[idx] = wi
         ep, sp, sr, esg_bar = port_stats(w_opt_a, mu_a, cov_a, esg_a, rf)
-        with st.spinner("Building efficient frontiers..."):
-            std_blue,  ret_blue  = build_mv_frontier(mu, cov, n_points=100)
-            std_green, ret_green = build_mv_frontier(mu, cov, bounds=bounds_green, n_points=100)
+        _prog_msg("Building efficient frontiers&hellip;")
+        std_blue,  ret_blue  = build_mv_frontier(mu, cov, n_points=100)
+        std_green, ret_green = build_mv_frontier(mu, cov, bounds=bounds_green, n_points=100)
+        # ── ESG–Sharpe frontier (precomputed here so results render instantly) ─
+        _prog_msg("Computing ESG&ndash;Sharpe frontier&hellip;")
+        _w0_g2 = np.ones(n) / n
+        _ures = minimize(lambda w: -port_sr(w, mu, cov, rf), _w0_g2, method="SLSQP",
+                         bounds=[(0., 1.)] * n,
+                         constraints=[{"type": "eq", "fun": lambda w: np.sum(w) - 1}],
+                         options={"ftol": 1e-10, "maxiter": 800})
+        _w_unc  = _ures.x if _ures.success else _w0_g2
+        _sr_unc = port_sr(_w_unc, mu, cov, rf)
+        _esg_unc = float(np.dot(_w_unc, esg_scores))
+        _bounds_scr = [(0., 1.) if active_mask[i] else (0., 0.) for i in range(n)]
+        _w_esgt, _ep_esgt, _sp_esgt, _sr_esgt = find_tangency(mu, cov, rf, bounds=_bounds_scr)
+        _esg_esgt    = float(np.dot(_w_esgt, esg_scores))
+        _scr_differs = (abs(_esg_esgt - _esg_unc) > 0.05 or abs(_sr_esgt - _sr_unc) > 0.005)
+        _esg_min_g2  = float(np.min(esg_scores))
+        _esg_max_g2  = float(np.max(esg_scores)) * 0.999
+        _esg_pts, _sr_pts = [], []
+        for _tau in np.linspace(_esg_min_g2, _esg_unc, 45):
+            try:
+                _r = minimize(lambda w: -port_sr(w, mu, cov, rf), _w0_g2, method="SLSQP",
+                              bounds=[(0., 1.)] * n,
+                              constraints=[{"type": "eq",  "fun": lambda w: np.sum(w) - 1},
+                                           {"type": "ineq","fun": lambda w, t=_tau: t - float(np.dot(w, esg_scores))}],
+                              options={"ftol": 1e-9, "maxiter": 500})
+                if _r.success and port_sd(_r.x, cov) > 1e-9:
+                    _esg_pts.append(float(np.dot(_r.x, esg_scores)))
+                    _sr_pts.append(port_sr(_r.x, mu, cov, rf))
+            except Exception: continue
+        for _tau in np.linspace(_esg_unc, _esg_max_g2, 55):
+            try:
+                _r = minimize(lambda w: -port_sr(w, mu, cov, rf), _w0_g2, method="SLSQP",
+                              bounds=[(0., 1.)] * n,
+                              constraints=[{"type": "eq",  "fun": lambda w: np.sum(w) - 1},
+                                           {"type": "ineq","fun": lambda w, t=_tau: float(np.dot(w, esg_scores)) - t}],
+                              options={"ftol": 1e-9, "maxiter": 500})
+                if _r.success and port_sd(_r.x, cov) > 1e-9:
+                    _esg_pts.append(float(np.dot(_r.x, esg_scores)))
+                    _sr_pts.append(port_sr(_r.x, mu, cov, rf))
+            except Exception: continue
+        if _esg_pts:
+            _g2_pairs   = sorted(set(zip([round(x,4) for x in _esg_pts],[round(s,5) for s in _sr_pts])))
+            _esg_sorted = [p[0] for p in _g2_pairs]; _sr_sorted = [p[1] for p in _g2_pairs]
+        else:
+            _esg_sorted, _sr_sorted = [], []
+        # ── Sensitivity analysis (precomputed here so results render instantly) ─
+        _prog_msg("Running sensitivity analysis&hellip;")
+        _sens_g = []; _sens_l = []
+        for _g_ in np.linspace(0.5, 10, 30):
+            try:
+                _w_ = find_optimal(mu_a, cov_a, esg_a, rf, _g_, lam)
+                _ep_, _sp_, _sr_, _ = port_stats(_w_, mu_a, cov_a, esg_a, rf)
+                _sens_g.append({"γ": round(float(_g_),2), "E[R](%)": round(_ep_*100,3),
+                                 "σ(%)": round(_sp_*100,3), "Sharpe": round(_sr_,4)})
+            except Exception: pass
+        for _l_ in np.linspace(0, 5, 30):
+            try:
+                _w_ = find_optimal(mu_a, cov_a, esg_a, rf, gamma, _l_)
+                _ep_, _sp_, _sr_, _ = port_stats(_w_, mu_a, cov_a, esg_a, rf)
+                _sens_l.append({"λ": round(float(_l_),2), "E[R](%)": round(_ep_*100,3),
+                                 "σ(%)": round(_sp_*100,3), "Sharpe": round(_sr_,4)})
+            except Exception: pass
+        _prog.empty()   # clear progress bar — results are ready
         st.session_state["opt_results"] = {
             "names": names, "mu": mu, "vols": vols, "esg_scores": esg_scores,
             "w_opt": w_opt, "ep": ep, "sp": sp, "sr": sr, "esg_bar": esg_bar,
@@ -807,26 +875,22 @@ if _page == "input":
             "std_blue": std_blue, "ret_blue": ret_blue, "std_green": std_green, "ret_green": ret_green,
             "ticker_data_display": ticker_data_display, "corr_np": corr_np,
             "input_mode": input_mode, "esg_letters": esg_letters,
+            # precomputed ESG–SR frontier
+            "esg_sorted": _esg_sorted, "sr_sorted": _sr_sorted,
+            "sr_unc": _sr_unc, "esg_unc": _esg_unc,
+            "sp_esgt": _sp_esgt, "sr_esgt": _sr_esgt, "esg_esgt": _esg_esgt,
+            "scr_differs": _scr_differs, "esg_min_g2": _esg_min_g2, "esg_max_g2": _esg_max_g2,
+            # precomputed sensitivity
+            "sens_g_df": pd.DataFrame(_sens_g), "sens_l_df": pd.DataFrame(_sens_l),
         }
         st.session_state["chat_data"]      = st.session_state["opt_results"]
         st.session_state["chat_history"]   = []
         st.session_state["opt_fingerprint"] = _cur_fp
-        st.session_state["results_fresh"]  = True
-        st.rerun()  # rerun so container widens and results animate in cleanly
+        st.rerun()  # rerun so results animate in cleanly
 # ══════════════════════════════════════════════════════════════════════════════
 # INLINE RESULTS — appears below the form on the input page
 # ══════════════════════════════════════════════════════════════════════════════
 if "opt_results" in st.session_state and _page == "input":
-    # Inject fresh-reveal animation only on the first render after Run
-    if st.session_state.pop("results_fresh", False):
-        st.markdown("""<style>
-        .results-hero,.metric-card,.section-header,.gp-card,.info-box,.warn-box {
-            animation: gp-fade-up 0.38s cubic-bezier(0.16,1,0.3,1) both !important; }
-        [data-testid="stImage"] {
-            animation: gp-fade-up 0.48s cubic-bezier(0.16,1,0.3,1) 0.10s both !important; }
-        [data-testid="stDataFrame"] {
-            animation: gp-fade-up 0.38s cubic-bezier(0.16,1,0.3,1) 0.06s both !important; }
-        </style>""", unsafe_allow_html=True)
     st.markdown("""<div style="margin:2.5rem 0 1.5rem;display:flex;align-items:center;gap:1rem;">
     <div style="flex:1;height:1px;background:rgba(255,255,255,0.08);"></div>
     <span style="font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;
@@ -979,58 +1043,16 @@ if "opt_results" in st.session_state and _page == "input":
         plt.close()
 
     # ════════════════════════════════════════════════════════════════════════
-    # GRAPH 2  —  ESG–Sharpe Frontier  (arch curve, x-axis from min ESG)
+    # GRAPH 2  —  ESG–Sharpe Frontier  (precomputed, reads from R)
     # ════════════════════════════════════════════════════════════════════════
     with _c2:
-        _w0   = np.ones(n) / n
-        _ures = minimize(lambda w: -port_sr(w, mu, cov, rf), _w0, method="SLSQP",
-                         bounds=[(0., 1.)] * n,
-                         constraints=[{"type": "eq", "fun": lambda w: np.sum(w) - 1}],
-                         options={"ftol": 1e-10, "maxiter": 800})
-        _w_unc  = _ures.x if _ures.success else _w0
-        _sr_unc = port_sr(_w_unc, mu, cov, rf)
-        _esg_unc = float(np.dot(_w_unc, esg_scores))
-        _bounds_scr = [(0., 1.) if active_mask[i] else (0., 0.) for i in range(n)]
-        _w_esgt, _ep_esgt, _sp_esgt, _sr_esgt = find_tangency(mu, cov, rf, bounds=_bounds_scr)
-        _esg_esgt    = float(np.dot(_w_esgt, esg_scores))
-        _scr_differs = (abs(_esg_esgt - _esg_unc) > 0.05 or abs(_sr_esgt - _sr_unc) > 0.005)
-        _esg_min = float(np.min(esg_scores))
-        _esg_max = float(np.max(esg_scores)) * 0.999
-        _esg_pts, _sr_pts = [], []
-        # Left side: ESG ≤ τ (rising toward peak)
-        for _tau in np.linspace(_esg_min, _esg_unc, 45):
-            try:
-                _r = minimize(lambda w: -port_sr(w, mu, cov, rf), _w0, method="SLSQP",
-                              bounds=[(0., 1.)] * n,
-                              constraints=[{"type": "eq", "fun": lambda w: np.sum(w) - 1},
-                                           {"type": "ineq", "fun": lambda w, t=_tau: t - float(np.dot(w, esg_scores))}],
-                              options={"ftol": 1e-9, "maxiter": 500})
-                if _r.success and port_sd(_r.x, cov) > 1e-9:
-                    _esg_pts.append(float(np.dot(_r.x, esg_scores)))
-                    _sr_pts.append(port_sr(_r.x, mu, cov, rf))
-            except Exception:
-                continue
-        # Right side: ESG ≥ τ (falling from peak)
-        for _tau in np.linspace(_esg_unc, _esg_max, 55):
-            try:
-                _r = minimize(lambda w: -port_sr(w, mu, cov, rf), _w0, method="SLSQP",
-                              bounds=[(0., 1.)] * n,
-                              constraints=[{"type": "eq", "fun": lambda w: np.sum(w) - 1},
-                                           {"type": "ineq", "fun": lambda w, t=_tau: float(np.dot(w, esg_scores)) - t}],
-                              options={"ftol": 1e-9, "maxiter": 500})
-                if _r.success and port_sd(_r.x, cov) > 1e-9:
-                    _esg_pts.append(float(np.dot(_r.x, esg_scores)))
-                    _sr_pts.append(port_sr(_r.x, mu, cov, rf))
-            except Exception:
-                continue
-        if _esg_pts:
-            _pairs = sorted(set(zip([round(x, 4) for x in _esg_pts], [round(s, 5) for s in _sr_pts])))
-            _esg_sorted = [p[0] for p in _pairs]
-            _sr_sorted  = [p[1] for p in _pairs]
-        else:
-            _esg_sorted, _sr_sorted = [], []
-        _indiv_sr = (mu - rf) / np.maximum(vols, 1e-9)
-        _esg_opt  = float(np.dot(w_opt, esg_scores))
+        _esg_sorted = R["esg_sorted"]; _sr_sorted = R["sr_sorted"]
+        _sr_unc     = R["sr_unc"];     _esg_unc   = R["esg_unc"]
+        _sp_esgt    = R["sp_esgt"];    _sr_esgt   = R["sr_esgt"]; _esg_esgt = R["esg_esgt"]
+        _scr_differs= R["scr_differs"]
+        _esg_min    = R["esg_min_g2"]; _esg_max   = R["esg_max_g2"]
+        _indiv_sr   = (mu - rf) / np.maximum(vols, 1e-9)
+        _esg_opt    = float(np.dot(w_opt, esg_scores))
         # Axis limits: x starts from minimum asset ESG
         _all_sr_y = (_sr_sorted + list(_indiv_sr) + [_sr_unc, sr]
                      + ([_sr_esgt] if _scr_differs else []))
@@ -1118,23 +1140,9 @@ if "opt_results" in st.session_state and _page == "input":
                 ax4.set_xlabel("Risk Contribution (%)", fontsize=9, color=GREY)
                 _style_ax(ax4, "Risk Contribution by Asset")
                 fig4.tight_layout(); st.pyplot(fig4); plt.close()
-    # ── Sensitivity Analysis ──────────────────────────────────────────────────
+    # ── Sensitivity Analysis (precomputed, reads from R) ─────────────────────
     st.markdown('<div class="section-header">Sensitivity Analysis</div>', unsafe_allow_html=True)
-    _gamma_range = np.linspace(0.5, 10, 30); _lam_range = np.linspace(0, 5, 30)
-    sens_g = []; sens_l = []
-    for g_ in _gamma_range:
-        try:
-            w_ = find_optimal(mu_a, cov_a, esg_a, rf, g_, lam)
-            ep_, sp_, sr_, _ = port_stats(w_, mu_a, cov_a, esg_a, rf)
-            sens_g.append({"γ": round(float(g_), 2), "E[R](%)": round(ep_ * 100, 3), "σ(%)": round(sp_ * 100, 3), "Sharpe": round(sr_, 4)})
-        except Exception: pass
-    for l_ in _lam_range:
-        try:
-            w_ = find_optimal(mu_a, cov_a, esg_a, rf, gamma, l_)
-            ep_, sp_, sr_, _ = port_stats(w_, mu_a, cov_a, esg_a, rf)
-            sens_l.append({"λ": round(float(l_), 2), "E[R](%)": round(ep_ * 100, 3), "σ(%)": round(sp_ * 100, 3), "Sharpe": round(sr_, 4)})
-        except Exception: pass
-    sens_g_df = pd.DataFrame(sens_g); sens_l_df = pd.DataFrame(sens_l)
+    sens_g_df = R["sens_g_df"]; sens_l_df = R["sens_l_df"]
     _s1, _s2 = st.columns(2)
     with _s1:
         if not sens_g_df.empty:
