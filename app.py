@@ -1290,10 +1290,12 @@ if "opt_results" in st.session_state and _page == "input":
     _chat_html = f"""<!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script type="application/json" id="portfolio-data">{_cpd}</script>
+<script type="application/json" id="chips-data">{_chips_json}</script>
 <style>
 *,*::before,*::after{{margin:0;padding:0;box-sizing:border-box}}
 html,body{{width:100%;background:transparent;font-family:"Plus Jakarta Sans",system-ui,sans-serif;overflow-x:hidden}}
-.chat-page{{background:#080808;border:1px solid #1e1e1e;border-radius:16px;overflow:hidden;margin-bottom:10px}}
+.chat-page{{background:#080808;border:1px solid #1e1e1e;border-radius:16px;overflow:hidden}}
 .chat-header{{background:#111111;border-bottom:1px solid #1e1e1e;padding:12px 20px;display:flex;align-items:center;gap:12px}}
 .chat-avatar{{width:36px;height:36px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#000;flex-shrink:0}}
 .chat-name{{font-size:14px;font-weight:700;color:#f2f2f2;margin:0;line-height:1.2}}
@@ -1302,9 +1304,9 @@ html,body{{width:100%;background:transparent;font-family:"Plus Jakarta Sans",sys
 .header-right{{font-size:10px;color:rgba(128,128,128,.6);text-align:right;line-height:1.7;margin-left:auto}}
 .chips-row{{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:7px;padding:10px 18px;border-bottom:1px solid #1a1a1a;scrollbar-width:none}}
 .chips-row::-webkit-scrollbar{{display:none}}
-.messages-scroll{{height:340px;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:10px;scrollbar-width:thin;scrollbar-color:#222 transparent}}
+.messages-scroll{{height:300px;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:10px;scrollbar-width:thin;scrollbar-color:#222 transparent}}
 .chat-empty{{display:flex;align-items:center;justify-content:center;height:100%;text-align:center;color:rgba(255,255,255,.32);font-size:12px;line-height:1.7}}
-.bubble-row{{display:flex;align-items:flex-end;gap:8px}}
+.bubble-row{{display:flex;align-items:flex-end;gap:8px;margin-bottom:2px}}
 .user-row{{flex-direction:row-reverse}}
 .bubble{{max-width:78%;padding:9px 14px;border-radius:14px;font-size:12px;line-height:1.6;word-break:break-word;white-space:pre-wrap}}
 .bubble-u{{background:#22c55e;color:#000;border-radius:14px 14px 2px 14px;font-weight:600}}
@@ -1316,7 +1318,7 @@ html,body{{width:100%;background:transparent;font-family:"Plus Jakarta Sans",sys
 .input-bar input:focus{{border-color:#444}}
 .send-btn{{background:#22c55e;color:#000;border:none;border-radius:50px;padding:8px 20px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;flex-shrink:0}}
 .send-btn:hover{{background:#4ade80}}
-.chip{{background:#1a1a1a;color:#22c55e;border:1px solid #222222;border-radius:100px;padding:5px 13px;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap;line-height:1.4}}
+.chip{{background:#1a1a1a;color:#22c55e;border:1px solid #222;border-radius:100px;padding:5px 13px;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap;line-height:1.4}}
 .chip:hover{{background:#222;border-color:#333}}
 </style></head><body>
 <div class="chat-page">
@@ -1331,40 +1333,45 @@ html,body{{width:100%;background:transparent;font-family:"Plus Jakarta Sans",sys
   </div>
   <div class="input-bar">
     <input id="chatInput" placeholder="Ask about your portfolio..." autocomplete="off"/>
-    <button class="send-btn" onclick="sendInput()">Send</button>
+    <button class="send-btn" id="sendBtn">Send</button>
   </div>
 </div>
 <script>
-const D = {_cpd};
-const CHIPS = {_chips_json};
+var D = JSON.parse(document.getElementById('portfolio-data').textContent);
+var CHIPS = JSON.parse(document.getElementById('chips-data').textContent);
 
-// Build chip buttons
-const chipsEl = document.getElementById('chips');
-CHIPS.forEach(([fullQ, label]) => {{
-  const btn = document.createElement('button');
+// Build chips
+var chipsEl = document.getElementById('chips');
+CHIPS.forEach(function(pair) {{
+  var btn = document.createElement('button');
   btn.className = 'chip';
-  btn.textContent = label;
-  btn.onclick = () => send(fullQ);
+  btn.textContent = pair[1];
+  btn.addEventListener('click', function() {{ send(pair[0]); }});
   chipsEl.appendChild(btn);
 }});
 
-// Chat state
-const msgs = [];
-const msgsEl = document.getElementById('msgs');
-const emptyEl = document.getElementById('empty-state');
+// Wire up send button and enter key
+document.getElementById('sendBtn').addEventListener('click', function() {{
+  send(document.getElementById('chatInput').value.trim());
+}});
+document.getElementById('chatInput').addEventListener('keypress', function(e) {{
+  if (e.key === 'Enter') send(document.getElementById('chatInput').value.trim());
+}});
+
+var msgsEl = document.getElementById('msgs');
+var emptyEl = document.getElementById('empty-state');
 
 function addBubble(role, text) {{
-  msgs.push({{role, text}});
-  if (emptyEl) emptyEl.remove();
-  const row = document.createElement('div');
+  if (emptyEl && emptyEl.parentNode) emptyEl.parentNode.removeChild(emptyEl);
+  var row = document.createElement('div');
   row.className = 'bubble-row ' + (role === 'user' ? 'user-row' : 'bot-row');
   if (role === 'bot') {{
-    const av = document.createElement('div');
+    var av = document.createElement('div');
     av.className = 'bot-mini-avatar';
     av.textContent = 'GP';
     row.appendChild(av);
   }}
-  const bub = document.createElement('div');
+  var bub = document.createElement('div');
   bub.className = 'bubble ' + (role === 'user' ? 'bubble-u' : 'bubble-b');
   bub.textContent = text;
   row.appendChild(bub);
@@ -1373,161 +1380,120 @@ function addBubble(role, text) {{
 }}
 
 function send(q) {{
-  if (!q.trim()) return;
+  if (!q || !q.trim()) return;
+  document.getElementById('chatInput').value = '';
   addBubble('user', q);
   addBubble('bot', answer(q));
-  document.getElementById('chatInput').value = '';
 }}
 
-function sendInput() {{
-  send(document.getElementById('chatInput').value.trim());
-}}
-
-document.getElementById('chatInput').addEventListener('keypress', e => {{
-  if (e.key === 'Enter') sendInput();
-}});
-
-// ── Answer logic (mirrors Python _portfolio_answer) ───────────────────────
 function answer(question) {{
-  const q = question.toLowerCase();
-  const {{ names, mu, vols, esg_scores, w_opt, ep, sp, sr, esg_bar,
-           gamma, lam, rf, n, ep_tan_all, sp_tan_all, sr_tan_all,
-           ep_tan_esg, sp_tan_esg, sr_tan_esg, active_mask, esg_thresh }} = D;
-
-  const dot = (a, b) => a.reduce((s, ai, i) => s + ai * b[i], 0);
-  const pct = v => (v * 100).toFixed(2);
-  const p3  = v => v.toFixed(3);
-  const p4  = v => v.toFixed(4);
-  const idx = [...Array(n).keys()];
-  const ind_sr = mu.map((m, i) => (m - rf) / Math.max(vols[i], 1e-9));
-  const by_w   = [...idx].sort((a, b) => w_opt[b] - w_opt[a]);
-  const by_esg = [...idx].sort((a, b) => esg_scores[a] - esg_scores[b]);
-  const by_sr  = [...idx].sort((a, b) => ind_sr[b] - ind_sr[a]);
-  const by_vol = [...idx].sort((a, b) => vols[a] - vols[b]);
-  const w_sum  = w_opt.reduce((s, w) => s + w, 0);
-  const u_val  = dot(w_opt, mu.map((m) => m - rf)) - gamma/2*sp*sp + lam*dot(w_opt,esg_scores)/100;
-  const sc = sr_tan_all - sr_tan_esg;
-  const pc = sr_tan_esg - sr;
-  const tc = sr_tan_all - sr;
+  var q = question.toLowerCase();
+  var names = D.names, mu = D.mu, vols = D.vols, esg = D.esg_scores, w = D.w_opt;
+  var ep = D.ep, sp = D.sp, sr = D.sr, esg_bar = D.esg_bar;
+  var gamma = D.gamma, lam = D.lam, rf = D.rf, n = D.n;
+  var sr_tan_all = D.sr_tan_all, sr_tan_esg = D.sr_tan_esg;
+  var ep_tan_all = D.ep_tan_all, ep_tan_esg = D.ep_tan_esg;
+  var sp_tan_all = D.sp_tan_all, sp_tan_esg = D.sp_tan_esg;
+  var active = D.active_mask, thresh = D.esg_thresh;
+  var idx = Array.from({{length: n}}, function(_,i){{return i;}});
+  var ind_sr = mu.map(function(m,i){{return (m-rf)/Math.max(vols[i],1e-9);}});
+  var dot = function(a,b){{return a.reduce(function(s,ai,i){{return s+ai*b[i];}},0);}};
+  var p2 = function(v){{return (v*100).toFixed(2);}};
+  var p3 = function(v){{return v.toFixed(3);}};
+  var p4 = function(v){{return v.toFixed(4);}};
+  var sortBy = function(arr, fn){{return arr.slice().sort(function(a,b){{return fn(a,b);}});}};
+  var by_w   = sortBy(idx, function(a,b){{return w[b]-w[a];}});
+  var by_esg = sortBy(idx, function(a,b){{return esg[a]-esg[b];}});
+  var by_sr  = sortBy(idx, function(a,b){{return ind_sr[b]-ind_sr[a];}});
+  var by_vol = sortBy(idx, function(a,b){{return vols[a]-vols[b];}});
+  var w_sum  = w.reduce(function(s,wi){{return s+wi;}},0);
+  var sc = sr_tan_all - sr_tan_esg, pc = sr_tan_esg - sr, tc = sr_tan_all - sr;
+  var u_val = dot(w, mu.map(function(m){{return m-rf;}})) - gamma/2*sp*sp + lam*dot(w,esg)/100;
 
   if (/utility|objective|maximis|optimi|formula/.test(q)) {{
-    const vt = gamma/2*sp*sp, et = lam*(esg_bar/100);
-    return `The model maximises investor utility:\n U = E[Rp] − (γ/2)·σ²p + λ·(ESG̅/100)\n\nFor your portfolio (γ=${{gamma}}, λ=${{lam}}, rf=${{(rf*100).toFixed(1)}}%):\n E[Rp] = ${{pct(ep)}}%\n −(γ/2)σ² = −${{(vt*100).toFixed(3)}}%\n λ·(ESG̅/100) = ${{lam}}·(${{esg_bar.toFixed(2)}}/100) = +${{et.toFixed(4)}}\n Total U = ${{u_val.toFixed(5)}}\n\nWith λ=${{lam}}, each ESG point is worth ${{(lam).toFixed(2)}}% return equivalent.`;
+    return 'The model maximises:\n U = E[Rp] \u2212 (\u03b3/2)\u00b7\u03c3\u00b2p + \u03bb\u00b7(ESG\u0305/100)\n\nFor your portfolio (\u03b3='+gamma+', \u03bb='+lam+', rf='+(rf*100).toFixed(1)+'%):\n E[Rp] = '+p2(ep)+'%\n \u2212(\u03b3/2)\u03c3\u00b2 = \u2212'+(gamma/2*sp*sp*100).toFixed(3)+'%\n \u03bb\u00b7(ESG\u0305/100) = '+(lam*(esg_bar/100)).toFixed(4)+'\n Total U = '+u_val.toFixed(5)+'\n\nEach ESG point \u2248 '+lam.toFixed(2)+'% return equivalent.';
   }}
-
   if (/weight|allocation|holding|position|why does my portfolio/.test(q)) {{
-    let lines = [`Weights maximise U = E[Rp] − (γ/2)σ² + λ·(ESG/100) with γ=${{gamma}}, λ=${{lam}}.`, ''];
-    by_w.forEach(i => {{
-      const tag = w_opt[i] > 0.001 ? '' : ' (zero weight)';
-      lines.push(` ${{names[i]}} (${{(w_opt[i]*100).toFixed(1)}}%${{tag}}): E[R]=${{(mu[i]*100).toFixed(1)}}%, σ=${{(vols[i]*100).toFixed(1)}}%, ESG=${{esg_scores[i].toFixed(1)}}/10, SR=${{ind_sr[i].toFixed(3)}}`);
-    }});
+    var lines = ['Weights maximise U = E[Rp] \u2212 (\u03b3/2)\u03c3\u00b2 + \u03bb\u00b7(ESG/100) with \u03b3='+gamma+', \u03bb='+lam+'.',''];
+    by_w.forEach(function(i){{lines.push(' '+names[i]+' ('+(w[i]*100).toFixed(1)+'%'+(w[i]<=0.001?' (zero)':'')+')'+': E[R]='+(mu[i]*100).toFixed(1)+'%, \u03c3='+(vols[i]*100).toFixed(1)+'%, ESG='+esg[i].toFixed(1)+'/10, SR='+ind_sr[i].toFixed(3));}});
     return lines.join('\n');
   }}
-
   if (/sharpe|risk.adjusted/.test(q)) {{
-    const v = sr>1?'excellent':sr>0.6?'good':sr>0.3?'moderate':'low';
-    let lines = [`Sharpe = (${{pct(ep)}}% − ${{(rf*100).toFixed(1)}}%) / ${{pct(sp)}}% = ${{p3(sr)}} — ${{v}}.`,'',
-      `Unconstrained tangency: ${{p3(sr_tan_all)}} | ESG-screened tangency: ${{p3(sr_tan_esg)}}`,'','Individual SRs:'];
-    by_sr.forEach(i => lines.push(` ${{names[i]}}: ${{ind_sr[i].toFixed(3)}}`));
+    var v = sr>1?'excellent':sr>0.6?'good':sr>0.3?'moderate':'low';
+    var lines = ['Sharpe = ('+p2(ep)+'% \u2212 '+(rf*100).toFixed(1)+'%) / '+p2(sp)+'% = '+p3(sr)+' \u2014 '+v+'.','','Unconstrained tangency: '+p3(sr_tan_all)+' | ESG-screened: '+p3(sr_tan_esg),'','Individual SRs:'];
+    by_sr.forEach(function(i){{lines.push(' '+names[i]+': '+ind_sr[i].toFixed(3));}});
     return lines.join('\n');
   }}
-
   if (/cost|constraint|penalty|sacrifice|tradeoff|price of esg/.test(q)) {{
-    let lines = [`ESG costs vs unconstrained MV (SR = ${{p4(sr_tan_all)}}):`,'',
-      `1. Preference cost (λ = ${{lam}} tilt toward high-ESG assets):`,
-      `    SR loss: ${{p4(pc)}} (${{(pc/Math.max(sr_tan_all,0.001)*100).toFixed(1)}}% reduction)`,
-      `    Unconstrained tangency SR ${{p4(sr_tan_all)}} → optimal SR ${{p4(sr)}}`];
-    if (Math.abs(sc)>0.0005) {{
-      lines.push('',`2. Screening cost (hard ESG filter ≥ ${{esg_thresh.toFixed(1)}}):`,
-        `    SR loss: ${{p4(sc)}} (${{(sc/Math.max(sr_tan_all,0.001)*100).toFixed(1)}}% reduction)`,
-        `    ESG-screened tangency SR = ${{p4(sr_tan_esg)}}`);
-    }}
-    lines.push('', Math.abs(tc)>0.0005
-      ? `Total ESG cost: ${{p4(tc)}} SR (${{(tc/Math.max(sr_tan_all,0.001)*100).toFixed(1)}}% below unconstrained MV)`
-      : 'No measurable Sharpe cost at current λ and screen settings.');
+    var lines = ['ESG costs vs unconstrained MV (SR = '+p4(sr_tan_all)+'):','','Preference cost (\u03bb='+lam+' tilt):','  SR loss: '+p4(pc)+' ('+(pc/Math.max(sr_tan_all,0.001)*100).toFixed(1)+'%)'];
+    if (Math.abs(sc)>0.0005) lines.push('','Screening cost (ESG \u2265 '+thresh.toFixed(1)+'):','  SR loss: '+p4(sc)+' ('+(sc/Math.max(sr_tan_all,0.001)*100).toFixed(1)+'%)');
+    lines.push('', Math.abs(tc)>0.0005 ? 'Total ESG cost: '+p4(tc)+' SR' : 'No measurable Sharpe cost.');
     return lines.join('\n');
   }}
-
-  if (/lambda|λ|esg preference|what does the esg/.test(q)) {{
-    return `λ = ${{lam}} is your ESG preference. It enters utility as +λ·(ESG̅/100) = ${{(lam*(esg_bar/100)).toFixed(4)}}.\nEach 1-point improvement in ESG is worth ${{lam.toFixed(2)}}% of expected return.\nAt λ=0 you'd hold the tangency portfolio (SR=${{p3(sr_tan_all)}}).`;
+  if (/lambda|\u03bb|esg preference|what does the esg/.test(q)) {{
+    return '\u03bb = '+lam+' is your ESG preference.\nEach 1-point ESG gain \u2248 '+lam.toFixed(2)+'% extra return.\nAt \u03bb=0 you hold the tangency (SR='+p3(sr_tan_all)+').';
   }}
-
-  if (/gamma|γ|risk aversion|how does increasing risk/.test(q)) {{
-    let lines = [`γ = ${{gamma}}: penalises variance by −${{(gamma/2*sp*sp*100).toFixed(3)}}% in utility.`,'Assets by volatility:'];
-    by_vol.forEach(i => lines.push(` ${{names[i]}}: σ=${{(vols[i]*100).toFixed(1)}}%, weight=${{(w_opt[i]*100).toFixed(1)}}%`));
+  if (/gamma|\u03b3|risk aversion|how does increasing risk/.test(q)) {{
+    var lines = ['\u03b3 = '+gamma+': penalises variance by \u2212'+(gamma/2*sp*sp*100).toFixed(3)+'% in utility.','','Assets by volatility:'];
+    by_vol.forEach(function(i){{lines.push(' '+names[i]+': \u03c3='+(vols[i]*100).toFixed(1)+'%, w='+(w[i]*100).toFixed(1)+'%');}});
     return lines.join('\n');
   }}
-
   if (/drags|drag|worst esg|lowest esg|which asset/.test(q)) {{
-    const w = by_esg[0];
-    let lines = [`Lowest ESG: ${{names[w]}} (${{esg_scores[w].toFixed(2)}}/10), weight=${{(w_opt[w]*100).toFixed(1)}}%`,'','All assets by ESG:'];
-    by_esg.forEach(i => lines.push(` ${{names[i]}}: ${{esg_scores[i].toFixed(2)}}/10${{active_mask[i]?'':' [excluded]'}}`));
+    var wi = by_esg[0];
+    var lines = ['Lowest ESG: '+names[wi]+' ('+esg[wi].toFixed(2)+'/10), weight='+(w[wi]*100).toFixed(1)+'%','','All assets by ESG:'];
+    by_esg.forEach(function(i){{lines.push(' '+names[i]+': '+esg[i].toFixed(2)+'/10'+(active[i]?'':' [excluded]'));}});
     return lines.join('\n');
   }}
-
   if (/capital market line|cml|market line/.test(q)) {{
-    return `The CML is a straight line from the risk-free asset through the tangency portfolio.\nBlue CML (base — all assets): SR=${{p4(sr_tan_all)}} — E[R]=${{pct(ep_tan_all)}}%, σ=${{pct(sp_tan_all)}}%\nGreen CML (ESG utility-max): SR=${{p4(sr_tan_esg)}} — E[R]=${{pct(ep_tan_esg)}}%, σ=${{pct(sp_tan_esg)}}%`;
+    return 'The CML runs from the risk-free asset through the tangency portfolio.\nBlue CML (all assets): SR='+p4(sr_tan_all)+', E[R]='+p2(ep_tan_all)+'%, \u03c3='+p2(sp_tan_all)+'%\nGreen CML (ESG): SR='+p4(sr_tan_esg)+', E[R]='+p2(ep_tan_esg)+'%, \u03c3='+p2(sp_tan_esg)+'%';
   }}
-
   if (/green frontier|right of blue|frontier sit/.test(q)) {{
-    const excl = names.filter((_, i) => !active_mask[i]);
-    let lines = ['Blue = all assets (largest feasible set). Green = ESG utility-max (smaller set).',
-      'A smaller set can never beat a larger one → green sits to the RIGHT of blue.',
-      `Sharpe cost: ${{p4(sc)}} (${{(sc/Math.max(sr_tan_all,0.001)*100).toFixed(1)}}% reduction)`];
-    if (excl.length) lines.push(`Excluded: ${{excl.join(', ')}}`);
+    var excl = names.filter(function(_,i){{return !active[i];}});
+    var lines = ['Blue = all assets. Green = ESG-screened (smaller set).','Smaller feasible set \u2192 green sits to the RIGHT of blue.','Sharpe cost: '+p4(sc)+' ('+(sc/Math.max(sr_tan_all,0.001)*100).toFixed(1)+'%)'];
+    if (excl.length) lines.push('Excluded: '+excl.join(', '));
     return lines.join('\n');
   }}
-
   if (/efficient frontier|what is.*frontier/.test(q)) {{
-    return `The efficient frontier is the set of portfolios offering the highest expected return for each level of risk.\n\nBlue frontier = all ${{n}} assets unconstrained.\nGreen frontier = ESG-screened assets only (ESG ≥ ${{esg_thresh.toFixed(1)}}).\n\nYour portfolio: E[R]=${{pct(ep)}}%, σ=${{pct(sp)}}%.`;
+    return 'The efficient frontier = portfolios with highest return per unit of risk.\nBlue = all '+n+' assets. Green = ESG-screened (ESG \u2265 '+thresh.toFixed(1)+').\nYour portfolio: E[R]='+p2(ep)+'%, \u03c3='+p2(sp)+'%.';
   }}
-
   if (/diversif/.test(q)) {{
-    return `Diversification means combining assets whose returns don't move perfectly together (correlation < 1).\n\nYour portfolio volatility σp = ${{pct(sp)}}% is lower than a simple weighted average of individual volatilities because of diversification benefits.`;
+    return 'Diversification combines assets with correlation < 1, reducing total volatility.\nYour portfolio \u03c3='+p2(sp)+'% benefits from low pairwise correlations between assets.';
   }}
-
   if (/correlation/.test(q)) {{
-    return `The correlation matrix shows how each pair of assets moves together:\n • +1 = perfect positive correlation\n • 0  = no linear relationship\n • −1 = perfect negative (hedge)\n\nLow correlations reduce total portfolio volatility below the weighted average of individual volatilities.`;
+    return 'The correlation matrix shows how pairs of assets move together:\n +1 = perfect positive\n  0 = uncorrelated\n \u22121 = perfect hedge\n\nLow correlations reduce portfolio volatility below the weighted average of individual \u03c3s.';
   }}
-
   if (/zero weight|why.*zero/.test(q)) {{
-    const zeros = names.filter((_, i) => w_opt[i] <= 0.001);
-    if (!zeros.length) return 'All assets have positive weight — no zero-weight assets.';
-    return `Zero-weight assets: ${{zeros.join(', ')}}.\n\nAssets receive zero weight when adding them wouldn't improve utility U = E[Rp] − (γ/2)σ² + λ·(ESG/100). The non-negativity constraint (no short-selling) causes the optimizer to hit w=0.`;
+    var zeros = names.filter(function(_,i){{return w[i]<=0.001;}});
+    if (!zeros.length) return 'All assets have positive weight.';
+    return 'Zero-weight assets: '+zeros.join(', ')+'.\n\nAdding them would not improve U = E[Rp] \u2212 (\u03b3/2)\u03c3\u00b2 + \u03bb\u00b7(ESG/100). The no-short-selling constraint binds at w=0.';
   }}
-
-  if (/risk.free|rf rate|risk free rate/.test(q)) {{
-    const cashPct = ((1 - w_sum)*100).toFixed(1);
-    return `The risk-free rate rf = ${{(rf*100).toFixed(1)}}% is the return on a riskless asset (e.g. T-bills).\n\nIt affects your portfolio in two ways:\n 1. Shifts the CML slope, changing the tangency portfolio.\n 2. ${{cashPct}}% of your portfolio is held in the risk-free asset.\n\nSharpe ratio = (E[Rp] − rf) / σp = ${{p3(sr)}}.`;
+  if (/risk.free|rf rate|risk free/.test(q)) {{
+    return 'Risk-free rate rf = '+(rf*100).toFixed(1)+'%.\n'+(((1-w_sum)*100).toFixed(1))+'% of your portfolio is held in the risk-free asset.\nThe CML slope = (E[Rp]\u2212rf)/\u03c3 = Sharpe = '+p3(sr)+'.';
   }}
-
   if (/best risk.return|risk.return asset/.test(q)) {{
-    let lines = ['Assets ranked by individual Sharpe ratio:'];
-    by_sr.forEach(i => lines.push(` ${{names[i]}}: SR=${{ind_sr[i].toFixed(3)}}, E[R]=${{(mu[i]*100).toFixed(1)}}%, σ=${{(vols[i]*100).toFixed(1)}}%`));
+    var lines = ['Assets by individual Sharpe ratio:'];
+    by_sr.forEach(function(i){{lines.push(' '+names[i]+': SR='+ind_sr[i].toFixed(3)+', E[R]='+(mu[i]*100).toFixed(1)+'%, \u03c3='+(vols[i]*100).toFixed(1)+'%');}});
     return lines.join('\n');
   }}
-
-  if (/volatility|how does vol/.test(q)) {{
-    let lines = [`Portfolio σp = ${{pct(sp)}}%. Higher-vol assets penalised more as γ rises.\n\nAssets by volatility:`];
-    by_vol.forEach(i => lines.push(` ${{names[i]}}: σ=${{(vols[i]*100).toFixed(1)}}%, weight=${{(w_opt[i]*100).toFixed(1)}}%`));
-    return lines.join('\n');
-  }}
-
-  if (/tighten.*esg|esg filter/.test(q)) {{
-    return `Tightening the ESG filter (raising the minimum above ${{esg_thresh.toFixed(1)}}) would:\n 1. Exclude more assets from the investable universe.\n 2. Push the green frontier further right.\n 3. Reduce maximum achievable Sharpe ratio.\n 4. Force more concentration in high-ESG assets.\n\nCurrent screen cost vs unconstrained: ${{p4(sc)}}.`;
-  }}
-
   if (/mean.variance|mv optimis/.test(q)) {{
-    return `Mean-variance optimisation (Markowitz, 1952) finds portfolios maximising return for a given risk level.\n\nTerraVest extends this with an ESG utility term:\n U = E[Rp] − (γ/2)σ²p + λ·(ESG̅/100)\n\nSolved via SLSQP with no short-selling (w ≥ 0).`;
+    return 'Mean-variance optimisation (Markowitz 1952) finds portfolios maximising return for a given risk.\n\nTerraVest extends with ESG:\n U = E[Rp] \u2212 (\u03b3/2)\u03c3\u00b2p + \u03bb\u00b7(ESG\u0305/100)\n\nSolved via SLSQP, no short-selling (w \u2265 0).';
   }}
-
-  // fallback
-  const active = names.map((nm, i) => w_opt[i]>0.001 ? ` ${{nm}}: ${{(w_opt[i]*100).toFixed(1)}}%` : null).filter(Boolean);
-  return `Portfolio (γ=${{gamma}}, λ=${{lam}}): E[R]=${{pct(ep)}}%, σ=${{pct(sp)}}%, SR=${{p3(sr)}}, ESG=${{esg_bar.toFixed(2)}}/10\n\nHoldings:\n${{active.join('\\n')}}`;
+  if (/tighten.*esg|esg filter/.test(q)) {{
+    return 'Raising the minimum ESG above '+thresh.toFixed(1)+' would:\n 1. Exclude more assets\n 2. Push green frontier right\n 3. Reduce max Sharpe\n 4. Force concentration in high-ESG assets\n\nCurrent screen cost: '+p4(sc)+' SR.';
+  }}
+  if (/volatility|how does vol/.test(q)) {{
+    var lines = ['Portfolio \u03c3p = '+p2(sp)+'%. Higher-vol assets penalised more as \u03b3 rises.','','By volatility:'];
+    by_vol.forEach(function(i){{lines.push(' '+names[i]+': \u03c3='+(vols[i]*100).toFixed(1)+'%, w='+(w[i]*100).toFixed(1)+'%');}});
+    return lines.join('\n');
+  }}
+  var active_holdings = names.filter(function(_,i){{return w[i]>0.001;}}).map(function(nm,_){{
+    var i = names.indexOf(nm); return ' '+nm+': '+(w[i]*100).toFixed(1)+'%';
+  }});
+  return 'Portfolio (\u03b3='+gamma+', \u03bb='+lam+'): E[R]='+p2(ep)+'%, \u03c3='+p2(sp)+'%, SR='+p3(sr)+', ESG='+esg_bar.toFixed(2)+'/10\n\nHoldings:\n'+active_holdings.join('\n');
 }}
 </script></body></html>"""
 
-    components.html(_chat_html, height=560, scrolling=False)
+    components.html(_chat_html, height=580, scrolling=False)
 
     if st.session_state.get("chat_history"):
         _, _clr_col, _ = st.columns([3, 1, 3])
