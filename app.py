@@ -1250,6 +1250,12 @@ if "opt_results" in st.session_state and _page == "input":
     # ── Chatbot ───────────────────────────────────────────────────────────────
     st.markdown('<div class="section-header">Portfolio Explainer</div>', unsafe_allow_html=True)
     if "chat_history" not in st.session_state: st.session_state["chat_history"] = []
+    # Handle chip click from previous rerun (set by chip buttons below)
+    if st.session_state.get("_chip_pending"):
+        _chip_q = st.session_state.pop("_chip_pending")
+        st.session_state["chat_history"].append({"role": "user",      "content": _chip_q})
+        st.session_state["chat_history"].append({"role": "assistant", "content": answer_question(_chip_q)})
+        st.rerun()
     _t1_c = "#f2f2f2"
     if not st.session_state["chat_history"]:
         msgs_html = '<div class="chat-empty">Ask about weights, the Sharpe ratio, ESG scores,<br>the utility function, or any part of your portfolio.</div>'
@@ -1262,49 +1268,48 @@ if "opt_results" in st.session_state and _page == "input":
             else:
                 msgs_html += f'<div class="bubble-row bot-row"><div class="bot-mini-avatar">GP</div><div class="bubble bubble-b">{safe}</div></div>'
         msgs_html += '</div>'
-    # ── Chip spans: set the chat input value via React native setter + click Send ─
-    def _chip_js(question):
-        # Escape the question for use inside a JS single-quoted string
-        q_js = question.replace("\\", "\\\\").replace("'", "\\'")
-        # Build the JS using double quotes for the CSS selector (cleaner than escaping)
-        # then HTML-encode ALL double quotes so the onclick="..." attribute stays valid
-        js_raw = (
-            f"(function(){{"
-            f"var inp=document.querySelector(\"input[placeholder='Ask about your portfolio...']\");"
-            f"if(!inp)return;"
-            f"var s=Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set;"
-            f"s.call(inp,'{q_js}');"
-            f"inp.dispatchEvent(new Event('input',{{bubbles:true}}));"
-            f"inp.dispatchEvent(new Event('change',{{bubbles:true}}));"
-            f"setTimeout(function(){{"
-            f"var btn=Array.from(document.querySelectorAll('button')).find(function(b){{return b.innerText.trim()==='Send';}});"
-            f"if(btn)btn.click();"
-            f"}},80);"
-            f"}})()"
-        )
-        # HTML-encode for onclick="..." attribute: browsers decode &quot; → " before running JS
-        return js_raw.replace('&', '&amp;').replace('"', '&quot;')
-    _chips_html = "".join(
-        f'<span class="chip" onclick="{_chip_js(q)}" title="{q}">{label}</span>'
-        for q, label in zip(SUGGESTED_QUESTIONS, _CHIP_LABELS)
-    )
+    # Chat container — header + messages only (chips are real Streamlit buttons below)
     st.markdown(f"""<div class="chat-page">
     <div class="chat-header">
       <div class="chat-avatar">GP</div>
       <div style="flex:1;"><p class="chat-name" style="color:{_t1_c};">Portfolio Explainer</p><p class="chat-status">Active</p></div>
       <div style="font-size:.68rem;color:rgba(128,128,128,.6);text-align:right;line-height:1.7;">Powered by TerraVest<br>No API key required</div>
     </div>
-    <div class="chips-row">{_chips_html}</div>
     <div class="messages-scroll">{msgs_html}</div>
     </div>""", unsafe_allow_html=True)
-    st.markdown('<div class="chat-input-bar">', unsafe_allow_html=True)
+    # ── Chip buttons (real Streamlit buttons styled as chips via :has() CSS) ──
+    # The .chip-row-marker div lets us target ONLY these buttons with CSS,
+    # leaving the navbar Reset/Home/Send buttons untouched.
+    st.markdown("""<style>
+    div.element-container:has(> .chip-row-marker) + div [data-testid="baseButton-secondary"],
+    div.element-container:has(> .chip-row-marker) + div button[kind="secondary"] {
+        background: #1a1a1a !important; color: #22c55e !important;
+        border: 1px solid #222 !important; border-radius: 100px !important;
+        font-size: 0.7rem !important; font-weight: 600 !important;
+        padding: 0.18rem 0.65rem !important; min-height: 0 !important;
+        height: auto !important; line-height: 1.5 !important; width: auto !important;
+        letter-spacing: 0.01em !important; white-space: nowrap !important;
+    }
+    div.element-container:has(> .chip-row-marker) + div [data-testid="baseButton-secondary"]:hover,
+    div.element-container:has(> .chip-row-marker) + div button[kind="secondary"]:hover {
+        background: #222 !important; border-color: #333 !important;
+    }
+    div.element-container:has(> .chip-row-marker) { margin-bottom: -0.25rem !important; }
+    </style>
+    <div class="chip-row-marker"></div>""", unsafe_allow_html=True)
+    _chip_cols = st.columns(len(_CHIP_LABELS))
+    for _ci, (_cc, _cq, _cl) in enumerate(zip(_chip_cols, SUGGESTED_QUESTIONS, _CHIP_LABELS)):
+        with _cc:
+            if st.button(_cl, key=f"_chip_{_ci}", use_container_width=True, help=_cq):
+                st.session_state["_chip_pending"] = _cq
+                st.rerun()
+    # ── Manual text input ─────────────────────────────────────────────────────
     with st.form(key="chat_form", clear_on_submit=True):
         _fi, _fs = st.columns([8, 1])
         with _fi:
             user_input = st.text_input("msg", placeholder="Ask about your portfolio...", label_visibility="collapsed")
         with _fs:
             submitted = st.form_submit_button("Send", use_container_width=True, type="primary")
-    st.markdown('</div>', unsafe_allow_html=True)
     if submitted and user_input.strip():
         reply = answer_question(user_input.strip())
         st.session_state["chat_history"].append({"role": "user",      "content": user_input.strip()})
