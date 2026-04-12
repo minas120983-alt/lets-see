@@ -1287,7 +1287,19 @@ if "opt_results" in st.session_state and _page == "input":
                 _msgs_inner += f'<div class="bubble-row user-row"><div class="bubble bubble-u">{_safe}</div></div>'
             else:
                 _msgs_inner += f'<div class="bubble-row bot-row"><div class="bot-mini-avatar">GP</div><div class="bubble bubble-b">{_safe}</div></div>'
-    # ── Chat display iframe (header + messages only — no JS tricks needed) ────
+    # ── Hidden Streamlit chip triggers (clicked by iframe JS, same pattern as home page) ──
+    # Rendered BEFORE the iframe so they exist in the parent DOM when iframe JS runs.
+    for _ti, _tq in enumerate(SUGGESTED_QUESTIONS):
+        if st.button(f"\u00a7{_ti}", key=f"_chtrig_{_ti}"):
+            st.session_state["chat_history"].append({"role": "user",      "content": _tq})
+            st.session_state["chat_history"].append({"role": "assistant", "content": answer_question(_tq)})
+            st.rerun()
+    # ── Build chip HTML for the scrollable strip ──────────────────────────────
+    _chips_inner = "".join(
+        f'<button class="chip" onclick="triggerChip({_ci})">{_cl}</button>'
+        for _ci, (_cq, _cl) in enumerate(zip(SUGGESTED_QUESTIONS, _CHIP_LABELS))
+    )
+    # ── Chat iframe: header + scrollable chip strip + messages ────────────────
     components.html(f"""<!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -1301,7 +1313,11 @@ html,body{{width:100%;background:transparent;font-family:"Plus Jakarta Sans",sys
 .chat-status{{font-size:11px;color:#22c55e;margin:0;display:flex;align-items:center;gap:4px}}
 .chat-status::before{{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:#22c55e}}
 .header-right{{font-size:10px;color:rgba(128,128,128,.6);text-align:right;line-height:1.7;margin-left:auto}}
-.messages-scroll{{height:320px;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:10px;scrollbar-width:none}}
+.chips-row{{display:flex;gap:6px;overflow-x:auto;padding:9px 16px;border-bottom:1px solid #1e1e1e;scrollbar-width:none;background:#0d0d0d}}
+.chips-row::-webkit-scrollbar{{display:none}}
+.chip{{flex-shrink:0;background:#1a1a1a;color:#22c55e;border:1px solid #222;border-radius:100px;padding:4px 12px;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap;transition:background .15s;line-height:1.5}}
+.chip:hover{{background:#222;border-color:#333}}
+.messages-scroll{{height:300px;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:10px;scrollbar-width:none}}
 .messages-scroll::-webkit-scrollbar{{display:none}}
 .chat-empty{{display:flex;align-items:center;justify-content:center;height:100%;text-align:center;color:rgba(255,255,255,.32);font-size:12px;line-height:1.7}}
 .bubble-row{{display:flex;align-items:flex-end;gap:8px}}
@@ -1317,11 +1333,40 @@ html,body{{width:100%;background:transparent;font-family:"Plus Jakarta Sans",sys
     <div style="flex:1"><p class="chat-name">Portfolio Explainer</p><p class="chat-status">Active</p></div>
     <div class="header-right">Powered by TerraVest<br>No API key required</div>
   </div>
+  <div class="chips-row">{_chips_inner}</div>
   <div class="messages-scroll" id="msgs">{_msgs_inner}</div>
 </div>
-<script>var m=document.getElementById('msgs');if(m)m.scrollTop=m.scrollHeight;</script>
-</body></html>""", height=400, scrolling=False)
-    # ── Text input + Send (native Streamlit form — always works) ─────────────
+<script>
+/* Find parent button by text and click it — identical to triggerEnter() on home page */
+function triggerChip(idx) {{
+  try {{
+    var bs = window.parent.document.querySelectorAll('button');
+    for (var i = 0; i < bs.length; i++) {{
+      if (bs[i].innerText && bs[i].innerText.trim() === '\u00a7' + idx) {{
+        bs[i].click(); return;
+      }}
+    }}
+  }} catch(e) {{}}
+}}
+/* Hide the § trigger buttons from view */
+function hideTriggers() {{
+  try {{
+    var bs = window.parent.document.querySelectorAll('button');
+    for (var i = 0; i < bs.length; i++) {{
+      if (bs[i].innerText && bs[i].innerText.trim().indexOf('\u00a7') === 0) {{
+        var wrap = bs[i].closest('[data-testid="stButton"]') || bs[i].parentElement;
+        if (wrap) wrap.style.cssText = 'position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;overflow:hidden!important;';
+      }}
+    }}
+  }} catch(e) {{}}
+}}
+hideTriggers();
+setTimeout(hideTriggers, 200);
+setTimeout(hideTriggers, 800);
+var m = document.getElementById('msgs'); if (m) m.scrollTop = m.scrollHeight;
+</script>
+</body></html>""", height=420, scrolling=False)
+    # ── Text input + Send (native Streamlit form — reliable) ─────────────────
     with st.form(key="chat_form", clear_on_submit=True):
         _fc1, _fc2 = st.columns([8, 1])
         with _fc1:
@@ -1332,32 +1377,6 @@ html,body{{width:100%;background:transparent;font-family:"Plus Jakarta Sans",sys
         st.session_state["chat_history"].append({"role": "user",      "content": _user_input.strip()})
         st.session_state["chat_history"].append({"role": "assistant", "content": answer_question(_user_input.strip())})
         st.rerun()
-    # ── Chip buttons (native Streamlit — always works, styled as green pills) ─
-    st.markdown("""<style>
-/* Green pill style for all secondary buttons in the chip grid rows */
-div[data-testid="stHorizontalBlock"] button[data-testid="baseButton-secondary"] {
-    background:#1a1a1a !important; color:#22c55e !important;
-    border:1px solid #222 !important; border-radius:100px !important;
-    font-size:0.72rem !important; font-weight:600 !important;
-    padding:0.22rem 0.8rem !important; min-height:0 !important;
-    height:auto !important; line-height:1.5 !important;
-    white-space:nowrap !important; letter-spacing:0.01em !important;
-}
-div[data-testid="stHorizontalBlock"] button[data-testid="baseButton-secondary"]:hover {
-    background:#222 !important; border-color:#333 !important;
-}
-</style>""", unsafe_allow_html=True)
-    # Render chips in rows of 5
-    _cq_list = list(zip(SUGGESTED_QUESTIONS, _CHIP_LABELS))
-    for _row_start in range(0, len(_cq_list), 5):
-        _row = _cq_list[_row_start:_row_start + 5]
-        _rcols = st.columns(len(_row))
-        for _rc, (_cq, _cl) in zip(_rcols, _row):
-            with _rc:
-                if st.button(_cl, key=f"chip_{_row_start + _row.index((_cq, _cl))}", use_container_width=True):
-                    st.session_state["chat_history"].append({"role": "user",      "content": _cq})
-                    st.session_state["chat_history"].append({"role": "assistant", "content": answer_question(_cq)})
-                    st.rerun()
     if st.session_state.get("chat_history"):
         _, _clr_col, _ = st.columns([3, 1, 3])
         with _clr_col:
