@@ -68,26 +68,26 @@ div[data-testid="stHorizontalBlock"]:first-of-type div.stButton > button { backg
 .gp-label::after { content: ""; flex: 1; height: 1px; background: var(--sep); }
 .section-header { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3) !important; display: flex; align-items: center; gap: 0.75rem; margin: 2.5rem 0 1.25rem; }
 .section-header::after { content: ""; flex: 1; height: 1px; background: var(--sep); }
-.gp-card { background: var(--bg-card); border: 1px solid var(--sep); border-radius: var(--r-lg); padding: 1.4rem 1.5rem; margin-bottom: 0.75rem; }
+.gp-card { background: #111111 !important; border: 1px solid #222222 !important; border-radius: var(--r-lg); padding: 1.4rem 1.5rem; margin-bottom: 0.75rem; }
 .results-hero { padding: 2rem 0 1.5rem; }
-.results-title { font-size: 2.0rem; font-weight: 800; letter-spacing: -0.04em; color: var(--text-1) !important; margin-bottom: 0.4rem; }
-.results-meta { font-size: 0.82rem; color: var(--text-3) !important; }
-.metric-card { background: var(--bg-card); border: 1px solid var(--sep); border-radius: var(--r-lg); padding: 1.4rem 1.5rem 1.3rem; position: relative; overflow: hidden; }
-.metric-card.card-ret { border-top: 2px solid var(--accent); }
-.metric-card.card-vol { border-top: 2px solid var(--sys-orange); }
-.metric-card.card-sr  { border-top: 2px solid var(--sys-indigo); }
-.metric-card.card-esg { border-top: 2px solid var(--accent); }
-.metric-label { font-size: 0.60rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3) !important; margin-bottom: 0.65rem; }
-.metric-value { font-size: 2.2rem; font-weight: 700; letter-spacing: -0.04em; color: var(--text-1) !important; line-height: 1; }
-.metric-unit { font-size: 0.78rem; color: var(--text-3) !important; margin-left: 2px; font-weight: 400; }
-.metric-pos { color: var(--accent) !important; }
-.metric-neg { color: var(--sys-red) !important; }
-.info-box  { background: var(--accent-dark); border: 1px solid rgba(34,197,94,0.18); border-radius: var(--r-sm); padding: 0.75rem 1rem; margin: 0.5rem 0; font-size: 0.81rem; color: var(--accent) !important; line-height: 1.6; }
-.warn-box  { background: rgba(251,146,60,0.07); border: 1px solid rgba(251,146,60,0.20); border-radius: var(--r-sm); padding: 0.75rem 1rem; margin: 0.5rem 0; font-size: 0.81rem; color: var(--sys-orange) !important; line-height: 1.6; }
-.error-box { background: rgba(248,113,113,0.07); border: 1px solid rgba(248,113,113,0.20); border-radius: var(--r-sm); padding: 0.75rem 1rem; margin: 0.5rem 0; font-size: 0.81rem; color: var(--sys-red) !important; line-height: 1.6; }
+.results-title { font-size: 2.0rem; font-weight: 800; letter-spacing: -0.04em; color: #f2f2f2 !important; margin-bottom: 0.4rem; }
+.results-meta { font-size: 0.82rem; color: #888888 !important; }
+.metric-card { background: #111111 !important; border: 1px solid #222222 !important; border-radius: var(--r-lg); padding: 1.4rem 1.5rem 1.3rem; position: relative; overflow: hidden; }
+.metric-card.card-ret { border-top: 2px solid #22c55e !important; }
+.metric-card.card-vol { border-top: 2px solid #fb923c !important; }
+.metric-card.card-sr  { border-top: 2px solid #818cf8 !important; }
+.metric-card.card-esg { border-top: 2px solid #22c55e !important; }
+.metric-label { font-size: 0.60rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #888888 !important; margin-bottom: 0.65rem; }
+.metric-value { font-size: 2.2rem; font-weight: 700; letter-spacing: -0.04em; color: #f2f2f2 !important; line-height: 1; }
+.metric-unit { font-size: 0.78rem; color: #888888 !important; margin-left: 2px; font-weight: 400; }
+.metric-pos { color: #22c55e !important; }
+.metric-neg { color: #f87171 !important; }
+.info-box  { background: #111111 !important; border: 1px solid #222222 !important; border-left: 3px solid #22c55e !important; border-radius: var(--r-sm); padding: 0.75rem 1rem; margin: 0.5rem 0; font-size: 0.81rem; color: #f2f2f2 !important; line-height: 1.6; }
+.warn-box  { background: #111111 !important; border: 1px solid #222222 !important; border-left: 3px solid #fb923c !important; border-radius: var(--r-sm); padding: 0.75rem 1rem; margin: 0.5rem 0; font-size: 0.81rem; color: #f2f2f2 !important; line-height: 1.6; }
+.error-box { background: #111111 !important; border: 1px solid #222222 !important; border-left: 3px solid #f87171 !important; border-radius: var(--r-sm); padding: 0.75rem 1rem; margin: 0.5rem 0; font-size: 0.81rem; color: #f2f2f2 !important; line-height: 1.6; }
 div.stButton > button { background: var(--accent) !important; color: var(--accent-on) !important; border: none !important; border-radius: var(--r-sm) !important; padding: 0.6rem 1.8rem !important; font-family: var(--font) !important; font-weight: 700 !important; font-size: 0.88rem !important; width: 100% !important; cursor: pointer !important; }
 div.stButton > button:hover { background: var(--accent-hover) !important; transform: translateY(-1px) !important; }
-.stNumberInput input, .stTextInput input, .stTextArea textarea { background: var(--bg-input) !important; color: #000000 !important; border: 1px solid var(--sep) !important; border-radius: var(--r-sm) !important; font-family: var(--font) !important; font-size: 0.88rem !important; }
+.stNumberInput input, .stTextInput input, .stTextArea textarea { background: var(--bg-input) !important; color: var(--text-1) !important; border: 1px solid var(--sep) !important; border-radius: var(--r-sm) !important; font-family: var(--font) !important; font-size: 0.88rem !important; }
 .stSelectbox div[data-baseweb="select"] > div { background: var(--bg-input) !important; color: var(--text-1) !important; border: 1px solid var(--sep) !important; border-radius: var(--r-sm) !important; }
 .stRadio label { color: var(--text-2) !important; font-size: 0.88rem !important; }
 .stSlider [role="slider"] { background: var(--accent) !important; border: none !important; box-shadow: 0 0 0 3px var(--accent-light) !important; }
@@ -95,11 +95,13 @@ label, .stSlider label { color: var(--text-3) !important; font-size: 0.68rem !im
 h1, h2, h3, h4, h5, h6 { color: var(--text-1) !important; font-family: var(--font) !important; }
 p, div, span, li { font-family: var(--font) !important; color: var(--text-2); }
 code { font-family: var(--font-mono) !important; background: var(--bg-input); color: var(--accent); border-radius: 4px; padding: 1px 6px; font-size: 0.84em; }
-.stDataFrame thead th { background: var(--bg-elevated) !important; color: var(--text-3) !important; font-size: 0.64rem !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; font-weight: 700 !important; }
-.stDataFrame tbody tr { border-bottom: 1px solid var(--sep) !important; }
-table { color: var(--text-1) !important; border-collapse: collapse; width: 100%; }
-thead tr th { color: var(--text-3) !important; font-size: 0.64rem !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; border-bottom: 1px solid var(--sep) !important; padding: 0.55rem 0.8rem !important; font-weight: 700 !important; }
-tbody tr td { color: var(--text-2) !important; border-bottom: 1px solid var(--sep) !important; padding: 0.5rem 0.8rem !important; }
+.stDataFrame, [data-testid="stDataFrame"] { background: #111111 !important; }
+.stDataFrame thead th { background: #181818 !important; color: #888888 !important; font-size: 0.64rem !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; font-weight: 700 !important; }
+.stDataFrame tbody tr { border-bottom: 1px solid #222222 !important; }
+.stDataFrame tbody td, .stDataFrame tbody tr td { background: #111111 !important; color: #f2f2f2 !important; }
+table { color: #f2f2f2 !important; border-collapse: collapse; width: 100%; background: #111111; }
+thead tr th { color: #888888 !important; font-size: 0.64rem !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; border-bottom: 1px solid #222222 !important; padding: 0.55rem 0.8rem !important; font-weight: 700 !important; background: #181818 !important; }
+tbody tr td { color: #f2f2f2 !important; border-bottom: 1px solid #222222 !important; padding: 0.5rem 0.8rem !important; background: #111111 !important; }
 hr { border: none !important; border-top: 1px solid var(--sep) !important; margin: 2rem 0 !important; }
 .chat-page { background: var(--chat-bg); border: 1px solid var(--sep); border-radius: var(--r-xl); overflow: hidden; margin-top: 1rem; }
 .chat-header { background: var(--chat-header-bg); border-bottom: 1px solid var(--sep); padding: 1rem 1.5rem; display: flex; align-items: center; gap: 0.9rem; }
@@ -150,6 +152,28 @@ hr { border: none !important; border-top: 1px solid var(--sep) !important; margi
 [data-testid="stExpander"] summary p { color: var(--text-2) !important; font-size: 0.88rem !important; font-weight: 500 !important; }
 [data-testid="stExpander"] summary svg { display: none !important; }
 [data-testid="stExpander"] summary span { color: transparent !important; font-size: 0 !important; }
+/* ── Dark-mode override: ensure all text is white ─────────────────────── */
+@media (prefers-color-scheme: dark) {
+  html, body, [class*="css"], p, div, span, li, label,
+  .stMarkdown, .stText, [data-testid="stMarkdownContainer"] * {
+    color: #f2f2f2 !important;
+  }
+  h1, h2, h3, h4, h5, h6 { color: #ffffff !important; }
+  /* Input fields: black text was invisible on dark backgrounds */
+  .stNumberInput input, .stTextInput input, .stTextArea textarea {
+    color: #f2f2f2 !important;
+    background: rgba(255,255,255,0.09) !important;
+  }
+  .stSelectbox div[data-baseweb="select"] > div { color: #f2f2f2 !important; }
+  /* Re-assert branded colour overrides so they aren't wiped by the rule above */
+  .gp-eyebrow, .chat-status, .chip,
+  .info-box, .metric-pos, .gp-rw-a, .gp-rw-b { color: #22c55e !important; }
+  .warn-box  { color: #fb923c !important; }
+  .error-box { color: #f87171 !important; }
+  .metric-neg { color: #f87171 !important; }
+  .bubble-u   { color: #000000 !important; }
+  .bubble-b   { color: rgba(242,242,242,0.88) !important; }
+}
 </style>
 """, unsafe_allow_html=True)
 # ══════════════════════════════════════════════════════════════════════════════
