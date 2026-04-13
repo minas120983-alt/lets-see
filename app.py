@@ -1275,8 +1275,14 @@ if "opt_results" in st.session_state and _page == "input":
     Green frontier + CML: ESG utility-max portfolio (restricted to assets passing the ESG screen). ESG data: LSEG ESGCombinedScore CSV, scaled 0–10.
     </div>""", unsafe_allow_html=True)
     # ── Chatbot ───────────────────────────────────────────────────────────────
-    st.markdown('<div class="section-header">Portfolio Explainer</div>', unsafe_allow_html=True)
+    # § trigger buttons rendered HERE (above the visible chatbot UI, hidden by iframe JS)
     if "chat_history" not in st.session_state: st.session_state["chat_history"] = []
+    for _ti, _tq in enumerate(SUGGESTED_QUESTIONS):
+        if st.button(f"\u00a7{_ti}", key=f"_chtrig_{_ti}"):
+            st.session_state["chat_history"].append({"role": "user",      "content": _tq})
+            st.session_state["chat_history"].append({"role": "assistant", "content": answer_question(_tq)})
+            st.rerun()
+    st.markdown('<div class="section-header">Portfolio Explainer</div>', unsafe_allow_html=True)
     # ── Build messages HTML for the display iframe ────────────────────────────
     if not st.session_state["chat_history"]:
         _msgs_inner = '<div class="chat-empty">Ask about weights, the Sharpe ratio, ESG scores,<br>the utility function, or any part of your portfolio.</div>'
@@ -1383,12 +1389,6 @@ hideTriggers();
 var m = document.getElementById('msgs'); if (m) m.scrollTop = m.scrollHeight;
 </script>
 </body></html>""", height=420, scrolling=False)
-    # ── Hidden § triggers rendered AFTER the iframe — observer in iframe hides them ──
-    for _ti, _tq in enumerate(SUGGESTED_QUESTIONS):
-        if st.button(f"\u00a7{_ti}", key=f"_chtrig_{_ti}"):
-            st.session_state["chat_history"].append({"role": "user",      "content": _tq})
-            st.session_state["chat_history"].append({"role": "assistant", "content": answer_question(_tq)})
-            st.rerun()
     # ── Text input + Send (native Streamlit form — reliable) ─────────────────
     with st.form(key="chat_form", clear_on_submit=True):
         _fc1, _fc2 = st.columns([8, 1])
