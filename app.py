@@ -1290,47 +1290,6 @@ if "opt_results" in st.session_state and _page == "input":
                 _msgs_inner += f'<div class="bubble-row user-row"><div class="bubble bubble-u">{_safe}</div></div>'
             else:
                 _msgs_inner += f'<div class="bubble-row bot-row"><div class="bot-mini-avatar">GP</div><div class="bubble bubble-b">{_safe}</div></div>'
-    # ── Pre-hide observer: injected BEFORE § buttons so they're hidden before paint ──
-    components.html("""<!DOCTYPE html><html><head></head><body><script>
-(function(){
-  function hideBtn(btn){
-    var t = btn.closest('[data-testid="element-container"]')
-          || btn.closest('[data-testid="stButton"]')
-          || btn.parentElement;
-    if(t) t.style.cssText='display:none!important;height:0!important;padding:0!important;margin:0!important;min-height:0!important;';
-  }
-  function scan(){
-    var bs=window.parent.document.querySelectorAll('button');
-    for(var i=0;i<bs.length;i++){
-      var txt=bs[i].innerText?bs[i].innerText.trim():'';
-      if(txt.charCodeAt(0)===167) hideBtn(bs[i]);
-    }
-  }
-  var obs=new MutationObserver(function(muts){
-    for(var m=0;m<muts.length;m++){
-      var nodes=muts[m].addedNodes;
-      for(var j=0;j<nodes.length;j++){
-        if(nodes[j].querySelectorAll){
-          var btns=nodes[j].querySelectorAll('button');
-          for(var k=0;k<btns.length;k++){
-            var t=btns[k].innerText?btns[k].innerText.trim():'';
-            if(t.charCodeAt(0)===167) hideBtn(btns[k]);
-          }
-        }
-      }
-    }
-  });
-  obs.observe(window.parent.document.body,{childList:true,subtree:true});
-  scan();
-})();
-</script></body></html>""", height=0, scrolling=False)
-    # ── Hidden Streamlit chip triggers (clicked by iframe JS, same pattern as home page) ──
-    # Rendered AFTER the observer so buttons are hidden before browser paints them.
-    for _ti, _tq in enumerate(SUGGESTED_QUESTIONS):
-        if st.button(f"\u00a7{_ti}", key=f"_chtrig_{_ti}"):
-            st.session_state["chat_history"].append({"role": "user",      "content": _tq})
-            st.session_state["chat_history"].append({"role": "assistant", "content": answer_question(_tq)})
-            st.rerun()
     # ── Build chip HTML for the scrollable strip ──────────────────────────────
     _chips_inner = "".join(
         f'<button class="chip" onclick="triggerChip({_ci})">{_cl}</button>'
@@ -1385,25 +1344,51 @@ function triggerChip(idx) {{
     }}
   }} catch(e) {{}}
 }}
-/* Hide the § trigger buttons from view */
+/* Hide a § button's outermost Streamlit container */
+function hideBtn(btn) {{
+  try {{
+    var wrap = btn.closest('[data-testid="element-container"]')
+            || btn.closest('[data-testid="stButton"]')
+            || btn.parentElement;
+    if (wrap) wrap.style.cssText = 'display:none!important;height:0!important;padding:0!important;margin:0!important;min-height:0!important;';
+  }} catch(e) {{}}
+}}
+/* Scan all existing buttons and hide § ones */
 function hideTriggers() {{
   try {{
     var bs = window.parent.document.querySelectorAll('button');
     for (var i = 0; i < bs.length; i++) {{
-      if (bs[i].innerText && bs[i].innerText.trim().indexOf('\u00a7') === 0) {{
-        var wrap = bs[i].closest('[data-testid="element-container"]')
-                || bs[i].closest('[data-testid="stButton"]')
-                || bs[i].parentElement;
-        if (wrap) wrap.style.cssText = 'display:none!important;height:0!important;padding:0!important;margin:0!important;min-height:0!important;';
-      }}
+      if (bs[i].innerText && bs[i].innerText.trim().indexOf('\u00a7') === 0) hideBtn(bs[i]);
     }}
   }} catch(e) {{}}
 }}
+/* Watch for § buttons added after iframe loads (they render after us) */
+try {{
+  var _obs = new MutationObserver(function(muts) {{
+    for (var m = 0; m < muts.length; m++) {{
+      var nodes = muts[m].addedNodes;
+      for (var j = 0; j < nodes.length; j++) {{
+        if (nodes[j].querySelectorAll) {{
+          var btns = nodes[j].querySelectorAll('button');
+          for (var k = 0; k < btns.length; k++) {{
+            if (btns[k].innerText && btns[k].innerText.trim().indexOf('\u00a7') === 0) hideBtn(btns[k]);
+          }}
+        }}
+      }}
+    }}
+  }});
+  _obs.observe(window.parent.document.body, {{childList: true, subtree: true}});
+}} catch(e) {{}}
 hideTriggers();
-setTimeout(hideTriggers, 200);
 var m = document.getElementById('msgs'); if (m) m.scrollTop = m.scrollHeight;
 </script>
 </body></html>""", height=420, scrolling=False)
+    # ── Hidden § triggers rendered AFTER the iframe — observer in iframe hides them ──
+    for _ti, _tq in enumerate(SUGGESTED_QUESTIONS):
+        if st.button(f"\u00a7{_ti}", key=f"_chtrig_{_ti}"):
+            st.session_state["chat_history"].append({"role": "user",      "content": _tq})
+            st.session_state["chat_history"].append({"role": "assistant", "content": answer_question(_tq)})
+            st.rerun()
     # ── Text input + Send (native Streamlit form — reliable) ─────────────────
     with st.form(key="chat_form", clear_on_submit=True):
         _fc1, _fc2 = st.columns([8, 1])
