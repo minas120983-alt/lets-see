@@ -719,7 +719,6 @@ if _page == "home":
     });
     </script></body></html>"""
     components.html(_HOME_HTML, height=820, scrolling=False)
-    # Native Streamlit button — no URL change, CSS handles centering
     if st.button("Enter TerraVest →", key="home_enter_btn"):
         st.session_state["page"] = "input"
         st.rerun()
@@ -836,7 +835,6 @@ if _page == "input":
             for i in range(int(n_assets)):
                 c1, c2 = st.columns([1.1, 1.8])
                 ticker = c1.text_input("", value=default_tickers[i], key=f"ticker_{i}", label_visibility="collapsed").upper().strip()
-                # Fetch company name from Yahoo Finance (cached in session state)
                 _cache_key = f"fetched_name_{ticker}"
                 if ticker and _cache_key not in st.session_state:
                     try:
@@ -846,8 +844,6 @@ if _page == "input":
                     except Exception:
                         st.session_state[_cache_key] = ticker
                 _default_name = st.session_state.get(_cache_key, default_names[i] if i < len(default_names) else ticker)
-                # Key includes the ticker so changing the ticker creates a fresh widget
-                # with the new fetched name — user edits persist while ticker stays the same
                 name = c2.text_input("", value=_default_name, key=f"ticker_name_{i}_{ticker}", label_visibility="collapsed")
                 ticker_rows.append({"ticker": ticker, "name": name or ticker, "manual_esg": None})
         valid_tickers = [r["ticker"] for r in ticker_rows if r["ticker"]]
@@ -925,7 +921,6 @@ if _page == "input":
     min_esg_filter = 0.0
     if use_exclusion:
         min_esg_filter = st.slider("Minimum ESG score (0–10)", 0.0, 10.0, 4.0, 0.5)
-    # ── Input fingerprint — clear results if any input changed ───────────────
     _fp_parts = [str(input_mode), str(gamma), str(lam), str(rf), str(use_exclusion), str(min_esg_filter)]
     if input_mode == "Manual input":
         for _d in asset_data:
@@ -1032,7 +1027,6 @@ if _page == "input":
             st.error("Need at least 2 assets passing the ESG screen."); st.stop()
         mu_a  = mu[active_idx]; cov_a = cov[np.ix_(active_idx, active_idx)]; esg_a = esg_scores[active_idx]
         bounds_green = [(0., 1.) if active_mask[i] else (0., 0.) for i in range(n)]
-        # ── Stepped progress indicator ────────────────────────────────────────
         _prog = st.empty()
         def _prog_msg(msg):
             _prog.markdown(f'<div class="info-box" style="text-align:center;letter-spacing:.04em;">'
@@ -1048,7 +1042,6 @@ if _page == "input":
         _prog_msg("Building efficient frontiers&hellip;")
         std_blue,  ret_blue  = build_mv_frontier(mu, cov, n_points=100)
         std_green, ret_green = build_mv_frontier(mu, cov, bounds=bounds_green, n_points=100)
-        # ── ESG–Sharpe frontier (precomputed here so results render instantly) ─
         _prog_msg("Computing ESG&ndash;Sharpe frontier&hellip;")
         _w0_g2 = np.ones(n) / n
         _ures = minimize(lambda w: -port_sr(w, mu, cov, rf), _w0_g2, method="SLSQP",
@@ -1092,7 +1085,6 @@ if _page == "input":
             _esg_sorted = [p[0] for p in _g2_pairs]; _sr_sorted = [p[1] for p in _g2_pairs]
         else:
             _esg_sorted, _sr_sorted = [], []
-        # ── Sensitivity analysis (precomputed here so results render instantly) ─
         _prog_msg("Running sensitivity analysis&hellip;")
         _sens_g = []; _sens_l = []
         for _g_ in np.linspace(0.5, 10, 30):
@@ -1109,7 +1101,7 @@ if _page == "input":
                 _sens_l.append({"λ": round(float(_l_),2), "E[R](%)": round(_ep_*100,3),
                                  "σ(%)": round(_sp_*100,3), "Sharpe": round(_sr_,4)})
             except Exception: pass
-        _prog.empty()   # clear progress bar — results are ready
+        _prog.empty()
         st.session_state["opt_results"] = {
             "names": names, "mu": mu, "vols": vols, "esg_scores": esg_scores,
             "w_opt": w_opt, "ep": ep, "sp": sp, "sr": sr, "esg_bar": esg_bar,
@@ -1120,18 +1112,16 @@ if _page == "input":
             "std_blue": std_blue, "ret_blue": ret_blue, "std_green": std_green, "ret_green": ret_green,
             "ticker_data_display": ticker_data_display, "corr_np": corr_np,
             "input_mode": input_mode, "esg_letters": esg_letters,
-            # precomputed ESG–SR frontier
             "esg_sorted": _esg_sorted, "sr_sorted": _sr_sorted,
             "sr_unc": _sr_unc, "esg_unc": _esg_unc,
             "sp_esgt": _sp_esgt, "sr_esgt": _sr_esgt, "esg_esgt": _esg_esgt,
             "scr_differs": _scr_differs, "esg_min_g2": _esg_min_g2, "esg_max_g2": _esg_max_g2,
-            # precomputed sensitivity
             "sens_g_df": pd.DataFrame(_sens_g), "sens_l_df": pd.DataFrame(_sens_l),
         }
         st.session_state["chat_data"]      = st.session_state["opt_results"]
         st.session_state["chat_history"]   = []
         st.session_state["opt_fingerprint"] = _cur_fp
-        st.rerun()  # rerun so results animate in cleanly
+        st.rerun()
 # ══════════════════════════════════════════════════════════════════════════════
 # INLINE RESULTS — appears below the form on the input page
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1204,7 +1194,6 @@ if "opt_results" in st.session_state and _page == "input":
         "σ (%)": _display_vol,
         "ESG (0–10)": _display_esg,
     }), use_container_width=True, hide_index=True)
-    # ── Corner solution detection ────────────────────────────────────────────────
     _w_max_i = int(np.argmax(w_opt))
     _w_sum   = float(np.sum(w_opt))
     if _w_sum > 0.01 and float(w_opt[_w_max_i]) / _w_sum > 0.98 and _w_sum > 0.5:
@@ -1233,22 +1222,14 @@ if "opt_results" in st.session_state and _page == "input":
     x_pad = max(all_stds) * 0.08 if all_stds else 5
     y_pad = ((max(all_rets) - min(all_rets)) * 0.12) if len(all_rets) > 1 else 1
     _c1, _c2 = st.columns(2)
-    # ════════════════════════════════════════════════════════════════════════
-    # GRAPH 1  —  Mean-Variance Frontier
-    #   Blue  = Base portfolio      (all assets, unconstrained): frontier + CML
-    #   Green = ESG Utility-Max portfolio (ESG-screened):        frontier + CML
-    # ════════════════════════════════════════════════════════════════════════
     with _c1:
         fig, ax = plt.subplots(figsize=(6.5, 5.5))
         fig.patch.set_facecolor(CHART_BG)
 
-        # ── Green FIRST (lower z) so blue always renders on top ──────────────
-        # Green: ESG UTILITY-MAX portfolio frontier (ESG-screened)
         if len(std_green) > 2:
             ax.plot(std_green, ret_green, color=GREEN, lw=2.2, zorder=3,
                     label=f"Efficient Frontier — ESG Utility-Max (ESG ≥ {esg_thresh:.1f})")
 
-        # Blue: BASE portfolio frontier (all assets, unconstrained) — drawn on top
         if len(std_blue) > 2:
             ax.plot(std_blue, ret_blue, color=BLUE, lw=2.5, zorder=5,
                     label="Efficient Frontier — Base (all assets)")
@@ -1257,20 +1238,17 @@ if "opt_results" in st.session_state and _page == "input":
         cml_max = max(all_stds) + x_pad if all_stds else 50
         sd_cml  = np.linspace(0, cml_max, 300)
 
-        # Green CML — ESG UTILITY-MAX (drawn first / lower z)
         if sp_tan_esg > 1e-9:
             ax.plot(sd_cml, rf * 100 + (ep_tan_esg - rf) / sp_tan_esg * sd_cml,
                     color=GREEN, lw=1.6, linestyle="--", zorder=4,
                     label="CML — ESG Utility-Max")
 
-        # Blue CML — BASE portfolio (drawn on top so always visible)
         if sp_tan_all > 1e-9:
             ax.plot(sd_cml, rf * 100 + (ep_tan_all - rf) / sp_tan_all * sd_cml,
                     color=BLUE, lw=1.6, linestyle="--", zorder=6,
                     label="CML — Base")
 
         # ── Tangency markers ──────────────────────────────────────────────────
-        # Green tangency first (lower z) — ESG Utility-Max
         if sp_tan_esg > 1e-9:
             ax.scatter(sp_tan_esg * 100, ep_tan_esg * 100, color=GREEN, s=110, zorder=9,
                        edgecolors="white", lw=1.4, marker="o")
@@ -1279,7 +1257,6 @@ if "opt_results" in st.session_state and _page == "input":
                         textcoords="offset points", xytext=(7, -20),
                         fontsize=7, color=GREEN, fontstyle="italic")
 
-        # Blue tangency on top — Base
         ax.scatter(sp_tan_all * 100, ep_tan_all * 100, color=BLUE, s=110, zorder=11,
                    edgecolors="white", lw=1.4, marker="o")
         ax.annotate("Base tangency\n(all assets)",
@@ -1379,7 +1356,6 @@ if "opt_results" in st.session_state and _page == "input":
         fig2.tight_layout()
         st.pyplot(fig2, use_container_width=True)
         plt.close()
-    # ── Portfolio Breakdown ───────────────────────────────────────────────────
     st.markdown('<div class="section-header">Portfolio Breakdown</div>', unsafe_allow_html=True)
     _c3, _c4 = st.columns(2)
     with _c3:
@@ -1411,7 +1387,6 @@ if "opt_results" in st.session_state and _page == "input":
                 ax4.set_xlabel("Risk Contribution (%)", fontsize=9, color=GREY)
                 _style_ax(ax4, "Risk Contribution by Asset")
                 fig4.tight_layout(); st.pyplot(fig4); plt.close()
-    # ── Sensitivity Analysis (precomputed, reads from R) ─────────────────────
     st.markdown('<div class="section-header">Sensitivity Analysis</div>', unsafe_allow_html=True)
     sens_g_df = R["sens_g_df"]; sens_l_df = R["sens_l_df"]
     _s1, _s2 = st.columns(2)
@@ -1442,7 +1417,6 @@ if "opt_results" in st.session_state and _page == "input":
     </div>""", unsafe_allow_html=True)
     # ── Chatbot ───────────────────────────────────────────────────────────────
     if "chat_history" not in st.session_state: st.session_state["chat_history"] = []
-    # § triggers in ONE row (st.columns) — only ~38px tall, hidden by iframe JS immediately
     _trig_cols = st.columns(len(SUGGESTED_QUESTIONS))
     for _ti, _tq in enumerate(SUGGESTED_QUESTIONS):
         with _trig_cols[_ti]:
@@ -1451,7 +1425,6 @@ if "opt_results" in st.session_state and _page == "input":
                 st.session_state["chat_history"].append({"role": "assistant", "content": answer_question(_tq)})
                 st.rerun()
     st.markdown('<div class="section-header">Portfolio Explainer</div>', unsafe_allow_html=True)
-    # ── Build messages HTML for the display iframe ────────────────────────────
     if not st.session_state["chat_history"]:
         _msgs_inner = '<div class="chat-empty">Ask about weights, the Sharpe ratio, ESG scores,<br>the utility function, or any part of your portfolio.</div>'
     else:
@@ -1464,12 +1437,10 @@ if "opt_results" in st.session_state and _page == "input":
                 _msgs_inner += f'<div class="bubble-row user-row"><div class="bubble bubble-u">{_safe}</div></div>'
             else:
                 _msgs_inner += f'<div class="bubble-row bot-row"><div class="bot-mini-avatar">GP</div><div class="bubble bubble-b">{_safe}</div></div>'
-    # ── Build chip HTML for the scrollable strip ──────────────────────────────
     _chips_inner = "".join(
         f'<button class="chip" onclick="triggerChip({_ci})">{_cl}</button>'
         for _ci, (_cq, _cl) in enumerate(zip(SUGGESTED_QUESTIONS, _CHIP_LABELS))
     )
-    # ── Chat iframe: header + scrollable chip strip + messages ────────────────
     components.html(f"""<!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -1538,7 +1509,6 @@ setTimeout(hideTriggerRow, 150);
 var m = document.getElementById('msgs'); if (m) m.scrollTop = m.scrollHeight;
 </script>
 </body></html>""", height=420, scrolling=False)
-    # ── Text input + Send (native Streamlit form — reliable) ─────────────────
     with st.form(key="chat_form", clear_on_submit=True):
         _fc1, _fc2 = st.columns([8, 1])
         with _fc1:
