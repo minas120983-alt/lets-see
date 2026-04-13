@@ -608,7 +608,6 @@ def _portfolio_answer(question: str, d: dict) -> str:
         for i in low_vol:
             lines.append(f"  {names[i]}: σ={vols[i]*100:.1f}%, weight={w_opt[i]*100:.1f}%")
         return "\n".join(lines)
-    # fallback
     active = [(names[i], w_opt[i]) for i in range(n) if w_opt[i] > 0.001]
     lines = [f"Portfolio (γ={gamma}, λ={lam}): E[R]={ep*100:.2f}%, σ={sp*100:.2f}%, SR={sr:.3f}, ESG={esg_bar:.2f}/10", "", "Holdings:"]
     for nm, wt in active:
@@ -1216,7 +1215,6 @@ if "opt_results" in st.session_state and _page == "input":
         with st.expander("Correlation matrix"):
             st.dataframe(pd.DataFrame(corr_np, index=names, columns=names).round(3), use_container_width=True)
     st.markdown('<div class="section-header">Efficient Frontier</div>', unsafe_allow_html=True)
-    # ── collect axis limit data ───────────────────────────────────────────────
     all_stds = list(std_blue) + list(std_green) + [sp * 100, sp_tan_all * 100, sp_tan_esg * 100]
     all_rets = list(ret_blue) + list(ret_green) + [ep * 100, ep_tan_all * 100, ep_tan_esg * 100, rf * 100]
     x_pad = max(all_stds) * 0.08 if all_stds else 5
@@ -1234,7 +1232,6 @@ if "opt_results" in st.session_state and _page == "input":
             ax.plot(std_blue, ret_blue, color=BLUE, lw=2.5, zorder=5,
                     label="Efficient Frontier — Base (all assets)")
 
-        # ── Capital Market Lines ──────────────────────────────────────────────
         cml_max = max(all_stds) + x_pad if all_stds else 50
         sd_cml  = np.linspace(0, cml_max, 300)
 
@@ -1248,7 +1245,6 @@ if "opt_results" in st.session_state and _page == "input":
                     color=BLUE, lw=1.6, linestyle="--", zorder=6,
                     label="CML — Base")
 
-        # ── Tangency markers ──────────────────────────────────────────────────
         if sp_tan_esg > 1e-9:
             ax.scatter(sp_tan_esg * 100, ep_tan_esg * 100, color=GREEN, s=110, zorder=9,
                        edgecolors="white", lw=1.4, marker="o")
@@ -1264,15 +1260,12 @@ if "opt_results" in st.session_state and _page == "input":
                     textcoords="offset points", xytext=(-72, 8),
                     fontsize=7, color=BLUE, fontstyle="italic")
 
-        # ── Risk-free asset ───────────────────────────────────────────────────
         ax.scatter(0, rf * 100, color=GREY, s=60, zorder=8,
                    edgecolors="white", lw=1, marker="s")
 
-        # ── ESG-optimal portfolio (user's chosen portfolio) ───────────────────
         ax.scatter(sp * 100, ep * 100, color=ORANGE, s=160, zorder=10,
                    edgecolors="white", lw=2, marker="*", label="Your ESG-Optimal portfolio")
 
-        # ── Individual assets ─────────────────────────────────────────────────
         for i in range(n):
             ax.scatter(vols[i] * 100, mu[i] * 100,
                        color=GREEN if active_mask[i] else BLUE,
