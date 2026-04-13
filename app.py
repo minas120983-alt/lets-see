@@ -453,6 +453,161 @@ def _portfolio_answer(question: str, d: dict) -> str:
         ]
         if excluded: lines.append(f"Excluded: {', '.join(excluded)}")
         return "\n".join(lines)
+    if any(k in q for k in ["mean-variance", "mean variance", "markowitz", "mv optim", "what is mean"]):
+        return "\n".join([
+            "Mean-variance optimisation (Markowitz, 1952) selects portfolio weights to maximise",
+            "expected return for a given level of risk (variance), or equivalently minimise risk",
+            "for a given return. Here we extend it with an ESG term:",
+            "",
+            " U = E[Rp] − (γ/2)·σ²p + λ·(ESG̅/100)",
+            "",
+            f"Your portfolio: E[R]={ep*100:.2f}%, σ={sp*100:.2f}%, SR={sr:.3f}",
+            f"The SLSQP solver finds weights w that maximise U subject to Σwᵢ ≤ 1, wᵢ ≥ 0 (no short-selling).",
+            f"With γ={gamma} and λ={lam}, the optimiser balances return, variance, and ESG simultaneously.",
+        ])
+    if any(k in q for k in ["risk-free rate", "risk free rate", "how does the risk-free", "effect of risk"]):
+        rf_pct = rf * 100
+        below_rf = [names[i] for i in range(n) if mu[i] < rf]
+        lines = [
+            f"The risk-free rate (rf = {rf_pct:.1f}%) defines the baseline: any asset must beat rf",
+            "to contribute positively to the Sharpe ratio and be worth holding.",
+            "",
+            f"CML slope = Sharpe ratio of the tangency portfolio = {sr_tan_all:.3f}",
+            f"Your portfolio SR = (E[Rp] − rf) / σp = ({ep*100:.2f}% − {rf_pct:.1f}%) / {sp*100:.2f}% = {sr:.3f}",
+        ]
+        if below_rf:
+            lines += ["", f"Assets with E[R] < rf ({rf_pct:.1f}%): {', '.join(below_rf)} — these naturally attract zero or near-zero weight."]
+        else:
+            lines += ["", f"All assets have E[R] > rf ({rf_pct:.1f}%), so all are potentially worth holding."]
+        lines += ["", "Raising rf shrinks the Sharpe ratio of every asset and tends to concentrate the portfolio."]
+        return "\n".join(lines)
+    if any(k in q for k in ["best risk-return", "risk-return tradeoff", "risk return", "best asset", "highest sharpe", "which assets have"]):
+        lines = ["Individual Sharpe ratios (E[R] − rf) / σ — higher is better:", ""]
+        for i in sorted_by_sr:
+            held = f", weight={w_opt[i]*100:.1f}%" if w_opt[i] > 0.001 else " (zero weight)"
+            lines.append(f" {names[i]}: SR={ind_sr[i]:.3f}, E[R]={mu[i]*100:.1f}%, σ={vols[i]*100:.1f}%{held}")
+        lines += ["", f"Best standalone: {names[best_sr_i]} (SR={ind_sr[best_sr_i]:.3f}). Portfolio SR={sr:.3f}."]
+        if sr > ind_sr[best_sr_i]:
+            lines.append("Diversification lifts portfolio SR above the best individual asset.")
+        return "\n".join(lines)
+    if any(k in q for k in ["diversif", "correlation benefit", "what does portfolio div"]):
+        cov_m = np.asarray(cov)
+        stds = np.array(vols)
+        corr = cov_m / np.outer(stds, stds)
+        w = np.asarray(w_opt)
+        weighted_avg_vol = float(np.dot(w, stds)) * 100
+        lines = [
+            "Diversification reduces portfolio risk below the weighted-average of individual risks.",
+            "",
+            f"Weighted-average σ of holdings: {weighted_avg_vol:.2f}%",
+            f"Actual portfolio σ: {sp*100:.2f}%",
+            f"Diversification benefit: {max(0, weighted_avg_vol - sp*100):.2f}% risk reduction",
+            "",
+            "This benefit comes from assets not moving in perfect lockstep (correlation < 1).",
+            "Key pairwise correlations (active assets):",
+        ]
+        active_idx = [i for i in range(n) if active_mask[i]]
+        pairs = []
+        for ii in range(len(active_idx)):
+            for jj in range(ii+1, len(active_idx)):
+                i, j = active_idx[ii], active_idx[jj]
+                pairs.append((corr[i, j], i, j))
+        pairs.sort(key=lambda x: x[0])
+        for c, i, j in pairs[:4]:
+            lines.append(f" {names[i]} & {names[j]}: ρ={c:.3f}")
+        return "\n".join(lines)
+    if any(k in q for k in ["correlation matrix", "interpret the corr", "correlation", "how do i interpret"]):
+        cov_m = np.asarray(cov)
+        stds = np.array(vols)
+        corr = cov_m / np.outer(stds, stds)
+        lines = [
+            "The correlation matrix shows how asset returns move together (−1 to +1).",
+            "ρ = +1: perfect co-movement.  ρ = 0: independent.  ρ = −1: perfect hedge.",
+            "Lower correlations = greater diversification benefit.",
+            "",
+            "Pairwise correlations (all assets):",
+        ]
+        for i in range(n):
+            for j in range(i+1, n):
+                lines.append(f" {names[i]} & {names[j]}: ρ={corr[i,j]:.3f}")
+        avg_corr = float(np.mean([corr[i,j] for i in range(n) for j in range(i+1,n)])) if n > 1 else 1.0
+        lines += ["", f"Average pairwise correlation: {avg_corr:.3f}"]
+        return "\n".join(lines)
+    if any(k in q for k in ["tighten", "stricter esg", "higher esg", "esg filter", "esg screen", "what happens if i"]):
+        excluded_now = [names[i] for i in range(n) if not active_mask[i]]
+        eligible_now = [names[i] for i in range(n) if active_mask[i]]
+        lines = [
+            f"Current ESG minimum: {esg_thresh:.1f}/10. {len(eligible_now)} assets pass, {len(excluded_now)} excluded.",
+            "",
+            f"Tightening the filter (e.g. to {min(esg_thresh+1.0, 10.0):.1f}+) would:",
+            "  • Remove additional low-ESG assets from the investable universe",
+            "  • Force the optimiser into a smaller feasible set",
+            "  • Shift the green frontier further RIGHT (higher σ for same return)",
+            "  • Increase the Sharpe cost of ESG investing",
+            "",
+        ]
+        if excluded_now:
+            lines.append(f"Already excluded: {', '.join(excluded_now)}")
+        else:
+            lines.append("No assets are currently excluded — any tightening will start removing assets.")
+        esg_sorted_eligible = sorted(eligible_now, key=lambda nm: esg_scores[names.index(nm)])
+        if esg_sorted_eligible:
+            nm = esg_sorted_eligible[0]; idx = names.index(nm)
+            lines.append(f"First to be excluded next: {nm} (ESG={esg_scores[idx]:.2f}/10)")
+        return "\n".join(lines)
+    if any(k in q for k in ["zero weight", "why zero", "not in portfolio", "excluded from", "gets no weight", "why do some"]):
+        zero_w = [i for i in range(n) if w_opt[i] < 0.001 and active_mask[i]]
+        nonzero_w = [i for i in range(n) if w_opt[i] >= 0.001]
+        lines = [
+            "Assets receive zero weight when the optimiser can achieve higher utility without them.",
+            "This is called a corner solution — long-only constraints (wᵢ ≥ 0) force it.",
+            "",
+            "Reasons an asset gets zeroed out:",
+            "  • Poor risk-adjusted return relative to held assets",
+            "  • High correlation with better-performing assets (redundant)",
+            "  • Low ESG score that drags down λ·ESG̅ term",
+            "",
+        ]
+        if zero_w:
+            lines.append("Zero-weight assets (eligible but not held):")
+            for i in zero_w:
+                lines.append(f"  {names[i]}: E[R]={mu[i]*100:.1f}%, σ={vols[i]*100:.1f}%, SR={ind_sr[i]:.3f}, ESG={esg_scores[i]:.2f}/10")
+        else:
+            lines.append("All eligible assets have positive weight in your portfolio.")
+        return "\n".join(lines)
+    if any(k in q for k in ["efficient frontier", "what is the efficient", "what is efficient"]):
+        return "\n".join([
+            "The efficient frontier is the set of portfolios that maximise expected return",
+            "for each level of risk (σ). No feasible portfolio lies above or to the left of it.",
+            "",
+            "Blue frontier: all assets in your universe — the broadest feasible set.",
+            "Green frontier: ESG-screened assets only — a smaller set, so it lies to the right.",
+            "",
+            f"Your portfolio: E[R]={ep*100:.2f}%, σ={sp*100:.2f}%, SR={sr:.3f}",
+            f"Blue tangency: E[R]={ep_tan_all*100:.2f}%, σ={sp_tan_all*100:.2f}%, SR={sr_tan_all:.3f}",
+            f"Green tangency: E[R]={ep_tan_esg*100:.2f}%, σ={sp_tan_esg*100:.2f}%, SR={sr_tan_esg:.3f}",
+            "",
+            "Your optimal point lies on the green frontier — it maximises U including ESG preference.",
+        ])
+    if any(k in q for k in ["how does risk affect", "risk affect", "risk affect my alloc", "effect of risk"]):
+        var_pen = gamma / 2 * sp ** 2
+        high_vol = sorted(range(n), key=lambda i: vols[i], reverse=True)
+        low_vol  = sorted(range(n), key=lambda i: vols[i])
+        lines = [
+            f"γ = {gamma} penalises variance: −(γ/2)·σ²p = −{var_pen*100:.3f}% in utility.",
+            f"This steers the optimiser away from volatile assets and toward lower-σ holdings.",
+            "",
+            f"Highest-σ asset: {names[high_vol[0]]} ({vols[high_vol[0]]*100:.1f}%, weight={w_opt[high_vol[0]]*100:.1f}%)",
+            f"Lowest-σ asset:  {names[low_vol[0]]}  ({vols[low_vol[0]]*100:.1f}%, weight={w_opt[low_vol[0]]*100:.1f}%)",
+            "",
+            f"Increasing γ would concentrate the portfolio toward {names[low_vol[0]]} and similar low-σ assets.",
+            f"Decreasing γ would allow more weight in higher-return, higher-σ assets.",
+            "",
+            "Weights sorted by individual σ:",
+        ]
+        for i in low_vol:
+            lines.append(f"  {names[i]}: σ={vols[i]*100:.1f}%, weight={w_opt[i]*100:.1f}%")
+        return "\n".join(lines)
     # fallback
     active = [(names[i], w_opt[i]) for i in range(n) if w_opt[i] > 0.001]
     lines = [f"Portfolio (γ={gamma}, λ={lam}): E[R]={ep*100:.2f}%, σ={sp*100:.2f}%, SR={sr:.3f}, ESG={esg_bar:.2f}/10", "", "Holdings:"]
