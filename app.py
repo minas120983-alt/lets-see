@@ -1276,9 +1276,10 @@ if "opt_results" in st.session_state and _page == "input":
     </div>""", unsafe_allow_html=True)
     # ── Chatbot ───────────────────────────────────────────────────────────────
     if "chat_history" not in st.session_state: st.session_state["chat_history"] = []
-    # § trigger buttons live in the sidebar — already CSS-hidden globally, zero main-layout impact
-    with st.sidebar:
-        for _ti, _tq in enumerate(SUGGESTED_QUESTIONS):
+    # § triggers in ONE row (st.columns) — only ~38px tall, hidden by iframe JS immediately
+    _trig_cols = st.columns(len(SUGGESTED_QUESTIONS))
+    for _ti, _tq in enumerate(SUGGESTED_QUESTIONS):
+        with _trig_cols[_ti]:
             if st.button(f"\u00a7{_ti}", key=f"_chtrig_{_ti}"):
                 st.session_state["chat_history"].append({"role": "user",      "content": _tq})
                 st.session_state["chat_history"].append({"role": "assistant", "content": answer_question(_tq)})
@@ -1351,6 +1352,23 @@ function triggerChip(idx) {{
     }}
   }} catch(e) {{}}
 }}
+/* Hide the § trigger row — all § buttons are in one stHorizontalBlock */
+function hideTriggerRow() {{
+  try {{
+    var bs = window.parent.document.querySelectorAll('button');
+    for (var i = 0; i < bs.length; i++) {{
+      if (bs[i].innerText && bs[i].innerText.trim().indexOf('\u00a7') === 0) {{
+        var row = bs[i].closest('[data-testid="stHorizontalBlock"]')
+               || bs[i].closest('[data-testid="element-container"]')
+               || bs[i].parentElement;
+        if (row) row.style.cssText = 'display:none!important;height:0!important;padding:0!important;margin:0!important;min-height:0!important;';
+        return; /* one find is enough — hiding the row hides all */
+      }}
+    }}
+  }} catch(e) {{}}
+}}
+hideTriggerRow();
+setTimeout(hideTriggerRow, 150);
 var m = document.getElementById('msgs'); if (m) m.scrollTop = m.scrollHeight;
 </script>
 </body></html>""", height=420, scrolling=False)
