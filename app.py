@@ -1275,13 +1275,14 @@ if "opt_results" in st.session_state and _page == "input":
     Green frontier + CML: ESG utility-max portfolio (restricted to assets passing the ESG screen). ESG data: LSEG ESGCombinedScore CSV, scaled 0–10.
     </div>""", unsafe_allow_html=True)
     # ── Chatbot ───────────────────────────────────────────────────────────────
-    # § trigger buttons rendered HERE (above the visible chatbot UI, hidden by iframe JS)
     if "chat_history" not in st.session_state: st.session_state["chat_history"] = []
-    for _ti, _tq in enumerate(SUGGESTED_QUESTIONS):
-        if st.button(f"\u00a7{_ti}", key=f"_chtrig_{_ti}"):
-            st.session_state["chat_history"].append({"role": "user",      "content": _tq})
-            st.session_state["chat_history"].append({"role": "assistant", "content": answer_question(_tq)})
-            st.rerun()
+    # § trigger buttons live in the sidebar — already CSS-hidden globally, zero main-layout impact
+    with st.sidebar:
+        for _ti, _tq in enumerate(SUGGESTED_QUESTIONS):
+            if st.button(f"\u00a7{_ti}", key=f"_chtrig_{_ti}"):
+                st.session_state["chat_history"].append({"role": "user",      "content": _tq})
+                st.session_state["chat_history"].append({"role": "assistant", "content": answer_question(_tq)})
+                st.rerun()
     st.markdown('<div class="section-header">Portfolio Explainer</div>', unsafe_allow_html=True)
     # ── Build messages HTML for the display iframe ────────────────────────────
     if not st.session_state["chat_history"]:
@@ -1350,42 +1351,6 @@ function triggerChip(idx) {{
     }}
   }} catch(e) {{}}
 }}
-/* Hide a § button's outermost Streamlit container */
-function hideBtn(btn) {{
-  try {{
-    var wrap = btn.closest('[data-testid="element-container"]')
-            || btn.closest('[data-testid="stButton"]')
-            || btn.parentElement;
-    if (wrap) wrap.style.cssText = 'display:none!important;height:0!important;padding:0!important;margin:0!important;min-height:0!important;';
-  }} catch(e) {{}}
-}}
-/* Scan all existing buttons and hide § ones */
-function hideTriggers() {{
-  try {{
-    var bs = window.parent.document.querySelectorAll('button');
-    for (var i = 0; i < bs.length; i++) {{
-      if (bs[i].innerText && bs[i].innerText.trim().indexOf('\u00a7') === 0) hideBtn(bs[i]);
-    }}
-  }} catch(e) {{}}
-}}
-/* Watch for § buttons added after iframe loads (they render after us) */
-try {{
-  var _obs = new MutationObserver(function(muts) {{
-    for (var m = 0; m < muts.length; m++) {{
-      var nodes = muts[m].addedNodes;
-      for (var j = 0; j < nodes.length; j++) {{
-        if (nodes[j].querySelectorAll) {{
-          var btns = nodes[j].querySelectorAll('button');
-          for (var k = 0; k < btns.length; k++) {{
-            if (btns[k].innerText && btns[k].innerText.trim().indexOf('\u00a7') === 0) hideBtn(btns[k]);
-          }}
-        }}
-      }}
-    }}
-  }});
-  _obs.observe(window.parent.document.body, {{childList: true, subtree: true}});
-}} catch(e) {{}}
-hideTriggers();
 var m = document.getElementById('msgs'); if (m) m.scrollTop = m.scrollHeight;
 </script>
 </body></html>""", height=420, scrolling=False)
