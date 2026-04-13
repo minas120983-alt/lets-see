@@ -1007,7 +1007,7 @@ if "opt_results" in st.session_state and _page == "input":
     m1, m2, m3, m4 = st.columns(4)
     for col, label, val, unit, cls, card_cls in [
         (m1, "Expected Return", f"{ep*100:.2f}", "%", "metric-pos", "card-ret"),
-        (m2, "σ",                f"{sp*100:.2f}", "%", "",            "card-vol"),
+        (m2, "Std. Deviation",   f"{sp*100:.2f}", "%", "",            "card-vol"),
         (m3, "Sharpe Ratio",    f"{sr:.3f}",      "",  "metric-pos" if sr > 0 else "metric-neg", "card-sr"),
         (m4, "ESG Score",       f"{esg_bar:.2f}", "/ 10", "metric-pos" if esg_bar >= 5 else "", "card-esg"),
     ]:
