@@ -551,9 +551,17 @@ if _page == "home":
     ctx.globalCompositeOperation='lighten';ctx.fillStyle=sp2;ctx.fillRect(0,0,W,H);ctx.globalCompositeOperation='source-over';
     var fd=ctx.createLinearGradient(0,H*.68,0,H);fd.addColorStop(0,'rgba(0,0,0,0)');fd.addColorStop(1,'rgba(0,0,0,.94)');ctx.fillStyle=fd;ctx.fillRect(0,0,W,H);
     requestAnimationFrame(draw)}resize();draw();
-    // Resize iframe to full viewport height so the hero fills the screen
-    (function(){try{var fe=window.frameElement;if(fe){fe.style.height=window.innerHeight+'px';fe.style.minHeight=window.innerHeight+'px';}}catch(e){}})();
-    window.addEventListener('resize',function(){try{var fe=window.frameElement;if(fe)fe.style.height=window.innerHeight+'px';}catch(e){}});
+    // Resize iframe to full viewport height — use parent's innerHeight, not iframe's
+    (function(){
+      try {
+        var fe = window.frameElement;
+        var vh = (window.parent && window.parent.innerHeight) ? window.parent.innerHeight : window.screen.height;
+        if (fe) { fe.style.height = vh + 'px'; fe.style.minHeight = vh + 'px'; }
+      } catch(e) {}
+    })();
+    window.parent && window.parent.addEventListener && window.parent.addEventListener('resize', function(){
+      try { var fe=window.frameElement; if(fe) fe.style.height=(window.parent.innerHeight)+'px'; } catch(e){}
+    });
     </script></body></html>"""
     components.html(_HOME_HTML, height=820, scrolling=False)
     # Native Streamlit button — no URL change, CSS handles centering
