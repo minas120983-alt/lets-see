@@ -643,7 +643,7 @@ if _page == "input":
         with cl:
             h = st.columns([2, 1.2, 1.2, 1.2])
             h[0].markdown("**Asset name**"); h[1].markdown("**E[R] (%)**")
-            h[2].markdown("**Std (%)**"); h[3].markdown("**ESG (0–10)**")
+            h[2].markdown("**σ (%)**"); h[3].markdown("**ESG (0–10)**")
             for i in range(int(n_assets)):
                 c0, c1, c2, c3 = st.columns([2, 1.2, 1.2, 1.2])
                 name = c0.text_input("", value=default_names[i], key=f"name_{i}", label_visibility="collapsed")
@@ -704,7 +704,7 @@ if _page == "input":
                     bc1, bc2, bc3 = st.columns(3)
                     bc1.markdown(f"**{t}**")
                     m_ret = bc2.number_input(f"{t} E[R] (%)", value=default_ret[def_idx], min_value=-50.0, max_value=200.0, step=0.5, format="%.1f", key=f"manual_ret_{t}")
-                    m_vol = bc3.number_input(f"{t} Std (%)",  value=default_vol[def_idx], min_value=0.1,   max_value=200.0, step=0.5, format="%.1f", key=f"manual_vol_{t}")
+                    m_vol = bc3.number_input(f"{t} σ (%)",  value=default_vol[def_idx], min_value=0.1,   max_value=200.0, step=0.5, format="%.1f", key=f"manual_vol_{t}")
                     manual_ret_vol[t] = {"ret": m_ret / 100.0, "vol": m_vol / 100.0}
             if missing_esg:
                 st.markdown(f'<div class="warn-box"><strong>Not in ESG CSV:</strong> {", ".join(missing_esg)}.</div>', unsafe_allow_html=True)
@@ -848,7 +848,7 @@ if _page == "input":
                         cov[i, j] = vols[i] ** 2; corr_np[i, j] = 1.0
             ticker_data_display = pd.DataFrame({
                 "Ticker": all_tickers, "Name": names,
-                "E[R] (%)": (mu * 100).round(2), "Std (%)": (vols * 100).round(2),
+                "E[R] (%)": (mu * 100).round(2), "σ (%)": (vols * 100).round(2),
                 "ESG Score (0–10)": [r["final_esg"] for r in resolved],
                 "LSEG Letter": [r["letter"] for r in resolved],
                 "ESG Year": [r["year"] for r in resolved], "ESG Source": [r["src"] for r in resolved],
@@ -1007,7 +1007,7 @@ if "opt_results" in st.session_state and _page == "input":
     m1, m2, m3, m4 = st.columns(4)
     for col, label, val, unit, cls, card_cls in [
         (m1, "Expected Return", f"{ep*100:.2f}", "%", "metric-pos", "card-ret"),
-        (m2, "Risk",             f"{sp*100:.2f}", "%", "",            "card-vol"),
+        (m2, "σ",                f"{sp*100:.2f}", "%", "",            "card-vol"),
         (m3, "Sharpe Ratio",    f"{sr:.3f}",      "",  "metric-pos" if sr > 0 else "metric-neg", "card-sr"),
         (m4, "ESG Score",       f"{esg_bar:.2f}", "/ 10", "metric-pos" if esg_bar >= 5 else "", "card-esg"),
     ]:
@@ -1035,7 +1035,7 @@ if "opt_results" in st.session_state and _page == "input":
         "Asset": _display_names,
         "Weight (%)": _display_w,
         "E[R] (%)": _display_ret,
-        "Std (%)": _display_vol,
+        "σ (%)": _display_vol,
         "ESG (0–10)": _display_esg,
     }), use_container_width=True, hide_index=True)
     # ── Corner solution detection ────────────────────────────────────────────────
@@ -1137,7 +1137,7 @@ if "opt_results" in st.session_state and _page == "input":
             ax.annotate(names[i], (vols[i] * 100, mu[i] * 100),
                         textcoords="offset points", xytext=(4, 3), fontsize=7, color=GREY)
 
-        ax.set_xlabel("Std (%)", fontsize=9, color=GREY)
+        ax.set_xlabel("σ (%)", fontsize=9, color=GREY)
         ax.set_ylabel("Expected Return (%)", fontsize=9, color=GREY)
         ax.set_xlim(0, max(all_stds) + x_pad)
         ax.set_ylim(rf * 100 - y_pad, max(all_rets) + y_pad)
@@ -1290,8 +1290,42 @@ if "opt_results" in st.session_state and _page == "input":
                 _msgs_inner += f'<div class="bubble-row user-row"><div class="bubble bubble-u">{_safe}</div></div>'
             else:
                 _msgs_inner += f'<div class="bubble-row bot-row"><div class="bot-mini-avatar">GP</div><div class="bubble bubble-b">{_safe}</div></div>'
+    # ── Pre-hide observer: injected BEFORE § buttons so they're hidden before paint ──
+    components.html("""<!DOCTYPE html><html><head></head><body><script>
+(function(){
+  function hideBtn(btn){
+    var t = btn.closest('[data-testid="element-container"]')
+          || btn.closest('[data-testid="stButton"]')
+          || btn.parentElement;
+    if(t) t.style.cssText='display:none!important;height:0!important;padding:0!important;margin:0!important;min-height:0!important;';
+  }
+  function scan(){
+    var bs=window.parent.document.querySelectorAll('button');
+    for(var i=0;i<bs.length;i++){
+      var txt=bs[i].innerText?bs[i].innerText.trim():'';
+      if(txt.charCodeAt(0)===167) hideBtn(bs[i]);
+    }
+  }
+  var obs=new MutationObserver(function(muts){
+    for(var m=0;m<muts.length;m++){
+      var nodes=muts[m].addedNodes;
+      for(var j=0;j<nodes.length;j++){
+        if(nodes[j].querySelectorAll){
+          var btns=nodes[j].querySelectorAll('button');
+          for(var k=0;k<btns.length;k++){
+            var t=btns[k].innerText?btns[k].innerText.trim():'';
+            if(t.charCodeAt(0)===167) hideBtn(btns[k]);
+          }
+        }
+      }
+    }
+  });
+  obs.observe(window.parent.document.body,{childList:true,subtree:true});
+  scan();
+})();
+</script></body></html>""", height=0, scrolling=False)
     # ── Hidden Streamlit chip triggers (clicked by iframe JS, same pattern as home page) ──
-    # Rendered BEFORE the iframe so they exist in the parent DOM when iframe JS runs.
+    # Rendered AFTER the observer so buttons are hidden before browser paints them.
     for _ti, _tq in enumerate(SUGGESTED_QUESTIONS):
         if st.button(f"\u00a7{_ti}", key=f"_chtrig_{_ti}"):
             st.session_state["chat_history"].append({"role": "user",      "content": _tq})
@@ -1357,15 +1391,16 @@ function hideTriggers() {{
     var bs = window.parent.document.querySelectorAll('button');
     for (var i = 0; i < bs.length; i++) {{
       if (bs[i].innerText && bs[i].innerText.trim().indexOf('\u00a7') === 0) {{
-        var wrap = bs[i].closest('[data-testid="stButton"]') || bs[i].parentElement;
-        if (wrap) wrap.style.cssText = 'position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;overflow:hidden!important;';
+        var wrap = bs[i].closest('[data-testid="element-container"]')
+                || bs[i].closest('[data-testid="stButton"]')
+                || bs[i].parentElement;
+        if (wrap) wrap.style.cssText = 'display:none!important;height:0!important;padding:0!important;margin:0!important;min-height:0!important;';
       }}
     }}
   }} catch(e) {{}}
 }}
 hideTriggers();
 setTimeout(hideTriggers, 200);
-setTimeout(hideTriggers, 800);
 var m = document.getElementById('msgs'); if (m) m.scrollTop = m.scrollHeight;
 </script>
 </body></html>""", height=420, scrolling=False)
